@@ -72,6 +72,11 @@
 .camera-mode > span { font-size: 10px; color: var(--muted); }
 .camera-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #292623; transform: scaleX(-1); }
 .camera-hidden { opacity: 0; pointer-events: none; }
+.remote-video { transform: none; }
+.poc-empty { position: absolute; inset: 0; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 10px; color: var(--muted); text-align: center; padding: 30px; }
+.poc-empty span { font-size: 11px; }
+.poc-note { margin: 12px 12px 16px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.poc-chip { font-size: 11px; border-radius: 16px; padding: 5px 10px; background: #fffefaf2; color: var(--accent); }
 .mirror-stage:has(.camera-video:not(.camera-hidden)) .stage-label,
 .mirror-stage:has(.camera-video:not(.camera-hidden)) .stage-bottomline { background: #fffefaf2; border-radius: 10px; padding: 6px 9px; }
 .mirror-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; height: 58px; padding: 0 12px; }
