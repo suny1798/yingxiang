@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f8f7f4">
+  <meta name="description" content="映想，让想象，在眼前发生。实时画面创作的本地交互原型，首个体验场景为实时换装。">
+  <title>映想 — 让想象，在眼前发生。</title>
+  <link rel="icon" href="assets/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-definitions" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5"/></symbol>
+      <symbol id="i-camera" viewBox="0 0 24 24"><path d="M4 7h4l2-3h4l2 3h4v13H4z"/><circle cx="12" cy="13" r="3.5"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></symbol>
+      <symbol id="i-hanger" viewBox="0 0 24 24"><path d="M9.5 6a2.5 2.5 0 1 1 4.3 1.7L12 9v2l9 6v2H3v-2l9-6"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+      <symbol id="i-switch" viewBox="0 0 24 24"><path d="M4 8h15m-4-4 4 4-4 4M20 16H5m4-4-4 4 4 4"/></symbol>
+    </defs>
+  </svg>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="wordmark" href="./" aria-label="映想首页">映想<span class="brand-dot" aria-hidden="true">✳</span></a>
+      <nav aria-label="主导航">
+        <a class="nav-link active" href="#creative-space" aria-current="page">创作空间</a>
+        <button class="nav-link" type="button" data-open="guide-dialog">体验指南<span aria-hidden="true"> ↗</span></button>
+      </nav>
+      <button class="invitation" type="button" data-open="invite-dialog"><span class="status-dot"></span><span id="invitation-label">受邀体验</span><svg class="icon"><use href="#i-arrow"/></svg></button>
+    </div>
+  </header>
+
+  <main id="creative-space" class="page-shell">
+    <section class="intro" aria-labelledby="page-title">
+      <div>
+        <p class="eyebrow">映想 · 实时画面创作</p>
+        <h1 id="page-title">让想象，<span>在眼前发生。</span></h1>
+      </div>
+      <p class="intro-copy">从实时换装开始，探索画面的更多可能。<br><span>提示词创作、室内背景、宠物与摆件等场景规划中。</span></p>
+    </section>
+
+    <div class="workspace">
+      <section class="garment-panel panel" aria-labelledby="garment-title">
+        <div class="section-heading"><h2 id="garment-title">选一张参考图</h2><svg class="icon subtle"><use href="#i-hanger"/></svg></div>
+        <p class="section-description">当前体验：实时换装，从一件上衣开始。</p>
+
+        <input id="file-input" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-label="选择服装参考图">
+        <button id="upload-button" class="upload-zone" type="button" aria-label="上传或替换参考图" aria-describedby="file-help">
+          <span id="upload-empty" class="upload-empty"><span class="upload-icon"><svg class="icon"><use href="#i-upload"/></svg></span><strong>上传服装参考图</strong><span>点击选择，或将灵感拖到这里</span></span>
+          <span id="garment-preview" class="garment-preview" hidden><img id="uploaded-image" alt="所选服装参考图" hidden><svg id="sample-preview" viewBox="0 0 200 210" aria-label="换装灵感插画"><use href="assets/garments.svg#shirt"/></svg><span class="replace-label"><svg class="icon"><use href="#i-switch"/></svg>更换参考图</span></span>
+        </button>
+        <div class="upload-meta"><span id="file-help">JPG、PNG、WebP · 最大 10MB</span><button id="clear-image" class="text-button" type="button" hidden>移除</button></div>
+        <p id="image-error" class="inline-error" role="alert" hidden></p>
+
+        <div class="sample-heading"><span>也可以从这些灵感试起</span><span class="mini-label">示意素材</span></div>
+        <div class="sample-grid" role="group" aria-label="选择换装灵感">
+          <button class="sample-card" type="button" data-garment="shirt" aria-label="选择云白衬衫" aria-pressed="false"><span class="sample-art"><svg viewBox="0 0 200 210" aria-hidden="true"><use href="assets/garments.svg#shirt"/></svg></span><span>云白衬衫</span><span class="sample-selected" aria-hidden="true">✓</span></button>
+          <button class="sample-card" type="button" data-garment="knit" aria-label="选择莓果针织" aria-pressed="false"><span class="sample-art berry"><svg viewBox="0 0 200 210" aria-hidden="true"><use href="assets/garments.svg#knit"/></svg></span><span>莓果针织</span><span class="sample-selected" aria-hidden="true">✓</span></button>
+          <button class="sample-card" type="button" data-garment="jacket" aria-label="选择苔绿外套" aria-pressed="false"><span class="sample-art sage"><svg viewBox="0 0 200 210" aria-hidden="true"><use href="assets/garments.svg#jacket"/></svg></span><span>苔绿外套</span><span class="sample-selected" aria-hidden="true">✓</span></button>
+        </div>
+
+        <div class="consent-block">
+          <label class="consent-label"><input id="consent" type="checkbox"><span>我已了解：参考图与相机画面会发送至云端处理。</span></label>
+          <button class="text-button consent-details" type="button" data-open="privacy-dialog">了解画面如何处理 <span aria-hidden="true">↗</span></button>
+        </div>
+        <p class="privacy-note"><svg class="icon"><use href="#i-lock"/></svg>不采集音频 · 不默认录制你的画面</p>
+      </section>
+
+      <section class="mirror-panel panel" aria-labelledby="mirror-title">
+        <div class="mirror-heading"><h2 id="mirror-title">画面预览 <span>当前场景 · 实时换装</span></h2><span id="session-status" class="session-status" role="status" aria-live="polite"><span class="status-dot neutral"></span><span id="status-text">等待开始</span></span></div>
+
+        <div id="mirror-stage" class="mirror-stage" data-state="idle">
+          <div class="stage-topline"><span class="stage-label"><svg class="icon"><use href="#i-camera"/></svg><span id="camera-label">相机未开启</span></span><span id="timer" class="timer" aria-label="剩余体验时间" hidden>01:00</span></div>
+          <span class="mirror-stitch top-left" aria-hidden="true"></span><span class="mirror-stitch bottom-right" aria-hidden="true"></span>
+          <div class="studio-art"><img src="assets/fitting-room.svg" alt="映想实时换装场景的人台插画，仅作界面示意，不代表实际生成结果" draggable="false"></div>
+          <div class="art-caption"><span class="caption-line"></span><span>给眼前的世界<br>一点新想象</span></div>
+          <span class="illustration-label">创作示意 · 非生成结果</span>
+
+          <div id="stage-overlay" class="stage-overlay" hidden>
+            <div id="overlay-icon" class="overlay-icon"><svg class="icon"><use href="#i-camera"/></svg></div>
+            <h3 id="overlay-title">正在准备映想画面</h3><p id="overlay-description">稍等片刻，让灵感就位。</p>
+          </div>
+          <div id="view-label" class="view-label" hidden>映想画面 · 界面演示</div>
+          <div class="stage-bottomline"><span id="stage-hint">画面保持清晰，让上半身进入镜头。</span><span class="sound-off">不采集音频</span></div>
+        </div>
+
+        <div class="mirror-controls">
+          <div class="view-switch" role="group" aria-label="画面切换"><button id="view-ai" type="button" class="selected" aria-pressed="true" disabled>映想画面</button><button id="view-original" type="button" aria-pressed="false" disabled>原始画面</button></div>
+          <div class="session-actions"><button id="stop-button" type="button" class="stop-button" hidden><span class="stop-square"></span>结束体验</button><button id="start-button" type="button" class="primary-button" disabled><svg class="icon"><use href="#i-camera"/></svg><span id="start-label">开启映想</span><svg class="icon arrow"><use href="#i-arrow"/></svg></button></div>
+        </div>
+        <div class="control-note"><p id="action-hint">选好参考图，了解处理方式，即可开启映想。</p><span>每次体验最多 60 秒</span></div>
+      </section>
+    </div>
+
+    <section class="gentle-guide" aria-label="让灵感更好地呈现"><p><svg class="icon"><use href="#i-hanger"/></svg><span>清晰参考，轻松开始</span></p><p><svg class="icon"><use href="#i-sun"/></svg><span>自然光线，画面更清楚</span></p><p><svg class="icon"><use href="#i-close"/></svg><span>随时结束，由你决定</span></p></section>
+    <footer class="page-footer"><span>映想 <span class="footer-dot">·</span> 让想象，在眼前发生。</span><div><button class="text-button" type="button" data-open="privacy-dialog">画面与隐私</button><span>当前换装场景仅作视觉展示，不提供尺码建议</span></div></footer>
+  </main>
+
+  <aside class="review-bar" aria-label="映想原型预览工具"><span class="prototype-badge">映想 · UI 原型 V1</span><p>仅演示界面，不启用相机、不发送图片。</p><details class="scenario-menu"><summary>预览体验状态 <span aria-hidden="true">⌃</span></summary><div class="scenario-options"><label for="scenario">下次开启映想时演示</label><select id="scenario"><option value="normal">正常体验流程</option><option value="camera-denied">相机权限被拒绝</option><option value="capacity">体验人数暂满</option><option value="quota">今日体验次数已用完</option><option value="connection-error">连接暂时失败</option></select><button id="simulate-network" type="button" class="scenario-action">演示连接中断</button><button id="reset-prototype" type="button" class="scenario-action">重新体验原型</button><a href="../../docs/06-UI视觉设计方案.md">查看映想设计说明 ↗</a></div></details></aside>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><span class="eyebrow">映想 · 体验指南</span><button class="icon-button" type="button" data-close aria-label="关闭体验指南"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="guide-title">从一个灵感，<br>看见另一种可能。</h2><ol class="guide-steps"><li><strong>先从实时换装开始</strong><p>选择一张清晰的上衣参考图，或使用示意素材体验流程。</p></li><li><strong>让相机画面准备就绪</strong><p>正式使用时，在自然光下让上半身进入镜头；当前原型不启用相机。</p></li><li><strong>边看边换，随时结束</strong><p>体验中可以更换参考图、对比原始画面，按下结束即可退出。</p></li></ol><p class="dialog-footnote">提示词创作、室内背景、宠物与摆件等方向正在规划中，当前尚未开放。</p><button class="primary-button dialog-primary" type="button" data-close>回到创作空间 <svg class="icon"><use href="#i-arrow"/></svg></button></dialog>
+
+  <dialog id="privacy-dialog" aria-labelledby="privacy-title"><div class="dialog-heading"><span class="eyebrow">你的画面，由你决定</span><button class="icon-button" type="button" data-close aria-label="关闭画面与隐私说明"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="privacy-title">开启映想前，<br>先了解画面如何处理。</h2><div class="privacy-copy"><p>正式体验中，你选择的参考图片与相机视频会发送给云端模型服务，用于生成画面。首个体验场景为实时换装。</p><p>映想不采集麦克风音频，不默认录制相机或生成视频；你可以随时结束体验。</p><p>模型服务的数据处理及留存条件需在正式接入时核实，并在这里明确展示。换装场景仅作视觉展示，不提供真实尺码或合身保证。</p><p class="prototype-callout">当前为本地原型，不访问相机、不连接模型、不发送图片。参考图仅在当前页面预览。</p></div><button class="primary-button dialog-primary" type="button" data-close>了解，继续探索 <svg class="icon"><use href="#i-check"/></svg></button></dialog>
+
+  <dialog id="invite-dialog" aria-labelledby="invite-title"><div class="dialog-heading"><span class="eyebrow">映想 · 受邀体验</span><button class="icon-button" type="button" data-close aria-label="关闭受邀体验说明"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="invite-title">为你的想象，<br>留一个位置。</h2><p class="invite-copy">映想将通过邀请码开放首批体验。你可以先在这里看看受邀流程。</p><form id="invite-form"><label class="field-label" for="invite-code">邀请码</label><input id="invite-code" class="text-field" placeholder="原型示意码：YINGXIANG" maxlength="32" autocomplete="off" required><p id="invite-error" class="inline-error" role="alert" hidden></p><button class="primary-button dialog-primary" type="submit">进入映想 <svg class="icon"><use href="#i-arrow"/></svg></button></form><p class="dialog-footnote">此处仅演示受邀流程，不开通真实账户或服务。</p></dialog>
+</body>
+</html>

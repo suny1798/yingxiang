@@ -1,0 +1,28 @@
+# 依赖与构建产物
+node_modules/
+.next/
+out/
+dist/
+.cache/
+*.tsbuildinfo
+
+# 本地密钥；只允许提交无真实值的配置示例
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+
+# 自动生成的测试文件；正式验收报告保存在 docs/reports/
+coverage/
+playwright-report/
+test-results/
+.playwright-mcp/
+output/playwright/
+*.log
+
+# 系统与编辑器临时文件
+.DS_Store
+Thumbs.db
+~$*
