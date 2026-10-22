@@ -27,10 +27,13 @@ export interface ConnectOptions {
   scenario: Scenario;
   signal: AbortSignal;
   onPhase: (phase: 'requestingCamera' | 'creatingSession' | 'connecting') => void;
+  onError?: (error: Error) => void;
 }
 
 export interface TryOnAdapter {
   readonly mode: 'mock' | 'real';
+  readonly hasLocalCamera?: boolean;
+  readonly initialView?: View;
   connect(options: ConnectOptions): Promise<void>;
   updateGarment(garment: Garment, signal: AbortSignal): Promise<void>;
   reconnect(signal: AbortSignal): Promise<void>;

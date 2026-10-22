@@ -7,7 +7,7 @@ export const PUBLIC_CONFIG = {
   maxDurationSec: MAX_DURATION_SEC,
   consentVersion: CONSENT_VERSION,
   image: { ...IMAGE_LIMITS, mimeTypes: ALLOWED_MIMES },
-  features: { camera: false, realtime: false, invitations: false, promptEditing: false },
+  features: { camera: true, realtime: false, invitations: false, promptEditing: false },
 } as const;
 
 export interface ApiError { error: { code: string; message: string; retryable: boolean }; requestId: string }

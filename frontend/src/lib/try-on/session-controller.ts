@@ -37,7 +37,7 @@ export class SessionController {
     }
   }
 
-  setConsent(consent: boolean): void { if (!consent) this.stop('你已取消云端处理确认，本次体验已结束。'); this.patch({ consent }); }
+  setConsent(consent: boolean): void { if (!consent) this.stop('你已取消画面处理确认，本次体验已结束。'); this.patch({ consent }); }
   setScenario(scenario: Scenario): void { this.patch({ scenario }); }
   setView(view: View): void { if (['live', 'updatingGarment'].includes(this.snapshot.phase)) this.patch({ view }); }
 
@@ -60,9 +60,9 @@ export class SessionController {
     this.cancelWork();
     const operation = new AbortController();
     this.work = operation;
-    this.patch({ phase: 'requestingCamera', message: null, deadlineAt: null, remainingSeconds: Math.ceil(this.durationMs / 1000), view: 'generated' });
+    this.patch({ phase: 'requestingCamera', message: null, deadlineAt: null, remainingSeconds: Math.ceil(this.durationMs / 1000), view: this.adapter.initialView ?? (this.adapter.hasLocalCamera ? 'original' : 'generated') });
     try {
-      await this.adapter.connect({ garment, scenario, signal: operation.signal, onPhase: (phase) => {
+      await this.adapter.connect({ garment, scenario, signal: operation.signal, onError: (error) => this.handleError(error, operation.signal), onPhase: (phase) => {
         if (!this.isCurrent(operation.signal)) return;
         if (phase === 'connecting') this.beginDeadline();
         this.patch({ phase });

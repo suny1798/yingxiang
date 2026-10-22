@@ -25,7 +25,7 @@ for (const route of ['config', 'health']) {
   assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
   assert.equal(value.mode, 'mock'); assert.doesNotMatch(JSON.stringify(value), /apiKey|DECART_API_KEY/);
-  if (route === 'config') assert.equal(value.features.realtime, false);
+  if (route === 'config') { assert.equal(value.features.realtime, false); assert.equal(value.features.camera, true); }
   else { assert.equal(value.providerReady, false); assert.equal(value.storageReady, false); }
   console.log(`PASS GET /api/v1/${route}`);
 }
@@ -38,5 +38,5 @@ for (const route of ['access/redeem', 'sessions', 'sessions/test/token', 'sessio
   console.log(`PASS POST /api/v1/${route} → 503 SERVICE_DISABLED`);
 }
 assert.equal((await fetchLocal('/api/v1/sessions/test/token')).status, 405);
-for (const path of ['/.env.example', '/.git/config', '/src/lib/server/http.ts']) assert.equal((await fetchLocal(path)).status, 404);
+for (const path of ['/.env.example', '/.git/config', '/src/lib/server/http.ts', '/frontend/.env.example', '/frontend/src/lib/server/http.ts']) assert.equal((await fetchLocal(path)).status, 404);
 console.log('PASS 方法限制及非公开源码路径');

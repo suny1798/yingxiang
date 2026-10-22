@@ -11,7 +11,7 @@ import { POST as end } from '../src/app/api/v1/sessions/[id]/end/route';
 test('公开配置明确模拟模式且不含凭据', async () => {
   const response = config(), value = await response.json();
   assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
-  assert.equal(value.mode, 'mock'); assert.equal(value.features.realtime, false); assert.equal(value.features.camera, false);
+  assert.equal(value.mode, 'mock'); assert.equal(value.features.realtime, false); assert.equal(value.features.camera, true);
   assert.doesNotMatch(JSON.stringify(value), /apiKey|DECART_API_KEY|token/i);
 });
 test('健康检查区分应用健康和模型/存储尚未配置', async () => {

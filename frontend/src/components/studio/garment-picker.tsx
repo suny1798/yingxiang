@@ -23,11 +23,11 @@ export function GarmentPicker({ snapshot, input, onConsent, onPrivacy }: {
       </span>}
     </button>
     <div className={styles['upload-meta']}><span id="file-help">JPG、PNG、WebP · 最大10MB</span>{garment && <button className={styles['text-button']} onClick={input.clear} type="button">移除</button>}</div>
-    {input.processing && <p role="status" className={styles['section-description']}>正在本地处理参考图，原有图片保持可用。</p>}
+    {input.processing && <p role="status" className={styles['section-description']}>正在本地处理参考图，原有图片保持可用。<button type="button" className={styles['text-button']} onClick={input.cancel}>取消处理</button></p>}
     {input.error && <p className={styles['inline-error']} role="alert">{input.error}</p>}
     <div className={styles['sample-heading']}><span>也可以从这些灵感试起</span><span className={styles['mini-label']}>示意素材</span></div>
     <div className={styles['sample-grid']} role="group" aria-label="选择换装灵感">{SAMPLES.map((item) => <button className={styles['sample-card']} key={item.id} type="button" aria-label={`选择${item.name}`} aria-pressed={garment?.sampleId === item.id} onClick={() => input.sample(item.id)}><span className={`${styles['sample-art']} ${styles[item.tone] ?? ''}`}><svg viewBox="0 0 200 210" aria-hidden="true"><use href={`/assets/garments.svg#${item.id}`} /></svg></span><span>{item.name}</span><span className={styles['sample-selected']} aria-hidden="true">✓</span></button>)}</div>
-    <div className={styles['consent-block']}><label className={styles['consent-label']}><input type="checkbox" checked={snapshot.consent} onChange={(event) => onConsent(event.target.checked)} /><span>我已了解：正式体验时，参考图与相机画面会发送至云端处理。</span></label><button className={`${styles['text-button']} ${styles['consent-details']}`} type="button" onClick={onPrivacy}>了解画面如何处理 ↗</button></div>
+    <div className={styles['consent-block']}><label className={styles['consent-label']}><input type="checkbox" checked={snapshot.consent} onChange={(event) => onConsent(event.target.checked)} /><span>我已了解：当前相机与参考图仅在本地预览；生成画面为模拟，不上传、不录制。</span></label><button className={`${styles['text-button']} ${styles['consent-details']}`} type="button" onClick={onPrivacy}>了解画面如何处理 ↗</button></div>
     <p className={styles['privacy-note']}><Icon name="lock" />不采集音频 · 不默认录制你的画面</p>
   </section>;
 }

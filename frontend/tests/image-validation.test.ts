@@ -27,7 +27,31 @@ test('拒绝APNG、截断PNG和越界块', () => {
   assert.throws(() => validateImageHeader(corrupt, 'image/png', 45), /损坏/);
 });
 test('拒绝动态WebP与截断VP8X', () => {
-  const bytes = new Uint8Array(30); bytes.set(Buffer.from('RIFF')); bytes.set(Buffer.from('WEBP'), 8); bytes.set(Buffer.from('VP8X'), 12); bytes[20] = 2;
+  const bytes = new Uint8Array(30); bytes.set(Buffer.from('RIFF')); new DataView(bytes.buffer).setUint32(4, 22, true); bytes.set(Buffer.from('WEBP'), 8); bytes.set(Buffer.from('VP8X'), 12); new DataView(bytes.buffer).setUint32(16, 10, true); bytes[20] = 2;
   assert.throws(() => validateImageHeader(bytes, 'image/webp', bytes.length), /动图/);
   assert.throws(() => validateImageHeader(bytes.slice(0, 18), 'image/webp', 18), /不完整/);
+});
+
+test('JPEG基线及渐进图在解码前验证尺寸，拒绝超大或截断段', () => {
+  for (const marker of [192, 194]) {
+    const bytes = new Uint8Array([255,216,255,marker,0,11,8,0,200,1,44,1,1,17,0,255,217]);
+    assert.doesNotThrow(() => validateImageHeader(bytes, 'image/jpeg', bytes.length));
+    const huge = bytes.slice(); new DataView(huge.buffer).setUint16(7, 20_000); new DataView(huge.buffer).setUint16(9, 20_000);
+    assert.throws(() => validateImageHeader(huge, 'image/jpeg', huge.length), /像素/);
+    assert.throws(() => validateImageHeader(bytes.slice(0, 8), 'image/jpeg', 8), /损坏/);
+  }
+});
+
+test('WebP有损和无损图均在解码前限制像素', () => {
+  for (const lossless of [false, true]) {
+    const bytes = new Uint8Array(lossless ? 26 : 30), data = new DataView(bytes.buffer);
+    bytes.set(Buffer.from('RIFF')); data.setUint32(4, bytes.length - 8, true); bytes.set(Buffer.from('WEBP'), 8);
+    bytes.set(Buffer.from(lossless ? 'VP8L' : 'VP8 '), 12); data.setUint32(16, lossless ? 5 : 10, true);
+    if (lossless) { bytes[20] = 47; data.setUint32(21, 299 | (199 << 14), true); }
+    else { bytes.set([157, 1, 42], 23); data.setUint16(26, 300, true); data.setUint16(28, 200, true); }
+    assert.doesNotThrow(() => validateImageHeader(bytes, 'image/webp', bytes.length));
+    if (lossless) data.setUint32(21, 9999 | (9999 << 14), true);
+    else { data.setUint16(26, 10_000, true); data.setUint16(28, 10_000, true); }
+    assert.throws(() => validateImageHeader(bytes, 'image/webp', bytes.length), /像素/);
+  }
 });
