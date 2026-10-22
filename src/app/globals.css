@@ -1,0 +1,30 @@
+:root {
+  color-scheme: light;
+  --paper: #f8f7f4;
+  --surface: #fffefa;
+  --ink: #292622;
+  --muted: #756f69;
+  --accent: #793d50;
+  --accent-hover: #633042;
+  --accent-soft: #f0e3e6;
+  --line: #e5e1dc;
+  --stage: #eeebe6;
+  --sage: #64715b;
+  --error: #9b4037;
+  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.6 var(--font-body); padding-bottom: 0; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button, a { touch-action: manipulation; }
+button { cursor: pointer; }
+button { color: inherit; }
+button:disabled { cursor: not-allowed; }
+a { color: inherit; text-decoration: none; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; }
+button, a, input, select { transition: background .18s, color .18s, border-color .18s, box-shadow .18s; }
+button { -webkit-appearance: none; }
+[hidden] { display: none !important; }
+h1, h2, h3, p { margin: 0; }
