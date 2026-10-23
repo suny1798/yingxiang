@@ -8,10 +8,11 @@ import { POST as redeem } from '../src/app/api/v1/access/redeem/route';
 import { POST as heartbeat } from '../src/app/api/v1/sessions/[id]/heartbeat/route';
 import { POST as end } from '../src/app/api/v1/sessions/[id]/end/route';
 
-test('公开配置明确模拟模式且不含凭据', async () => {
+test('公开配置明确真实入口与时限，且不含凭据', async () => {
   const response = config(), value = await response.json();
   assert.equal(response.status, 200); assert.equal(response.headers.get('cache-control'), 'no-store');
-  assert.equal(value.mode, 'mock'); assert.equal(value.features.realtime, false); assert.equal(value.features.camera, true);
+  assert.equal(value.mode, 'real'); assert.equal(value.features.realtime, process.env.YINGXIANG_STUDIO_ENABLED === 'true' && !!process.env.DECART_API_KEY?.trim()); assert.equal(value.features.camera, true);
+  assert.equal(value.maxDurationSec, 60); assert.equal(value.defaultDurationSec, 15); assert.deepEqual(value.durationOptions, [15, 30, 60]);
   assert.doesNotMatch(JSON.stringify(value), /apiKey|DECART_API_KEY|token/i);
 });
 test('健康检查区分应用健康和模型/存储尚未配置', async () => {

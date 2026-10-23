@@ -1,25 +1,21 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { Icon } from './icon';
 import styles from './studio.module.css';
 
-export type DialogKind = 'guide' | 'privacy' | 'invite' | null;
+export type DialogKind = 'guide' | 'privacy' | null;
 
 export function InfoDialog({ kind, onClose }: { kind: DialogKind; onClose: () => void }) {
   const dialog = useRef<HTMLDialogElement>(null);
-  const [code, setCode] = useState('');
-  const [inviteError, setInviteError] = useState<string | null>(null);
-  const [inviteDemo, setInviteDemo] = useState(false);
   useEffect(() => {
     if (kind && !dialog.current?.open) dialog.current?.showModal();
     if (!kind && dialog.current?.open) dialog.current.close();
   }, [kind]);
   return <dialog ref={dialog} aria-labelledby="dialog-title" onCancel={(event) => { event.preventDefault(); onClose(); }} onClick={(event) => { if (event.target !== event.currentTarget) return; const r = event.currentTarget.getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) onClose(); }}>
-    <div className={styles['dialog-heading']}><span className={styles.eyebrow}>{kind === 'guide' ? '映想 · 体验指南' : kind === 'privacy' ? '你的画面，由你决定' : '映想 · 受邀体验'}</span><button className={styles['icon-button']} type="button" onClick={onClose} aria-label="关闭说明"><Icon name="close" /></button></div>
-    {kind === 'guide' && <><h2 id="dialog-title">从一个灵感，<br />看见另一种可能。</h2><ol className={styles['guide-steps']}><li><strong>先从实时换装开始</strong><p>选择一张清晰的上衣参考图，或使用示意素材体验流程。</p></li><li><strong>让画面准备就绪</strong><p>选择真实相机预览后，主动开启并允许相机；原画只在本地显示。也可以选择仅模拟流程，不开启相机。</p></li><li><strong>边看边换，随时结束</strong><p>体验中可以更换参考图、查看本地原画或模拟示意；AI换装尚未接入。结束、切后台或离开页面会关闭相机。</p></li></ol><p className={styles['dialog-footnote']}>提示词创作、室内背景、宠物与摆件等方向仍在规划中。</p></>}
-    {kind === 'privacy' && <><h2 id="dialog-title">开启映想前，<br />先了解画面如何处理。</h2><div className={styles['privacy-copy']}><p>正式接入后，参考图与相机视频将按明确告知的用途发送给云端模型，首个场景为实时换装。</p><p>当前可主动开启真实相机，仅在浏览器内预览；不请求麦克风，不上传参考图或视频，不录制或保存画面。仅模拟流程不会申请相机。</p><p>真实模型的数据处理与留存条件需在接入前核实，换装效果不提供真实尺码或合身保证。</p><p className={styles['prototype-callout']}>你选择的图片只在浏览器内处理；刷新或离开后不恢复。人台插画为Mock模拟，切换标签不会产生AI换装视频。本地原画以镜像方式显示，并保留完整比例。</p></div></>}
-    {kind === 'invite' && <><h2 id="dialog-title">为你的想象，<br />留一个位置。</h2><p className={styles['invite-copy']}>正式邀请系统尚未启用。输入示意码可以走查界面，不会创建账号或取得真实访问资格。</p><form onSubmit={(event) => { event.preventDefault(); if (code.trim().toUpperCase() !== 'YINGXIANG') { setInviteError('示意码不正确，请输入 YINGXIANG。'); setInviteDemo(false); } else { setInviteError(null); setInviteDemo(true); } }}><label className={styles['field-label']} htmlFor="invite-code">原型示意码</label><input id="invite-code" className={styles['text-field']} placeholder="YINGXIANG" value={code} onChange={(event) => { setCode(event.target.value); setInviteDemo(false); }} maxLength={32} autoComplete="off" required />{inviteError && <p className={styles['inline-error']} role="alert">{inviteError}</p>}{inviteDemo && <p className={styles['prototype-callout']} role="status">示意流程已通过，尚未开通真实服务。</p>}<button className={`${styles['primary-button']} ${styles['dialog-primary']}`} type="submit">预览受邀流程 <Icon name="arrow" /></button></form></>}
+    <div className={styles['dialog-heading']}><span className={styles.eyebrow}>{kind === 'guide' ? '映想 · 体验指南' : '你的画面，由你决定'}</span><button className={styles['icon-button']} type="button" onClick={onClose} aria-label="关闭说明"><Icon name="close" /></button></div>
+    {kind === 'guide' && <><h2 id="dialog-title">先看看自己，<br />再试一个新想法。</h2><ol className={styles['guide-steps']}><li><strong>随时打开相机</strong><p>无需登录或选图即可本地预览，不上传画面，也不消耗体验次数。</p></li><li><strong>切到「映想画面」</strong><p>在悬浮卡里选择上衣图，确认云端处理；点击开始后才验证登录与权益，并连接真实换装。</p></li><li><strong>换装结束，预览继续</strong><p>可选择15秒、30秒或1分钟连接窗口，均含建连；免费为15秒，长时需对应权益。可随时结束换装，继续查看本机原画；关闭相机、退出、切后台或离开页面会关闭媒体。</p></li></ol></>}
+    {kind === 'privacy' && <><h2 id="dialog-title">画面如何处理，<br />由你决定。</h2><div className={styles['privacy-copy']}><p>打开相机只在本机预览，不发送到模型、不消耗次数。只有你在「映想画面」里确认并点击开始，图片与视频才会发送至 Decart 云端进行换装。</p><p>请使用有权上传的参考图，并取得画面中参与者的同意。当前免费体验的模型费用由映想承担；签发结果不确定时保留待核查，不会自动重新连接。</p><p>不采集音频、不默认录制、不保存图片或视频。仅保留有限连接及资源关闭状态。结束换装会断开云端连接，本地相机可继续预览；关闭相机、退出登录、切后台或离开页面则关闭全部媒体。</p><p>生成结果仅供视觉参考，不提供尺码或合身保证。相机原画镜像，生成画面不额外镜像。供应商规则见<a href="https://docs.platform.decart.ai/resources/privacy-policy" target="_blank" rel="noreferrer"> Decart 隐私说明 ↗</a>。</p></div></>}
     <button className={`${styles['primary-button']} ${styles['dialog-primary']}`} type="button" onClick={onClose}>{kind === 'privacy' ? '了解，继续探索' : '回到创作空间'}<Icon name="arrow" /></button>
   </dialog>;
 }

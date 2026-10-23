@@ -7,6 +7,6 @@ export function privateJson(body: unknown, status = 200): Response {
 
 /** 当前无真实提供商。即使设置了环境变量，也不会签令牌或发起上游请求。 */
 export function serviceDisabled(): Response {
-  const body: ApiError = { error: { code: 'SERVICE_DISABLED', message: '真实体验服务尚未启用，请使用本地模拟模式。', retryable: false }, requestId: randomUUID() };
+  const body: ApiError = { error: { code: 'SERVICE_DISABLED', message: '账号与会话服务尚未启用。', retryable: false }, requestId: randomUUID() };
   return privateJson(body, 503);
 }

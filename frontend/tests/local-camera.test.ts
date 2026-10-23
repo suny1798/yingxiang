@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LocalCamera, cameraError } from '../src/lib/media/local-camera';
-import { LocalPreviewAdapter } from '../src/lib/try-on/local-preview-adapter';
-import { SessionController } from '../src/lib/try-on/session-controller';
 
 function deferred<T>() { let resolve!: (value: T) => void; const promise = new Promise<T>((done) => { resolve = done; }); return { promise, resolve }; }
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
@@ -99,26 +97,4 @@ test('权限拒绝、无相机、占用和不支持设置有可恢复的中文�
     assert.equal(camera.getSnapshot(), null);
   }
   assert.doesNotMatch(cameraError(new Error('sensitive internal diagnostic')).message, /sensitive/);
-});
-
-test('本地适配器重复开启只申请一次；取消确认同步关闭相机', async () => {
-  const m = media(); let calls = 0;
-  const camera = new LocalCamera(async () => { calls++; return m.stream; });
-  const controller = new SessionController(new LocalPreviewAdapter(camera));
-  controller.setGarment({ id: 'a', name: 'a', previewUrl: '/a' }); controller.setConsent(true);
-  const running = controller.start(); await controller.start(); await settle();
-  assert.equal(calls, 1); assert.equal(controller.getSnapshot().phase, 'requestingCamera');
-  controller.setConsent(false); await running;
-  assert.equal(m.video.stops, 1); assert.equal(camera.getSnapshot(), null); assert.equal(controller.getSnapshot().phase, 'ended');
-  controller.reset();
-});
-
-test('本地适配器在播放后设备中断时会话进入错误而非继续倒计时', async () => {
-  const m = media(), camera = new LocalCamera(async () => m.stream);
-  const controller = new SessionController(new LocalPreviewAdapter(camera));
-  controller.setGarment({ id: 'a', name: 'a', previewUrl: '/a' }); controller.setConsent(true);
-  const running = controller.start(); await settle(); camera.markPlaying(m.stream);
-  m.video.dispatchEvent(new Event('ended')); await running;
-  assert.equal(controller.getSnapshot().phase, 'error'); assert.match(controller.getSnapshot().message!, /断开/);
-  assert.equal(camera.getSnapshot(), null); controller.reset();
 });

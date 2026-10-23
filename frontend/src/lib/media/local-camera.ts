@@ -33,6 +33,7 @@ export class LocalCamera {
   constructor(private readonly acquire = acquireCamera, private readonly playbackTimeoutMs = 10_000) {}
   getSnapshot = (): MediaStream | null => this.stream;
   getServerSnapshot = (): null => null;
+  isReady = (): boolean => this.stream !== null && this.ready === null && this.operation !== null && this.stream.getVideoTracks().every((track) => track.readyState === 'live');
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private publish(stream: MediaStream | null) { this.stream = stream; this.listeners.forEach((listener) => listener()); }
 

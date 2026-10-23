@@ -1,7 +1,8 @@
-import { ACTIVE_PHASES, type Garment, type Scenario, type SessionSnapshot, type TryOnAdapter, type View } from './types';
-import { MAX_DURATION_SEC } from '../limits';
+import { ACTIVE_PHASES, type Garment, type SessionSnapshot, type TryOnAdapter, type View } from './types';
+import { DEFAULT_DURATION_SEC } from '../limits';
+import { isDurationSec, type DurationSec } from '../studio/policy';
 
-const initial = (): SessionSnapshot => ({ phase: 'idle', garment: null, consent: false, scenario: 'normal', view: 'generated', deadlineAt: null, remainingSeconds: MAX_DURATION_SEC, message: null });
+const initial = (durationSec: DurationSec = DEFAULT_DURATION_SEC): SessionSnapshot => ({ phase: 'idle', garment: null, consent: false, view: 'generated', deadlineAt: null, remainingSeconds: durationSec, durationSec, message: null });
 
 /** 独立于 React 的会话控制器，便于验证取消、超时及异步竞态。 */
 export class SessionController {
@@ -11,11 +12,11 @@ export class SessionController {
   private timer: ReturnType<typeof setInterval> | null = null;
   private pendingGarment: Garment | null = null;
   private updating = false;
-  private readonly durationMs: number;
+  private durationMs: number;
   private readonly now: () => number;
 
   constructor(private readonly adapter: TryOnAdapter, options: { durationMs?: number; now?: () => number } = {}) {
-    this.durationMs = options.durationMs ?? MAX_DURATION_SEC * 1000;
+    this.durationMs = options.durationMs ?? DEFAULT_DURATION_SEC * 1000;
     this.now = options.now ?? Date.now;
   }
 
@@ -38,8 +39,12 @@ export class SessionController {
   }
 
   setConsent(consent: boolean): void { if (!consent) this.stop('你已取消画面处理确认，本次体验已结束。'); this.patch({ consent }); }
-  setScenario(scenario: Scenario): void { this.patch({ scenario }); }
   setView(view: View): void { if (['live', 'updatingGarment'].includes(this.snapshot.phase)) this.patch({ view }); }
+  setDuration(durationSec: DurationSec): void {
+    if (!isDurationSec(durationSec) || ACTIVE_PHASES.has(this.snapshot.phase)) return;
+    this.durationMs = durationSec * 1000;
+    this.patch({ durationSec, remainingSeconds: durationSec, deadlineAt: null });
+  }
 
   private beginDeadline(): void {
     if (this.snapshot.deadlineAt !== null) return;
@@ -50,19 +55,19 @@ export class SessionController {
   tick(): void {
     if (this.snapshot.deadlineAt === null || !ACTIVE_PHASES.has(this.snapshot.phase)) return;
     const remainingSeconds = Math.max(0, Math.ceil((this.snapshot.deadlineAt - this.now()) / 1000));
-    if (remainingSeconds === 0) this.stop('这次体验时间到了。下一个灵感随时可以开启。');
+    if (remainingSeconds === 0) this.stop('本次换装已结束，可继续查看相机原画。');
     else if (remainingSeconds !== this.snapshot.remainingSeconds) this.patch({ remainingSeconds });
   }
 
   async start(): Promise<void> {
-    const { garment, consent, scenario } = this.snapshot;
+    const { garment, consent } = this.snapshot;
     if (!garment || !consent || ACTIVE_PHASES.has(this.snapshot.phase)) return;
     this.cancelWork();
     const operation = new AbortController();
     this.work = operation;
-    this.patch({ phase: 'requestingCamera', message: null, deadlineAt: null, remainingSeconds: Math.ceil(this.durationMs / 1000), view: this.adapter.initialView ?? (this.adapter.hasLocalCamera ? 'original' : 'generated') });
+    this.patch({ phase: 'requestingCamera', message: null, deadlineAt: null, remainingSeconds: Math.ceil(this.durationMs / 1000), view: this.adapter.initialView ?? 'generated' });
     try {
-      await this.adapter.connect({ garment, scenario, signal: operation.signal, onError: (error) => this.handleError(error, operation.signal), onPhase: (phase) => {
+      await this.adapter.connect({ garment, durationSec: this.snapshot.durationSec, signal: operation.signal, onError: (error) => this.handleError(error, operation.signal), onPhase: (phase) => {
         if (!this.isCurrent(operation.signal)) return;
         if (phase === 'connecting') this.beginDeadline();
         this.patch({ phase });
@@ -91,20 +96,6 @@ export class SessionController {
     finally { if (this.work?.signal === signal) this.updating = false; }
   }
 
-  async reconnect(): Promise<void> {
-    const signal = this.work?.signal;
-    if (!signal || this.snapshot.phase !== 'live') return;
-    this.patch({ phase: 'reconnecting' });
-    try {
-      await this.adapter.reconnect(signal);
-      if (!this.isCurrent(signal)) return;
-      this.tick();
-      if (!this.isCurrent(signal)) return;
-      this.patch({ phase: 'live' });
-      if (this.pendingGarment) void this.flushGarment();
-    } catch (error) { this.handleError(error, signal); }
-  }
-
   private handleError(error: unknown, signal: AbortSignal): void {
     if (!this.isCurrent(signal)) return;
     const message = error instanceof Error ? error.message : '画面暂时无法准备，请稍后重试。';
@@ -119,10 +110,10 @@ export class SessionController {
     this.adapter.stop();
   }
 
-  stop(message = '你已结束本次体验。换一份灵感，再来看看。'): void {
+  stop(message = '换装已结束。'): void {
     if (!ACTIVE_PHASES.has(this.snapshot.phase)) return;
     this.cancelWork(); this.patch({ phase: 'ended', message });
   }
 
-  reset(): void { this.cancelWork(); this.snapshot = initial(); this.listeners.forEach((listener) => listener()); }
+  reset(): void { this.cancelWork(); this.snapshot = initial(this.snapshot.durationSec); this.listeners.forEach((listener) => listener()); }
 }

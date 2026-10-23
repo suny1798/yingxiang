@@ -1,17 +1,17 @@
 import type { ModelDefinition, RealTimeClient, RealTimeClientConnectOptions } from '@decartai/sdk';
 import { LocalCamera } from '../media/local-camera';
 import { RemotePreview } from '../media/remote-preview';
-import { POC_POLICY, type PocObservation, type PocStatus } from '../poc/policy';
+import { STUDIO_POLICY, isDurationSec, type StudioObservation, type StudioStatus } from '../studio/policy';
 import { ExperienceError, type ConnectOptions, type Garment, type TryOnAdapter } from './types';
 
-export type PocConnector = { model: ModelDefinition; connect: (stream: MediaStream, options: RealTimeClientConnectOptions) => Promise<RealTimeClient> };
-export type PocSdkFactory = (provider: () => Promise<string>) => Promise<PocConnector>;
+export type RealtimeConnector = { model: ModelDefinition; connect: (stream: MediaStream, options: RealTimeClientConnectOptions) => Promise<RealTimeClient> };
+export type RealtimeSdkFactory = (provider: () => Promise<string>) => Promise<RealtimeConnector>;
 // 原生window.fetch不能作为适配器实例的方法调用，否则部分浏览器会抛Illegal invocation。
 const browserRequest: typeof fetch = (input, init) => fetch(input, init);
-export const preparePocSdk: PocSdkFactory = async (apiKeyProvider) => {
+export const prepareRealtimeSdk: RealtimeSdkFactory = async (apiKeyProvider) => {
   const { createDecartClient, models, noopLogger } = await import('@decartai/sdk');
   const client = createDecartClient({ apiKeyProvider, telemetry: false, logger: noopLogger });
-  return { model: models.realtime(POC_POLICY.model), connect: (stream, options) => client.realtime.connect(stream, options) };
+  return { model: models.realtime(STUDIO_POLICY.model), connect: (stream, options) => client.realtime.connect(stream, options) };
 };
 
 export function safeSdkDiagnostic(error: unknown): string {
@@ -30,18 +30,19 @@ export function safeSdkDiagnostic(error: unknown): string {
   return 'UNKNOWN';
 }
 
-export class DecartPocAdapter implements TryOnAdapter {
+export class DecartTryOnAdapter implements TryOnAdapter {
   readonly mode = 'real' as const;
-  readonly hasLocalCamera = true;
   readonly initialView = 'generated' as const;
-  private work: { signal: AbortSignal; attemptId: string; access: string; issued: boolean; result: PocObservation['outcome']; seconds: number | null } | null = null;
+  private work: { signal: AbortSignal; attemptId: string; access: string; issued: boolean; result: StudioObservation['outcome']; seconds: number | null; input: MediaStream | null; unwatch: (() => void) | null } | null = null;
   private client: RealTimeClient | null = null;
-  lastObservation: PocObservation | null = null;
-  constructor(readonly camera: LocalCamera, readonly remote: RemotePreview, private readonly request: typeof fetch = browserRequest, private readonly factory = preparePocSdk) {}
+  lastObservation: StudioObservation | null = null;
+  constructor(readonly camera: LocalCamera, readonly remote: RemotePreview, private readonly request: typeof fetch = browserRequest, private readonly factory = prepareRealtimeSdk, private readonly mediaOptions: { keepLocalPreview?: boolean } = {}) {}
 
   async connect(options: ConnectOptions): Promise<void> {
+    const durationSec = options.durationSec ?? STUDIO_POLICY.clientWindowSec;
+    if (!isDurationSec(durationSec)) throw new ExperienceError('INVALID_DURATION', '请选择15秒、30秒或1分钟。');
     if (!options.garment.blob) throw new ExperienceError('REAL_IMAGE_REQUIRED', '请上传有使用权的真实上衣图片，示意素材不用于模型测试。');
-    const work = { signal: options.signal, attemptId: crypto.randomUUID(), access: '', issued: false, result: 'ended' as PocObservation['outcome'], seconds: null as number | null };
+    const work = { signal: options.signal, attemptId: crypto.randomUUID(), access: '', issued: false, result: 'ended' as StudioObservation['outcome'], seconds: null as number | null, input: null as MediaStream | null, unwatch: null as (() => void) | null };
     this.work = work; this.lastObservation = null;
     let stage: 'camera' | 'status' | 'sdk' | 'connection' = 'camera';
     let safeFailure: ExperienceError | null = null;
@@ -49,13 +50,23 @@ export class DecartPocAdapter implements TryOnAdapter {
     const fail = (error: Error) => { if (this.work !== work || work.signal.aborted) return; work.result = 'error'; options.onError?.(error); };
     const onAbort = () => this.stop(); options.signal.addEventListener('abort', onAbort, { once: true });
     try {
-      options.onPhase('requestingCamera');
-      await this.camera.start(options.signal, fail);
+      if (this.mediaOptions.keepLocalPreview) {
+        const preview = this.camera.getSnapshot();
+        if (!preview || !this.camera.isReady()) throw new ExperienceError('PREVIEW_REQUIRED', '请先打开相机并等待预览就绪。');
+        // SDK只持有克隆轨道，生成结束不能关闭用户仍在看的本地原画。
+        work.input = preview.clone();
+        work.unwatch = this.camera.subscribe(() => {
+          if (this.camera.getSnapshot() !== preview) fail(new ExperienceError('CAMERA_ENDED', '相机已关闭，换装随之结束。'));
+        });
+      } else {
+        options.onPhase('requestingCamera');
+        await this.camera.start(options.signal, fail);
+      }
       stage = 'status';
       options.signal.throwIfAborted(); options.onPhase('creatingSession');
-      const statusResponse = await this.request('/api/poc/status', { cache: 'no-store', signal: options.signal });
-      const status = await statusResponse.json() as PocStatus;
-      if (!statusResponse.ok || !status.available || !status.access) throw new ExperienceError('POC_NOT_READY', '本轮测试未就绪或已使用，请先检查服务端配置及测试记录。');
+      const statusResponse = await this.request('/api/studio/status', { cache: 'no-store', signal: options.signal });
+      const status = await statusResponse.json() as StudioStatus;
+      if (!statusResponse.ok || !status.available || !status.access) throw new ExperienceError('SERVICE_NOT_READY', '当前云端体验尚未就绪，请检查服务状态后再开启。');
       work.access = status.access;
       let credentialRequested = false;
       stage = 'sdk';
@@ -63,10 +74,10 @@ export class DecartPocAdapter implements TryOnAdapter {
         // SDK重连与内部请求不得获取第二个令牌，也不得复用首个令牌。
         if (credentialRequested || options.signal.aborted || this.work !== work) throw new Error('unauthorized: 本轮禁止再次连接');
         credentialRequested = true; work.issued = true;
-        const response = await this.request('/api/poc/token', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Poc-Access': work.access },
-          body: JSON.stringify({ attemptId: work.attemptId, consentVersion: POC_POLICY.consentVersion }), signal: options.signal });
+        const response = await this.request('/api/studio/token', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Access': work.access },
+          body: JSON.stringify({ attemptId: work.attemptId, consentVersion: STUDIO_POLICY.consentVersion, durationSec }), signal: options.signal });
         const value = await response.json();
-        if (!response.ok || typeof value.apiKey !== 'string') {
+        if (!response.ok || typeof value.apiKey !== 'string' || value.durationSec !== durationSec) {
           safeFailure = new ExperienceError('TOKEN_UNAVAILABLE', value.error?.message ?? '本轮令牌未能取得，请核对用量后再处理。');
           throw safeFailure;
         }
@@ -77,11 +88,11 @@ export class DecartPocAdapter implements TryOnAdapter {
       const playing = this.remote.prepare(options.signal, fail);
       // SDK连接尚未返回时取消，播放等待也会拒绝；立即接住，避免未处理拒绝。
       void playing.catch(() => {});
-      const local = this.camera.getSnapshot();
+      const local = work.input ?? this.camera.getSnapshot();
       if (!local) throw new Error('相机已关闭。');
       const client = await sdk.connect(local, {
         model: sdk.model, resolution: '720p', retries: 0, capacityRetryBudgetMs: 0, mirror: false,
-        initialState: { prompt: { text: POC_POLICY.prompt, enhance: false }, image: options.garment.blob },
+        initialState: { prompt: { text: STUDIO_POLICY.prompt, enhance: false }, image: options.garment.blob },
         onRemoteStream: (stream) => {
           if (this.work !== work || options.signal.aborted) stream.getTracks().forEach((track) => track.stop());
           else this.remote.offer(stream);
@@ -111,20 +122,22 @@ export class DecartPocAdapter implements TryOnAdapter {
   async updateGarment(garment: Garment, signal: AbortSignal): Promise<void> {
     signal.throwIfAborted();
     if (!this.client || !garment.blob) throw new ExperienceError('REAL_IMAGE_REQUIRED', '模型测试只接受本地上传的有效服装图片。');
-    await this.client.set({ prompt: POC_POLICY.prompt, image: garment.blob, enhance: false });
+    await this.client.set({ prompt: STUDIO_POLICY.prompt, image: garment.blob, enhance: false });
   }
-  async reconnect(): Promise<void> { throw new ExperienceError('NO_RETRY', '本轮只允许一次连接，不自动重试。'); }
   stop(): void {
     const work = this.work; this.work = null;
     const localTracks = this.camera.getSnapshot()?.getTracks() ?? [];
     try { this.client?.disconnect(); } catch { /* 仍必须继续清理本地媒体。 */ }
     this.client = null;
     const firstFrameMs = this.remote.firstFrameMs;
-    this.remote.stop(); this.camera.stop();
+    work?.unwatch?.();
+    work?.input?.getTracks().forEach((track) => track.stop());
+    this.remote.stop();
+    if (!this.mediaOptions.keepLocalPreview) this.camera.stop();
     if (!work) return;
-    const observation: PocObservation = { outcome: work.result, firstFrameMs, providerReportedSeconds: work.seconds, localTracksEnded: localTracks.every((track) => track.readyState === 'ended') };
+    const observation: StudioObservation = { outcome: work.result, firstFrameMs, providerReportedSeconds: work.seconds, localTracksEnded: localTracks.every((track) => track.readyState === 'ended') };
     this.lastObservation = observation;
-    if (work.issued && work.access) void this.request('/api/poc/observation', { method: 'POST', keepalive: true,
-      headers: { 'Content-Type': 'application/json', 'X-Poc-Access': work.access }, body: JSON.stringify({ attemptId: work.attemptId, ...observation }) }).catch(() => {});
+    if (work.issued && work.access) void this.request('/api/studio/observation', { method: 'POST', keepalive: true,
+      headers: { 'Content-Type': 'application/json', 'X-Studio-Access': work.access }, body: JSON.stringify({ attemptId: work.attemptId, ...observation }) }).catch(() => {});
   }
 }
