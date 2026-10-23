@@ -23,11 +23,28 @@ export function PreviewPanel({ snapshot, view, camera, stream, previewState, rem
   const time = `${String(Math.floor(snapshot.remainingSeconds / 60)).padStart(2, '0')}:${String(snapshot.remainingSeconds % 60).padStart(2, '0')}`;
   const cloudReady = cameraReady && validImage && !processing && !unavailable && !exhausted;
   const status = active ? live ? '换装中' : '连接中' : requesting ? '等待相机' : cameraReady ? '相机已开启' : '相机未开启';
+  // 相机已开、还停在原画：引导用户切到映想画面，后续选图、确认、开始都在那里
+  const viewHint = Boolean(stream) && cameraReady && !generated && !active;
   return <section id="preview" className={`${styles['mirror-panel']} ${styles.panel} ${styles['compact-mirror']}`} aria-label="相机与映想画面">
     <div className={styles['mirror-heading']}><h2>画面</h2><span className={styles['session-status']} role="status"><span className={`${styles['status-dot']} ${!stream ? styles.neutral : ''}`} />{status}</span></div>
     <div className={styles['duration-bar']}><span>本次时长</span><div role="group" aria-label="每次换装时长">{DURATION_OPTIONS.map((seconds) => <button type="button" key={seconds} disabled={active || checking} aria-pressed={snapshot.durationSec === seconds} onClick={() => onDuration(seconds)}>{durationLabel(seconds)}</button>)}</div><span className={styles['duration-note']}>{active ? '含建连 · 换衣不续时' : snapshot.durationSec === 15 ? '免费体验' : loggedIn && remaining > 0 ? `可用${remaining}次` : '需对应权益'}</span></div>
     <div className={`${styles['mirror-stage']} ${styles['preview-frame']}`} data-state={snapshot.phase}>
-      {stream ? <CameraPreview stream={stream} camera={camera} visible={!showRemote} /> : <div className={styles['camera-empty']}><Icon name="camera" /><p>{requesting ? '等待相机授权…' : '打开相机，先看看自己。'}</p></div>}
+      {stream ? <CameraPreview stream={stream} camera={camera} visible={!showRemote} /> : <div className={styles['camera-empty']}>
+        {/* 示意动画：演示换衣过程，不是实际生成结果 */}
+        <video className={styles['demo-video']} autoPlay muted loop playsInline preload="auto" poster="/assets/try-on-demo-poster.jpg" aria-hidden="true">
+          <source src="/assets/try-on-demo.webm" type="video/webm" />
+          <source src="/assets/try-on-demo.mp4" type="video/mp4" />
+        </video>
+        <img className={styles['demo-poster']} src="/assets/try-on-demo-poster.jpg" alt="" aria-hidden="true" />
+        {!generated && <div className={styles['demo-prompt']}>
+          <p><strong>{requesting ? '等待相机授权…' : '打开相机，换上你选的上衣'}</strong><span>上方为示意动画，不是实际生成效果</span></p>
+          <button type="button" className={styles['primary-button']} disabled={requesting} onClick={onCameraToggle}><Icon name="camera" />{requesting ? '等待授权' : '打开相机'}</button>
+        </div>}
+      </div>}
+      {viewHint && <div className={styles['demo-prompt']}>
+        <p><strong>相机已开启，切到映想画面</strong><span>{validImage ? '上衣已选好，在映想画面确认后开始换装' : '在映想画面选一件上衣，开始换装'}</span></p>
+        <button type="button" className={styles['primary-button']} onClick={() => onView('generated')}><span aria-hidden="true">✳</span>切到映想画面</button>
+      </div>}
       {remoteStream && <CameraPreview stream={remoteStream} camera={remote} visible={showRemote} remote />}
       <div className={styles['preview-badges']}><span>{showRemote ? 'AI 生成' : stream ? '相机原画' : '本地相机'}</span>{active && snapshot.deadlineAt !== null && <span className={styles.timer} aria-label="换装剩余时间">{time}</span>}</div>
       {generated && !showRemote && <div className={`${styles['floating-card']} ${active ? styles['floating-connecting'] : ''}`} aria-label={active ? '正在连接换装' : '开启映想换装'}>
@@ -41,7 +58,7 @@ export function PreviewPanel({ snapshot, view, camera, stream, previewState, rem
         {!active && snapshot.phase === 'error' && snapshot.message && <details className={styles['floating-error']}><summary>连接未完成，查看详情</summary><p>{snapshot.message}</p></details>}
       </div>}
     </div>
-    <div className={styles['preview-controls']}><div className={styles['view-switch']} role="group" aria-label="画面切换"><button type="button" aria-pressed={!generated} className={!generated ? styles.selected : ''} onClick={() => onView('original')}>相机原画</button><button type="button" aria-pressed={generated} className={generated ? styles.selected : ''} onClick={() => onView('generated')}>映想画面 <span aria-hidden="true">✳</span></button></div>
+    <div className={styles['preview-controls']}><div className={styles['view-switch']} role="group" aria-label="画面切换"><button type="button" aria-pressed={!generated} className={!generated ? styles.selected : ''} onClick={() => onView('original')}>相机原画</button><button type="button" aria-pressed={generated} className={generated ? styles.selected : viewHint ? styles['view-hint'] : ''} onClick={() => onView('generated')}>映想画面 <span aria-hidden="true">✳</span></button></div>
       <div className={styles['preview-actions']}>{active && <button type="button" className={styles['stop-button']} onClick={onStop}><span className={styles['stop-square']} />结束换装</button>}<button type="button" className={styles['camera-button']} aria-pressed={Boolean(stream) || requesting} onClick={onCameraToggle}><Icon name="camera" />{requesting ? '取消打开' : stream ? '关闭相机' : '打开相机'}</button></div>
     </div>
     {previewState.message && <p className={styles['camera-error']} role="alert">{previewState.message}</p>}

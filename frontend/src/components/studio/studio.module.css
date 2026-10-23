@@ -82,6 +82,10 @@
 .view-switch button { font-size: 10px; padding: 7px 15px; border: none; border-radius: 30px; background: none; color: var(--muted); }
 .view-switch .selected { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px #3027170a; }
 .view-switch button:disabled { opacity: .55; }
+/* 相机开启后提示下一步：映想画面标签着色并轻轻呼吸，和画面上的引导卡对应 */
+.view-switch .view-hint { background: var(--accent-soft); color: var(--accent); box-shadow: 0 0 0 0 #793d5040; animation: view-hint 1.8s ease-out infinite; }
+@keyframes view-hint { 0% { box-shadow: 0 0 0 0 #793d5040; } 70%, 100% { box-shadow: 0 0 0 7px #793d5000; } }
+@media (prefers-reduced-motion: reduce) { .view-switch .view-hint { animation: none; box-shadow: 0 0 0 1.5px var(--accent); } }
 .session-actions { display: flex; gap: 10px; align-items: center; }
 .primary-button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: var(--accent); color: white; border: 1px solid var(--accent); border-radius: 30px; padding: 12px 20px; font-size: 12px; min-height: 44px; }
 .primary-button:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
@@ -232,6 +236,31 @@
 .camera-empty { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 18px; color: #9c9187; }
 .camera-empty .icon { width: 42px; height: 42px; stroke-width: 1; }
 .camera-empty > p { font-size: 12px; color: var(--muted); }
+/* 相机未开启时的示意动画；视频与海报都按画面区等比铺满 */
+.demo-video, .demo-poster { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 54% 50%; pointer-events: none; }
+.demo-poster { display: none; }
+/* 示意动画上的引导卡：新访客第一眼要能看到下一步 */
+.demo-prompt { position: absolute; z-index: 2; left: 22px; bottom: 22px; display: flex; align-items: center; gap: 22px; padding: 16px 16px 16px 22px; border-radius: 16px; border: 1px solid #e3ccd4; background: #fffefaf0; backdrop-filter: blur(12px); box-shadow: 0 10px 30px #2d1a2012; max-width: calc(100% - 44px); }
+.demo-prompt > p { display: flex; flex-direction: column; gap: 4px; }
+.demo-prompt strong { font: 500 18px/1.4 "Songti SC", "STSong", "SimSun", serif; color: var(--ink); }
+.demo-prompt span { font-size: 11px; color: var(--muted); }
+.demo-prompt .primary-button { flex-shrink: 0; min-height: 42px; padding: 10px 18px; font-size: 13px; gap: 8px; }
+.demo-prompt .primary-button .icon { width: 16px; height: 16px; stroke-width: 1.6; }
+/* 上传区空状态的示意上衣 */
+.upload-sample { width: 62%; max-width: 168px; height: auto; margin-bottom: 6px; opacity: .92; pointer-events: none; }
+.upload-zone:hover .upload-sample, .upload-zone.drag-over .upload-sample { opacity: 1; }
+.compact-picker .upload-empty > span:last-child { margin-top: 5px; font-size: 10px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .demo-video { display: none; } .demo-poster { display: block; } }
+/* 竖长画面区：cover 会裁掉左侧衣橱（换衣的起因），改为 contain 后放大；底色与视频背景一致，无色边 */
+@media (max-width: 620px) {
+  .demo-video, .demo-poster { object-fit: contain; transform: scale(1.35); transform-origin: 48% 50%; }
+  .upload-sample { width: 30%; margin-bottom: 0; }
+  .compact-picker .upload-empty .upload-icon { display: none; }
+  .demo-prompt { left: 10px; right: 10px; bottom: 10px; max-width: none; gap: 12px; padding: 12px 12px 12px 15px; }
+  .demo-prompt strong { font-size: 14px; white-space: nowrap; }
+  .demo-prompt span { font-size: 10px; }
+  .demo-prompt .primary-button { min-height: 38px; padding: 8px 13px; font-size: 12px; }
+}
 .preview-badges { position: absolute; z-index: 3; top: 16px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; pointer-events: none; }
 .preview-badges > span { color: #665c55; background: #fffefae6; border: 1px solid #ddd7cf; border-radius: 20px; padding: 4px 10px; font-size: 9px; }
 .preview-badges .timer { font: 12px Consolas, monospace; font-variant-numeric: tabular-nums; }

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<!-- 映想 · 首页画面区示意动画「镜中换衣」。基于 onetake 合成约定：window.__seek(t) 为纯函数。 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>映想 · 镜中换衣</title>
+<style>
+html,body{margin:0;width:1600px;height:900px;overflow:hidden;background:#eeebe6}
+svg{display:block}
+</style>
+</head>
+<body>
+<svg id="svg" width="1600" height="900" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 共用的上衣轮廓，左右对称于 x=860 -->
+    <!-- 女性上衣轮廓：窄肩、收腰，左右对称于 x=860 -->
+    <path id="body" d="M822 338C800 348 760 354 740 368C720 382 712 410 708 446L688 724L740 730L758 500C764 540 776 570 776 610C776 660 766 720 762 792L958 792C954 720 944 660 944 610C944 570 956 540 962 500L980 730L1032 724L1012 446C1008 410 1000 382 980 368C960 354 920 348 898 338C884 360 836 360 822 338Z"/>
+    <linearGradient id="shade" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity=".07"/><stop offset=".35" stop-color="#000" stop-opacity="0"/>
+      <stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".09"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#793d50" stop-opacity="0"/><stop offset="1" stop-color="#793d50" stop-opacity=".16"/>
+    </linearGradient>
+    <linearGradient id="archfill" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#f6f3ee"/><stop offset="1" stop-color="#e7e1d9"/>
+    </linearGradient>
+
+    <!-- 云白衬衫 -->
+    <g id="g0">
+      <use href="#body" fill="#f7f2e7" stroke="#cbbfac" stroke-width="2" stroke-linejoin="round"/>
+      <use href="#body" fill="url(#shade)"/>
+      <path d="M822 338L848 394L860 372L872 394L898 338C884 360 836 360 822 338Z" fill="#fffcf4" stroke="#cbbfac" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M860 372V792" stroke="#d6ccbb" stroke-width="2"/>
+      <g fill="#bfb29c"><circle cx="866" cy="432" r="3.5"/><circle cx="866" cy="512" r="3.5"/><circle cx="866" cy="592" r="3.5"/><circle cx="866" cy="672" r="3.5"/><circle cx="866" cy="752" r="3.5"/></g>
+      <path d="M691 696L742 702M1029 696L978 702" stroke="#cbbfac" stroke-width="2"/>
+      <path d="M800 470L806 640M920 470L914 640" stroke="#e2d9ca" stroke-width="2" stroke-linecap="round"/>
+    </g>
+    <!-- 莓果针织 -->
+    <g id="g1">
+      <use href="#body" fill="#8a4a5c" stroke="#6a3445" stroke-width="2" stroke-linejoin="round"/>
+      <use href="#body" fill="url(#shade)"/>
+      <path d="M822 338C836 362 884 362 898 338" fill="none" stroke="#6a3445" stroke-width="13" stroke-linecap="round"/>
+      <g stroke="#7a3d4f" stroke-width="2" opacity=".75">
+        <path d="M800 400V780M830 384V782M890 384V782M920 400V780"/>
+      </g>
+      <path d="M764 782H956" stroke="#6a3445" stroke-width="16"/>
+      <path d="M690 714L741 720M1030 714L979 720" stroke="#6a3445" stroke-width="13"/>
+    </g>
+    <!-- 苔绿外套 -->
+    <g id="g2">
+      <use href="#body" fill="#6c7962" stroke="#4f5946" stroke-width="2" stroke-linejoin="round"/>
+      <use href="#body" fill="url(#shade)"/>
+      <path d="M826 342L860 500L894 342C882 358 838 358 826 342Z" fill="#f4eee2"/>
+      <path d="M822 338L796 410L834 440L860 510L886 440L924 410L898 338" fill="none" stroke="#4f5946" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M860 510V792" stroke="#4f5946" stroke-width="2"/>
+      <g fill="#3f4838"><circle cx="872" cy="580" r="5.5"/><circle cx="872" cy="670" r="5.5"/></g>
+      <path d="M788 700H832M888 700H932" stroke="#4f5946" stroke-width="3" stroke-linecap="round"/>
+      <path d="M691 696L742 702M1029 696L978 702" stroke="#4f5946" stroke-width="3"/>
+    </g>
+
+    <clipPath id="reveal"><rect id="revealRect" x="600" y="300" width="520" height="0"/></clipPath>
+    <clipPath id="thumbclip"><rect x="-48" y="-48" width="96" height="96" rx="14"/></clipPath>
+  </defs>
+
+  <g id="world">
+    <!-- 拱形镜面 -->
+    <path d="M610 920V330C610 200 724 108 860 108S1110 200 1110 330V920Z" fill="url(#archfill)"/>
+    <path d="M632 920V334C632 218 734 132 860 132" fill="none" stroke="#fffefa" stroke-opacity=".8" stroke-width="3" stroke-linecap="round"/>
+
+    <!-- 人物 -->
+    <g id="figure">
+      <!-- 长发（后层） -->
+      <path d="M802 250C798 192 826 172 860 172C894 172 922 192 918 250C920 322 930 384 944 428C912 440 884 428 870 404L850 404C836 428 808 440 776 428C790 384 800 322 802 250Z" fill="#3b302a"/>
+      <!-- A 字半裙 -->
+      <path d="M772 776H948L1012 930H708Z" fill="#4a433c"/>
+      <path d="M820 790L800 930M860 790V930M900 790L920 930" stroke="#3a342e" stroke-width="2" opacity=".8"/>
+      <path d="M842 290H878V350H842Z" fill="#d7bea6"/>
+      <ellipse cx="860" cy="250" rx="45" ry="57" fill="#dcc4ad"/>
+      <!-- 刘海与侧发 -->
+      <path d="M813 252C808 200 832 182 862 182C894 182 914 204 908 252C900 226 882 210 866 210C854 222 832 236 813 252Z" fill="#3b302a"/>
+      <path d="M813 236C806 270 808 300 818 326C806 318 800 290 802 250Z M907 236C914 270 912 300 902 326C914 318 920 290 918 250Z" fill="#3b302a"/>
+      <ellipse cx="714" cy="752" rx="16" ry="21" fill="#d7bea6"/>
+      <ellipse cx="1006" cy="752" rx="16" ry="21" fill="#d7bea6"/>
+      <use id="base" href="#g0"/>
+      <g clip-path="url(#reveal)"><use id="next" href="#g1"/></g>
+    </g>
+
+    <!-- 扫描线 -->
+    <g id="scan" opacity="0">
+      <rect id="scanGlow" x="630" y="0" width="460" height="46" fill="url(#glow)"/>
+      <rect id="scanLine" x="630" y="0" width="460" height="3" rx="1.5" fill="#793d50"/>
+    </g>
+    <g id="star" opacity="0"><path d="M0-15V15M-15 0H15M-10.6-10.6L10.6 10.6M-10.6 10.6L10.6-10.6" stroke="#793d50" stroke-width="3.2" stroke-linecap="round"/></g>
+
+    <!-- 衣橱缩略图 -->
+    <g id="rail"></g>
+    <g id="hopper" opacity="0"></g>
+  </g>
+
+  <!-- 指针（屏幕层，不受镜头缩放） -->
+  <g id="cursor"><path d="M0 0L0 30L8 23L14 36L20 33L14 21L25 21Z" fill="#292622" stroke="#fffefa" stroke-width="2.5" stroke-linejoin="round"/></g>
+</svg>
+<script src="motion.js"></script>
+<script>
+const {clamp, lerp, seg, sstep, ease, spline, ring, camera, view, shake} = OM;
+const DUR = 9, FPS = 30;
+const NS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+const THUMB = [{x: 468, y: 348}, {x: 468, y: 468}, {x: 468, y: 588}];
+const GC = {x: 860, y: 565}, TS = 0.19;          // 上衣中心与缩略图缩放
+const COLLAR = {x: 860, y: 344}, HEM = 800;
+
+// 三次换衣：越来越快；最后留一段长静止，首尾相接
+const CY = [
+  {from: 0, to: 1, click: 0.95, land: 1.50, s0: 1.68, s1: 2.50, end: 2.70},
+  {from: 1, to: 2, click: 3.88, land: 4.28, s0: 4.42, s1: 5.04, end: 5.20},
+  {from: 2, to: 0, click: 5.84, land: 6.22, s0: 6.34, s1: 6.94, end: 7.10},
+];
+const HAND = [
+  {t: 0, x: 566, y: 650}, {t: 0.5, x: 566, y: 650}, {t: 0.95, x: 470, y: 470}, {t: 1.15, x: 476, y: 478},
+  {t: 1.7, x: 548, y: 528}, {t: 3.55, x: 548, y: 528}, {t: 3.88, x: 470, y: 590}, {t: 4.05, x: 476, y: 598},
+  {t: 4.6, x: 552, y: 640}, {t: 5.55, x: 552, y: 640}, {t: 5.84, x: 470, y: 350}, {t: 6.0, x: 478, y: 358},
+  {t: 7.3, x: 566, y: 650}, {t: 9, x: 566, y: 650},
+];
+const KEYS = [
+  {t: 0, x: 800, y: 450, zoom: 1}, {t: 1.5, x: 800, y: 450, zoom: 1},
+  {t: 2.6, x: 838, y: 498, zoom: 1.05, curve: ease.sineInOut}, {t: 3.4, x: 842, y: 500, zoom: 1.055, curve: ease.linear},
+  {t: 3.9, x: 800, y: 450, zoom: 1, curve: ease.cubicInOut},
+  {t: 4.28, x: 800, y: 450, zoom: 1}, {t: 5.1, x: 830, y: 480, zoom: 1.035, curve: ease.sineInOut},
+  {t: 5.6, x: 800, y: 450, zoom: 1, curve: ease.cubicInOut},
+  {t: 6.22, x: 800, y: 450, zoom: 1}, {t: 7.1, x: 836, y: 492, zoom: 1.045, curve: ease.sineInOut},
+  {t: 8.3, x: 800, y: 450, zoom: 1, curve: ease.cubicInOut}, {t: 9, x: 800, y: 450, zoom: 1},
+];
+
+function el(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; }
+function thumbCard(parent, g) {
+  const card = el('g', {}, parent);
+  const bg = el('rect', {x: -48, y: -48, width: 96, height: 96, rx: 14, fill: '#fffefa', stroke: '#e5e1dc', 'stroke-width': 1.5}, card);
+  const inner = el('g', {'clip-path': 'url(#thumbclip)'}, card);
+  el('rect', {x: -48, y: -48, width: 96, height: 96, fill: '#f6f4f0'}, inner);
+  const u = el('use', {href: '#g' + g, transform: `scale(${TS}) translate(${-GC.x} ${-GC.y})`}, inner);
+  const ring_ = el('rect', {x: -48, y: -48, width: 96, height: 96, rx: 14, fill: 'none', stroke: '#793d50', 'stroke-width': 3, opacity: 0}, card);
+  return {card, bg, ring: ring_, use: u};
+}
+const thumbs = THUMB.map((p, i) => thumbCard($('rail'), i));
+const hop = thumbCard($('hopper'), 1);
+hop.bg.setAttribute('stroke', '#793d50'); hop.bg.setAttribute('stroke-width', 3);
+
+function selectedAt(t) { let s = 0; for (const c of CY) if (t >= c.click) s = c.to; return s; }
+function camAt(t) {
+  const c = camera(t, KEYS);
+  let {x, y, rot} = c;
+  for (const cy of CY) { const s = shake(t, cy.land, {amp: 2.4, decay: 11, seed: Math.round(cy.land * 100)}); x += s.x / c.zoom; y += s.y / c.zoom; rot += s.rot * 0.5; }
+  return {x, y, zoom: c.zoom, rot};
+}
+
+function seek(t) {
+  t = ((t % DUR) + DUR) % DUR;
+  const M = view(camAt(t), {W: 1600, H: 900});
+  $('world').setAttribute('transform', `matrix(${M.join(' ')})`);
+
+  // 缩略图：选中描边 + 点击按压
+  const sel = selectedAt(t);
+  thumbs.forEach((th, i) => {
+    let s = 1;
+    for (const c of CY) if (c.to === i) s -= ring(t - c.click, 12, 32) * 0.09;
+    th.card.setAttribute('transform', `translate(${THUMB[i].x} ${THUMB[i].y}) scale(${s})`);
+    th.ring.setAttribute('opacity', sel === i ? 1 : 0);
+  });
+
+  // 当前一次换衣
+  let base = 0, cur = null;
+  for (const c of CY) { if (t >= c.click) cur = c; if (t >= c.end) base = c.to; }
+  if (cur && t >= cur.end) cur = null;
+  if (cur && t < cur.s1) base = cur.from;
+
+  // 缩略图飞向领口，缩成 ✳
+  let hopOp = 0, starOp = 0, starX = COLLAR.x, starY = COLLAR.y, starS = 0, starR = 0;
+  let scanOp = 0, scanY = COLLAR.y - 40, half = 0;
+  if (cur) {
+    hop.use.setAttribute('href', '#g' + cur.to);
+    const from = THUMB[cur.to];
+    const k = ease.smoother(seg(t, cur.click + 0.04, cur.land));
+    if (t < cur.land) {
+      const x = lerp(from.x, COLLAR.x, k), y = lerp(from.y, COLLAR.y, k) - Math.sin(k * Math.PI) * 90;
+      const s = lerp(1.06, 0.18, ease.cubicInOut(k)), r = Math.sin(k * Math.PI) * 10;
+      hop.card.setAttribute('transform', `translate(${x} ${y}) rotate(${r}) scale(${s})`);
+      hopOp = sstep(cur.click, cur.click + 0.05, t) * (1 - sstep(cur.land - 0.08, cur.land, t));
+      starOp = sstep(cur.land - 0.1, cur.land, t);
+      starS = starOp; starX = x; starY = y;
+    } else {
+      // 落定：✳ 弹一下，展开成扫描线，扫到下摆后收回
+      const land = 1 + ring(t - cur.land, 8, 22) * 0.35;
+      const open = ease.expoOut(seg(t, cur.land + 0.02, cur.s0));
+      const sweep = ease.cubicInOut(seg(t, cur.s0, cur.s1));
+      const close = ease.expoOut(seg(t, cur.s1, cur.end));
+      half = 230 * open * (1 - close);
+      scanY = lerp(COLLAR.y, HEM, sweep);
+      scanOp = open * (1 - sstep(cur.s1 + 0.02, cur.end, t));
+      starX = COLLAR.x + half + (open > 0.02 ? 22 : 0) * (1 - close);
+      starY = scanY; starS = land * (1 - 0.25 * open); starR = sweep * 180 + open * 45;
+      starOp = 1 - sstep(cur.s1 + 0.04, cur.end, t);
+    }
+  }
+  $('base').setAttribute('href', '#g' + base);
+  $('next').setAttribute('href', '#g' + (cur ? cur.to : base));
+  const reveal = cur && t >= cur.s0 ? scanY - 300 : 0;
+  $('revealRect').setAttribute('height', Math.max(0, reveal));
+  $('hopper').setAttribute('opacity', hopOp);
+  $('star').setAttribute('opacity', starOp);
+  $('star').setAttribute('transform', `translate(${starX} ${starY}) rotate(${starR}) scale(${Math.max(0.001, starS)})`);
+  $('scan').setAttribute('opacity', scanOp);
+  $('scanLine').setAttribute('x', COLLAR.x - half); $('scanLine').setAttribute('width', half * 2); $('scanLine').setAttribute('y', scanY - 1.5);
+  $('scanGlow').setAttribute('x', COLLAR.x - half); $('scanGlow').setAttribute('width', half * 2); $('scanGlow').setAttribute('y', scanY - 46);
+
+  // 人物落定时轻轻吸一口气
+  let breath = 0; for (const c of CY) breath += ring(t - c.land, 7, 18) * 0.008;
+  $('figure').setAttribute('transform', `translate(860 820) scale(${1 + breath} ${1 - breath * 0.6}) translate(-860 -820)`);
+
+  // 指针
+  const h = spline(HAND, t);
+  let cs = 1; for (const c of CY) { const d = t - c.click; if (d > -0.06 && d < 0.14) cs = 0.86; }
+  $('cursor').setAttribute('transform', `translate(${h[0]} ${h[1]}) scale(${cs})`);
+  return true;
+}
+
+window.__meta = {dur: DUR, fps: FPS, w: 1600, h: 900};
+window.__seek = async t => seek(t);
+window.__ready = Promise.resolve().then(() => seek(0));
+const q = new URLSearchParams(location.search);
+if (q.has('t')) __ready.then(() => seek(parseFloat(q.get('t'))));
+if (q.has('play')) __ready.then(() => { const t0 = performance.now(); (function loop() { seek(((performance.now() - t0) / 1000) % DUR); requestAnimationFrame(loop); })(); });
+</script>
+</body>
+</html>

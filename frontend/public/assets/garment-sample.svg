@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="400" viewBox="0 0 480 400" fill="none">
+  <title>映想 · 上衣参考图示意</title>
+  <desc>衣架上平挂的云白衬衫，提示上传一张平铺或挂拍的上衣图。原创矢量示意，不是实际服装。</desc>
+  <defs>
+    <linearGradient id="shade" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0" stop-color="#000" stop-opacity=".06"/><stop offset=".35" stop-color="#000" stop-opacity="0"/>
+      <stop offset=".7" stop-color="#000" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".08"/>
+    </linearGradient>
+  </defs>
+  <!-- 衣架 -->
+  <path d="M240 46c0-12 9-20 19-20s17 7 17 16c0 10-8 14-17 19l-19 11" stroke="#b9ab98" stroke-width="4" stroke-linecap="round"/>
+  <path d="M240 72L136 118c-6 3-4 10 3 10h202c7 0 9-7 3-10z" stroke="#b9ab98" stroke-width="4" stroke-linejoin="round"/>
+  <!-- 衬衫，与右侧动图第一件同款 -->
+  <g transform="translate(240 222) scale(.5) translate(-860 -565)">
+    <path d="M822 338C800 348 760 354 740 368C720 382 712 410 708 446L688 724L740 730L758 500C764 540 776 570 776 610C776 660 766 720 762 792L958 792C954 720 944 660 944 610C944 570 956 540 962 500L980 730L1032 724L1012 446C1008 410 1000 382 980 368C960 354 920 348 898 338C884 360 836 360 822 338Z" fill="#f7f2e7" stroke="#cbbfac" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M822 338C800 348 760 354 740 368C720 382 712 410 708 446L688 724L740 730L758 500C764 540 776 570 776 610C776 660 766 720 762 792L958 792C954 720 944 660 944 610C944 570 956 540 962 500L980 730L1032 724L1012 446C1008 410 1000 382 980 368C960 354 920 348 898 338C884 360 836 360 822 338Z" fill="url(#shade)"/>
+    <path d="M822 338L848 394L860 372L872 394L898 338C884 360 836 360 822 338Z" fill="#fffcf4" stroke="#cbbfac" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M860 372V792" stroke="#d6ccbb" stroke-width="3"/>
+    <g fill="#bfb29c"><circle cx="866" cy="432" r="5"/><circle cx="866" cy="512" r="5"/><circle cx="866" cy="592" r="5"/><circle cx="866" cy="672" r="5"/><circle cx="866" cy="752" r="5"/></g>
+    <path d="M691 696L742 702M1029 696L978 702" stroke="#cbbfac" stroke-width="3"/>
+    <path d="M800 470L806 640M920 470L914 640" stroke="#e2d9ca" stroke-width="3" stroke-linecap="round"/>
+  </g>
+  <!-- 地面投影 -->
+  <ellipse cx="240" cy="372" rx="92" ry="7" fill="#cdc3b6" opacity=".45"/>
+</svg>
