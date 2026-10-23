@@ -1,3 +1,3 @@
-import { CreativeStudio } from '@/components/studio/creative-studio';
+import { MarketingHome } from '@/components/site/home';
 
-export default function HomePage() { return <CreativeStudio />; }
+export default function HomePage() { return <MarketingHome />; }
