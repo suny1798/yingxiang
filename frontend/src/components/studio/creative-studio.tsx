@@ -11,6 +11,7 @@ import { ACTIVE_PHASES, type Garment, type View } from '@/lib/try-on/types';
 import { GarmentPicker } from './garment-picker';
 import { PreviewPanel } from './preview-panel';
 import { InfoDialog, type DialogKind } from './info-dialog';
+import { StudioModes } from './studio-modes';
 import styles from './studio.module.css';
 
 export function CreativeStudio() {
@@ -51,6 +52,7 @@ export function CreativeStudio() {
     <SiteHeader active="studio" account={account} onLogin={() => setAccountOpen(true)} />
     <main id="creative-space" className={`${styles['page-shell']} ${styles['creation-shell']}`}>
       <div className={styles['workbench-title']}><h1>创作空间</h1><span>实时换装</span><Link href="/account" prefetch={false}>{account?.user ? `剩余 ${account.durations.reduce((sum, item) => sum + item.remaining, 0)} 次` : '我的权益'} ↗</Link></div>
+      <StudioModes active="realtime" />
       <div className={styles.workspace}>
         <GarmentPicker snapshot={snapshot} input={input} fileRef={fileRef} />
         <PreviewPanel snapshot={snapshot} view={view} camera={camera} stream={stream} previewState={previewState} remote={remote} remoteStream={remoteStream}

@@ -22,7 +22,7 @@ export function PricingPage() {
       <div className={s.quoteCard} aria-live="polite" aria-atomic="true"><div className={s.quoteTop}><span>你的体验方案</span><span>拟定价格</span></div><h3>{durationLabel(seconds)} <span>×</span> {count}次</h3><div className={s.quotePrice}>¥{money(value.totalFen)}</div><p>约 ¥{money(value.unitFen)} / 次 · 总计{value.totalSeconds}秒体验窗口</p><div className={s.quoteSaving}>{value.savedFen > 0 ? `比单次购买合计节省 ¥${money(value.savedFen)}` : '先从一次尝试开始'}</div><button type="button" disabled className={s.disabledPurchase}>购买暂未开放</button><Link href="/studio" prefetch={false} className={s.textLink}>先用一次免费体验 <span aria-hidden="true">↗</span></Link><p className={s.quoteFootnote}>这里仅计算方案，不创建订单或扣款。购买、有效期及退款规则将在付费开放前公布。</p></div>
     </section>
     <section className={s.faq} aria-labelledby="pricing-faq"><div><p className={s.eyebrow}>把规则说清楚</p><h2 id="pricing-faq">开始之前，<br />你可能想知道。</h2></div><div>{[
-      ['这里的“秒”指什么？', '指每次体验的最长连接窗口，包含连接准备时间，实际看到生成画面的时长可能更短。这是实时换装体验，不是购买同等长度的下载视频。'],
+      ['这里的“秒”指什么？', '指每次实时换装的最长连接窗口，包含连接准备时间，实际看到生成画面的时长可能更短。本页价格与新用户免费次数仅适用于实时换装；视频换装使用独立额度，尚未开放购买。'],
       ['次数怎么计算？换衣服也算一次吗？', '方案按“每次时长 × 开启次数”设计。同一连接中更换参考图不额外算一次；结束后再次开启是新的一次。付费包目前尚不能购买或使用。'],
       ['免费体验什么时候占用？', '登录、选图、阅读说明和相机授权失败都不占用。服务端向模型申请连接凭据前会占用一次；已申请而结果不确定时保留待核查，不自动再次连接。'],
       ['失败或提前结束会退款吗？', '当前没有真实付费订单。付费开放前会公布未出画核查、失败补偿及提前结束的规则，不能仅凭客户端上报自动认定模型未产生费用。'],

@@ -67,7 +67,7 @@ export class AccountStore {
   }
   private require(data: Data, request: Request): User {
     const user = this.user(data, request);
-    if (!user) throw new StudioError('LOGIN_REQUIRED', '请先登录，再开启免费体验。', 401);
+    if (!user) throw new StudioError('LOGIN_REQUIRED', '请先登录后继续。', 401);
     return user;
   }
   private view(data: Data, user: User | null): AccountView {
@@ -91,8 +91,8 @@ export class AccountStore {
     localOrigin(request);
     return this.transaction((data) => this.view(data, this.user(data, request)));
   }
-  async requireUser(request: Request): Promise<string> {
-    localOrigin(request, true);
+  async requireUser(request: Request, mutation = true): Promise<string> {
+    localOrigin(request, mutation);
     return this.transaction((data) => this.require(data, request).id);
   }
   async requireTrial(request: Request, durationSec: DurationSec = 15): Promise<string> {

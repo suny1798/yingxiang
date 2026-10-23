@@ -1,0 +1,5 @@
+.modes { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:22px; padding:5px; width:fit-content; max-width:100%; border:1px solid var(--line); border-radius:12px; background:var(--surface); }
+.modes a { padding:9px 18px; border-radius:8px; color:var(--muted); display:flex; gap:9px; align-items:center; font-size:12px; }
+.modes a[aria-current] { background:var(--accent-soft); color:var(--accent); }
+.modes a:hover { color:var(--accent); }
+@media(max-width:620px) { .modes { margin-bottom:15px; gap:2px; padding:4px; }.modes a { padding:8px 9px; gap:5px; font-size:11px; } }

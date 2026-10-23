@@ -17,18 +17,19 @@ assert.doesNotMatch(html, /仅模拟流程|本地预览|预览体验状态/);
 console.log('PASS 宣传首页、品牌与免费体验跳转');
 
 const pages = { '/': html };
-for (const route of ['/pricing', '/studio', '/account']) {
+for (const route of ['/pricing', '/studio', '/studio/video', '/account']) {
   const response = await fetchLocal(route); assert.equal(response.status, 200);
   pages[route] = await response.text();
   assert.equal(response.headers.get('location'), null);
 }
 assert.ok(pages['/pricing'].includes('拟定价格') && pages['/pricing'].includes('购买暂未开放') && pages['/pricing'].includes('56.90'));
 assert.ok(pages['/studio'].includes('打开相机') && pages['/studio'].includes('映想画面') && pages['/studio'].includes('服装参考图'));
+assert.ok(pages['/studio'].includes('/studio/video') && pages['/studio/video'].includes('人物视频') && pages['/studio/video'].includes('我的视频任务'));
 assert.ok(html.includes('href="/studio"') && html.includes('href="/pricing"'));
 const assets = new Set(Object.values(pages).flatMap((markup) => [...markup.matchAll(/(?:src|href)="(\/(?:_next\/static\/|assets\/)[^"]+)"/g)].map((match) => match[1])));
 assert.ok(assets.size > 0);
 for (const asset of assets) assert.equal((await fetchLocal(asset)).status, 200, asset);
-console.log(`PASS 价格、创作、个人中心公开可访问及${assets.size}个生产资源`);
+console.log(`PASS 价格、两种创作模式、个人中心公开可访问及${assets.size}个生产资源`);
 
 for (const route of ['config', 'health']) {
   const response = await fetchLocal(`/api/v1/${route}`), value = await response.json();
@@ -48,7 +49,7 @@ for (const route of ['access/redeem', 'sessions', 'sessions/test/token', 'sessio
   console.log(`PASS POST /api/v1/${route} → 503 SERVICE_DISABLED`);
 }
 assert.equal((await fetchLocal('/api/v1/sessions/test/token')).status, 405);
-for (const path of ['/.env.example', '/.git/config', '/.cache/accounts/store.json', '/.cache/accounts/store.lock', '/src/lib/server/http.ts', '/frontend/.env.example', '/frontend/src/lib/server/http.ts']) assert.equal((await fetchLocal(path)).status, 404);
+for (const path of ['/.env.example', '/.git/config', '/.cache/accounts/store.json', '/.cache/accounts/store.lock', '/.cache/video-jobs/jobs.json', '/src/lib/server/http.ts', '/frontend/.env.example', '/frontend/src/lib/server/http.ts']) assert.equal((await fetchLocal(path)).status, 404);
 console.log('PASS 方法限制及非公开源码路径');
 
 for (const [path, method] of [['/poc', 'GET'], ['/api/poc/status', 'GET'], ['/api/poc/token', 'POST'], ['/api/poc/observation', 'POST']]) assert.equal((await fetchLocal(path, method)).status, 404, path);
@@ -60,3 +61,11 @@ assert.equal(account.status, 200); assert.equal((await account.json()).user, nul
 const unsigned = await fetch(new URL('/api/studio/token', base), { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: '{}'});
 assert.equal(unsigned.status, 401);
 console.log('PASS 未登录账号状态和模型签发鉴权');
+const videoStatus = await fetchLocal('/api/video/jobs');
+assert.equal(videoStatus.status, 200); assert.equal(videoStatus.headers.get('cache-control'), 'no-store');
+const videoService = await videoStatus.json(); assert.deepEqual(videoService.jobs, []); assert.doesNotMatch(JSON.stringify(videoService), /apiKey|DECART_API_KEY|providerId/);
+for (const route of ['/api/video/jobs', '/api/video/jobs/test', '/api/video/jobs/test/content']) {
+  const response = await fetch(new URL(route, base), { method: route === '/api/video/jobs' ? 'POST' : 'GET', headers: { Origin: base } });
+  assert.equal(response.status, 401);
+}
+console.log('PASS 视频任务匿名隔离及提交、进度、下载鉴权');
