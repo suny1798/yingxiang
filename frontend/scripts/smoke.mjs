@@ -17,7 +17,7 @@ assert.doesNotMatch(html, /仅模拟流程|本地预览|预览体验状态/);
 console.log('PASS 宣传首页、品牌与免费体验跳转');
 
 const pages = { '/': html };
-for (const route of ['/pricing', '/studio', '/studio/video', '/account']) {
+for (const route of ['/pricing', '/studio', '/studio/video', '/studio/edit', '/account']) {
   const response = await fetchLocal(route); assert.equal(response.status, 200);
   pages[route] = await response.text();
   assert.equal(response.headers.get('location'), null);
@@ -25,11 +25,12 @@ for (const route of ['/pricing', '/studio', '/studio/video', '/account']) {
 assert.ok(pages['/pricing'].includes('拟定价格') && pages['/pricing'].includes('购买暂未开放') && pages['/pricing'].includes('56.90'));
 assert.ok(pages['/studio'].includes('打开相机') && pages['/studio'].includes('映想画面') && pages['/studio'].includes('服装参考图'));
 assert.ok(pages['/studio'].includes('/studio/video') && pages['/studio/video'].includes('人物视频') && pages['/studio/video'].includes('我的视频任务'));
+assert.ok(pages['/studio'].includes('/studio/edit') && pages['/studio/edit'].includes('画面修改提示词') && pages['/studio/edit'].includes('纯文字创作'));
 assert.ok(html.includes('href="/studio"') && html.includes('href="/pricing"'));
 const assets = new Set(Object.values(pages).flatMap((markup) => [...markup.matchAll(/(?:src|href)="(\/(?:_next\/static\/|assets\/)[^"]+)"/g)].map((match) => match[1])));
 assert.ok(assets.size > 0);
 for (const asset of assets) assert.equal((await fetchLocal(asset)).status, 200, asset);
-console.log(`PASS 价格、两种创作模式、个人中心公开可访问及${assets.size}个生产资源`);
+console.log(`PASS 价格、三种创作模式、个人中心公开可访问及${assets.size}个生产资源`);
 
 for (const route of ['config', 'health']) {
   const response = await fetchLocal(`/api/v1/${route}`), value = await response.json();
@@ -69,3 +70,10 @@ for (const route of ['/api/video/jobs', '/api/video/jobs/test', '/api/video/jobs
   assert.equal(response.status, 401);
 }
 console.log('PASS 视频任务匿名隔离及提交、进度、下载鉴权');
+const promptStatus = await fetchLocal('/api/prompt/status');
+assert.equal(promptStatus.status, 200); assert.equal(promptStatus.headers.get('cache-control'), 'no-store');
+const promptService = await promptStatus.json(); assert.equal(promptService.access, undefined); assert.doesNotMatch(JSON.stringify(promptService), /apiKey|DECART_API_KEY/);
+assert.equal((await fetchLocal('/api/prompt/token', 'POST')).status, 403);
+assert.equal((await fetch(new URL('/api/prompt/token', base), { method: 'POST', headers: { Origin: base, 'Content-Type': 'application/json' }, body: '{}' })).status, 401);
+assert.equal((await fetchLocal('/.cache/prompt/limits.json')).status, 404);
+console.log('PASS 提示词匿名不返回访问凭据、令牌签发鉴权及记录隔离');
