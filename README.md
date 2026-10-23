@@ -1,6 +1,6 @@
 # 映想
 
-Stripe沙盒支付已完成两笔用户测试及通知幂等核验，正式购买仍未开放；测试付款不能增加真实AI次数。实际结果见[Stripe接入报告](docs/reports/2026-10-23-Stripe沙盒支付接入.md)。下一阶段按用户要求采用单机SQLite，账号/订单/权益/签发与分批迁移见[架构规划](docs/12-SQLite架构与迁移规划.md)，尚未实施数据迁移。
+Stripe沙盒支付已完成两笔用户测试及通知幂等核验，正式购买仍未开放；测试付款不能增加真实AI次数。实际结果见[Stripe接入报告](docs/reports/2026-10-23-Stripe沙盒支付接入.md)。下一阶段规划保留Next.js/React前端，新增FastAPI后端，以SQLAlchemy/Alembic管理单机SQLite；完整阶段、接口兼容、数据导入及切换/回退见[迁移计划](docs/13-FastAPI后端与SQLite完整迁移计划.md)。尚未实施后端拆分或数据迁移。
 
 **让想象，在眼前发生。**
 
