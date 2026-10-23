@@ -11,7 +11,7 @@
     "build": "next build --webpack",
     "start": "next start --hostname 127.0.0.1 --port 8787",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/api-contract.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/studio-gate.test.ts tests/decart-adapter.test.ts tests/account-store.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/video-jobs.test.ts tests/prompt.test.ts",
+    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/api-contract.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/studio-gate.test.ts tests/decart-adapter.test.ts tests/account-store.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/video-jobs.test.ts tests/prompt.test.ts tests/payments.test.ts",
     "smoke": "node scripts/smoke.mjs",
     "check": "npm run typecheck && npm test && npm run build"
   },
@@ -19,7 +19,8 @@
     "@decartai/sdk": "0.2.12",
     "next": "16.4.2",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "stripe": "23.0.1"
   },
   "devDependencies": {
     "@types/node": "22.19.0",

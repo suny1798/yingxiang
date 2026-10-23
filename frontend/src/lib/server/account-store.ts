@@ -2,6 +2,8 @@ import { createHash, randomBytes, randomUUID, scrypt as nodeScrypt, timingSafeEq
 import { mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import type { AccountView } from '../account';
+import { paymentProduct, orderView, type PaymentOrder } from '../payments';
+import type Stripe from 'stripe';
 import { DURATION_OPTIONS, isDurationSec, type DurationSec } from '../studio/policy';
 import { localOrigin, readBoundedJson, StudioError } from './studio-gate';
 
@@ -15,6 +17,8 @@ interface User { id: string; username: string; salt: string; passwordHash: strin
 interface LoginSession { hash: string; userId: string; expiresAt: number }
 interface Attempt { id: string; userId: string; createdAt: string; durationSec?: DurationSec; state: 'used' | 'review'; outcome?: 'ended' | 'error' }
 interface Data { version: 1; users: User[]; sessions: LoginSession[]; attempts: Attempt[]; limits: Record<string, { count: number; until: number }>; quotas?: Record<string, number>; durationQuotas?: Record<string, Partial<Record<30 | 60, number>>> }
+
+interface Data { paymentOrders?: PaymentOrder[]; paymentEvents?: string[]; sandboxGrants?: Record<string, Partial<Record<DurationSec, number>>> }
 
 /** 本机文件仓储。锁不自动抢占；崩溃留下锁时停止服务后人工检查，禁止静默覆盖数据。 */
 export class AccountStore {
@@ -150,6 +154,61 @@ export class AccountStore {
   }
   async observe(userId: string, attemptId: string, outcome: 'ended' | 'error'): Promise<void> {
     await this.transaction((data) => { const entry = data.attempts.find((item) => item.userId === userId && item.id === attemptId); if (entry && !entry.outcome) entry.outcome = outcome; });
+  }
+  async paymentOrders(request: Request) {
+    localOrigin(request);
+    return this.transaction((data) => {
+      const user = this.require(data, request);
+      return { orders: (data.paymentOrders ?? []).filter((o) => o.userId === user.id).slice(-50).reverse().map(orderView), sandboxCredits: data.sandboxGrants?.[user.id] ?? {} };
+    });
+  }
+  async reservePayment(request: Request, sku: unknown, requestId: unknown): Promise<PaymentOrder> {
+    localOrigin(request, true);
+    if (typeof requestId !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestId)) throw new StudioError('INVALID_REQUEST', '支付操作编号无效。');
+    let product: ReturnType<typeof paymentProduct>;
+    try { product = paymentProduct(sku); } catch { throw new StudioError('INVALID_SKU', '请选择有效体验包。'); }
+    return this.transaction((data) => {
+      const user = this.require(data, request), orders = data.paymentOrders ??= [];
+      const previous = orders.find((o) => o.userId === user.id && o.requestId === requestId);
+      if (previous) {
+        if (previous.sku !== product.sku) throw new StudioError('PAYMENT_CONFLICT', '同一操作不能更改方案。', 409);
+        return previous;
+      }
+      const unknown = orders.find((o) => o.userId === user.id && o.sku === product.sku && o.state === 'creating' && !o.sessionId);
+      if (unknown) return unknown;
+      this.limit(data, `checkout:${user.id}`, 10, 60 * 60_000);
+      const order: PaymentOrder = { id: randomUUID(), userId: user.id, requestId, ...product, createdAt: new Date().toISOString(), state: 'creating' };
+      orders.push(order); return order;
+    });
+  }
+  async ownPayment(request: Request, id: string): Promise<PaymentOrder> {
+    localOrigin(request, true);
+    return this.transaction((data) => {
+      const user = this.require(data, request), order = data.paymentOrders?.find((o) => o.id === id && o.userId === user.id);
+      if (!order) throw new StudioError('ORDER_NOT_FOUND', '找不到此订单。', 404);
+      return order;
+    });
+  }
+  /** 验签后仍查 Stripe 当前状态。订单与沙盒权益同事务落盘，事件重放和乱序均不重复发放。 */
+  async applyPayment(session: Stripe.Checkout.Session, eventId?: string, failed = false): Promise<void> {
+    return this.transaction((data) => {
+      const order = data.paymentOrders?.find((o) => o.id === session.metadata?.orderId);
+      if (!order || session.livemode || session.mode !== 'payment' || session.client_reference_id !== order.id || session.metadata?.userId !== order.userId || session.metadata?.sku !== order.sku || session.currency !== order.currency || session.amount_total !== order.amount || (order.sessionId && order.sessionId !== session.id) || (data.paymentOrders ?? []).some((o) => o.id !== order.id && o.sessionId === session.id)) throw new StudioError('PAYMENT_MISMATCH', '付款资料不匹配，需要人工核查。', 409);
+      const events = data.paymentEvents ??= [];
+      if (eventId && events.includes(eventId)) return;
+      order.sessionId = session.id;
+      order.expiresAt = session.expires_at;
+      if (session.url && new URL(session.url).origin === 'https://checkout.stripe.com') order.checkoutUrl = session.url;
+      if (session.status === 'complete' && session.payment_status === 'paid') {
+        if (!order.fulfilledAt) {
+          const credits = (data.sandboxGrants ??= {})[order.userId] ??= {};
+          credits[order.seconds] = (credits[order.seconds] ?? 0) + order.count;
+          order.fulfilledAt = new Date().toISOString();
+        }
+        order.state = 'paid';
+      } else if (!order.fulfilledAt) order.state = session.status === 'expired' ? 'expired' : failed ? 'failed' : order.state === 'failed' ? 'failed' : 'pending';
+      if (eventId) events.push(eventId);
+    });
   }
 }
 export const accounts = new AccountStore(path.join(process.cwd(), '.cache', 'accounts'));
