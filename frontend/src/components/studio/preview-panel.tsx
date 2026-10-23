@@ -37,12 +37,12 @@ export function PreviewPanel({ snapshot, view, camera, stream, previewState, rem
         </video>
         <img className={styles['demo-poster']} src="/assets/try-on-demo-poster.jpg" alt="" aria-hidden="true" />
         {!generated && <div className={styles['demo-prompt']}>
-          <p><strong>{requesting ? '等待相机授权…' : '打开相机，换上你选的上衣'}</strong><span>上方为示意动画，不是实际生成效果</span></p>
+          <p><strong>{requesting ? '等待相机授权…' : '打开相机，换上你选的服装'}</strong><span>上方为示意动画，不是实际生成效果</span></p>
           <button type="button" className={styles['primary-button']} disabled={requesting} onClick={onCameraToggle}><Icon name="camera" />{requesting ? '等待授权' : '打开相机'}</button>
         </div>}
       </div>}
       {viewHint && <div className={styles['demo-prompt']}>
-        <p><strong>相机已开启，切到映想画面</strong><span>{validImage ? '上衣已选好，在映想画面确认后开始换装' : '在映想画面选一件上衣，开始换装'}</span></p>
+        <p><strong>相机已开启，切到映想画面</strong><span>{validImage ? '服装已选好，在映想画面确认后开始换装' : '在映想画面选一件服装，开始换装'}</span></p>
         <button type="button" className={styles['primary-button']} onClick={() => onView('generated')}><span aria-hidden="true">✳</span>切到映想画面</button>
       </div>}
       {remoteStream && <CameraPreview stream={remoteStream} camera={remote} visible={showRemote} remote />}
@@ -51,7 +51,7 @@ export function PreviewPanel({ snapshot, view, camera, stream, previewState, rem
         <span className={styles['imagine-orbit']} aria-hidden="true">✳</span>
         {active ? <><h3>正在连接映想…</h3><span className={styles['connection-sweep']} aria-hidden="true" /><button type="button" className={styles['text-button']} onClick={onStop}>取消连接</button></>
           : !cameraReady ? <><h3>{requesting ? '相机准备中…' : '先打开相机'}</h3><button type="button" className={styles['primary-button']} disabled={requesting} onClick={onCameraToggle}><Icon name="camera" />{requesting ? '等待授权' : '打开相机'}</button></>
-          : !validImage ? <><h3>选一件，换个新感觉。</h3><button type="button" className={styles['primary-button']} disabled={processing} onClick={onChoose}><Icon name="upload" />{processing ? '图片处理中…' : '选择上衣图'}</button></>
+          : !validImage ? <><h3>选一件，换个新感觉。</h3><button type="button" className={styles['primary-button']} disabled={processing} onClick={onChoose}><Icon name="upload" />{processing ? '图片处理中…' : '选择服装图片'}</button></>
           : exhausted ? <><h3>{snapshot.phase === 'error' ? '本次连接已停止' : snapshot.durationSec === 15 ? '15秒体验次数已用完' : `暂无${durationLabel(snapshot.durationSec)}权益`}</h3><Link href="/account" prefetch={false} className={styles['floating-link']}>查看我的权益 ↗</Link>{snapshot.durationSec !== 15 && <Link href="/pricing" className={styles['text-button']}>查看方案 · 购买暂未开放 ↗</Link>}</>
           : <><h3>让想象，进入画面。</h3><label className={styles['floating-consent']}><input type="checkbox" checked={snapshot.consent} onChange={(event) => onConsent(event.target.checked)} /><span>我已获授权，同意图片与视频由 Decart 云端处理</span></label><button type="button" className={styles['primary-button']} disabled={!cloudReady || !snapshot.consent || checking} onClick={onStart}><span aria-hidden="true">✳</span>{checking ? '正在验证…' : loggedIn ? '开始换装' : '登录并体验'}<Icon name="arrow" /></button><div className={styles['floating-meta']}><span>{snapshot.durationSec === 15 ? '免费 · ' : ''}最多{durationLabel(snapshot.durationSec)}{remaining > 1 ? ` · 剩余${remaining}次` : ''}</span><button type="button" className={styles['text-button']} onClick={onPrivacy}>详情 ↗</button></div></>}
         {!active && validImage && cameraReady && unavailable && !exhausted && <details className={styles['floating-error']}><summary>换装服务暂未就绪</summary><p>{unavailable}</p></details>}

@@ -41,7 +41,7 @@ export class DecartTryOnAdapter implements TryOnAdapter {
   async connect(options: ConnectOptions): Promise<void> {
     const durationSec = options.durationSec ?? STUDIO_POLICY.clientWindowSec;
     if (!isDurationSec(durationSec)) throw new ExperienceError('INVALID_DURATION', '请选择15秒、30秒或1分钟。');
-    if (!options.garment.blob) throw new ExperienceError('REAL_IMAGE_REQUIRED', '请上传有使用权的真实上衣图片，示意素材不用于模型测试。');
+    if (!options.garment.blob) throw new ExperienceError('REAL_IMAGE_REQUIRED', '请上传有使用权的真实服装图片，示意素材不用于模型测试。');
     const work = { signal: options.signal, attemptId: crypto.randomUUID(), access: '', issued: false, result: 'ended' as StudioObservation['outcome'], seconds: null as number | null, input: null as MediaStream | null, unwatch: null as (() => void) | null };
     this.work = work; this.lastObservation = null;
     let stage: 'camera' | 'status' | 'sdk' | 'connection' = 'camera';

@@ -12,7 +12,7 @@ function setup() {
   });
   return { input, revoked, pending, selected: () => garment };
 }
-const file = (name = '上衣.png') => new File(['test'], name, { type: 'image/png' });
+const file = (name = '服装.png') => new File(['test'], name, { type: 'image/png' });
 
 test('新图无效保留衣橱，追加不改变选择或释放仍在使用的URL', async () => {
   const s = setup();

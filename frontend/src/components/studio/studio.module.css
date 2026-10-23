@@ -246,7 +246,7 @@
 .demo-prompt span { font-size: 11px; color: var(--muted); }
 .demo-prompt .primary-button { flex-shrink: 0; min-height: 42px; padding: 10px 18px; font-size: 13px; gap: 8px; }
 .demo-prompt .primary-button .icon { width: 16px; height: 16px; stroke-width: 1.6; }
-/* 上传区空状态的示意上衣 */
+/* 上传区空状态的示意服装 */
 .upload-sample { width: 62%; max-width: 168px; height: auto; margin-bottom: 6px; opacity: .92; pointer-events: none; }
 .upload-zone:hover .upload-sample, .upload-zone.drag-over .upload-sample { opacity: 1; }
 .compact-picker .upload-empty > span:last-child { margin-top: 5px; font-size: 10px; color: var(--muted); }

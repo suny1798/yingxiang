@@ -23,7 +23,7 @@ for (const route of ['/pricing', '/studio', '/account']) {
   assert.equal(response.headers.get('location'), null);
 }
 assert.ok(pages['/pricing'].includes('拟定价格') && pages['/pricing'].includes('购买暂未开放') && pages['/pricing'].includes('56.90'));
-assert.ok(pages['/studio'].includes('打开相机') && pages['/studio'].includes('映想画面') && pages['/studio'].includes('上衣参考图'));
+assert.ok(pages['/studio'].includes('打开相机') && pages['/studio'].includes('映想画面') && pages['/studio'].includes('服装参考图'));
 assert.ok(html.includes('href="/studio"') && html.includes('href="/pricing"'));
 const assets = new Set(Object.values(pages).flatMap((markup) => [...markup.matchAll(/(?:src|href)="(\/(?:_next\/static\/|assets\/)[^"]+)"/g)].map((match) => match[1])));
 assert.ok(assets.size > 0);

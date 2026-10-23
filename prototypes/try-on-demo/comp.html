@@ -12,8 +12,8 @@ svg{display:block}
 <body>
 <svg id="svg" width="1600" height="900" viewBox="0 0 1600 900" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <!-- 共用的上衣轮廓，左右对称于 x=860 -->
-    <!-- 女性上衣轮廓：窄肩、收腰，左右对称于 x=860 -->
+    <!-- 共用的服装轮廓，左右对称于 x=860 -->
+    <!-- 女性服装轮廓：窄肩、收腰，左右对称于 x=860 -->
     <path id="body" d="M822 338C800 348 760 354 740 368C720 382 712 410 708 446L688 724L740 730L758 500C764 540 776 570 776 610C776 660 766 720 762 792L958 792C954 720 944 660 944 610C944 570 956 540 962 500L980 730L1032 724L1012 446C1008 410 1000 382 980 368C960 354 920 348 898 338C884 360 836 360 822 338Z"/>
     <linearGradient id="shade" x1="0" x2="1" y1="0" y2="0">
       <stop offset="0" stop-color="#000" stop-opacity=".07"/><stop offset=".35" stop-color="#000" stop-opacity="0"/>
@@ -108,7 +108,7 @@ const DUR = 9, FPS = 30;
 const NS = 'http://www.w3.org/2000/svg';
 const $ = id => document.getElementById(id);
 const THUMB = [{x: 468, y: 348}, {x: 468, y: 468}, {x: 468, y: 588}];
-const GC = {x: 860, y: 565}, TS = 0.19;          // 上衣中心与缩略图缩放
+const GC = {x: 860, y: 565}, TS = 0.19;          // 服装中心与缩略图缩放
 const COLLAR = {x: 860, y: 344}, HEM = 800;
 
 // 三次换衣：越来越快；最后留一段长静止，首尾相接

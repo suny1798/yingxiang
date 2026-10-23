@@ -89,7 +89,7 @@
     } else if (state === 'updatingGarment') {
       $('action-hint').textContent = '新的灵感已提交，画面正在更新（界面示意）。';
     }
-    $('stage-hint').textContent = hasView ? '可更换参考图，探索不同穿搭。当前画面为插画示意。' : '画面保持清晰，让上半身进入镜头。';
+    $('stage-hint').textContent = hasView ? '可更换参考图，探索不同穿搭。当前画面为插画示意。' : '画面保持清晰，让试穿区域完整进入镜头。';
     updateStartButton();
   }
 

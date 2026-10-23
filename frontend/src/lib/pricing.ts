@@ -1,6 +1,6 @@
 /** 展示用拟定价目，单位为人民币分；支付及付费长时体验尚未开放。 */
 export const PRICING = [
-  { seconds: 15, name: '灵感一试', description: '看一件上衣的第一眼感觉', prices: { 1: 690, 5: 2990, 10: 5690 } },
+  { seconds: 15, name: '灵感一试', description: '看一件服装的第一眼感觉', prices: { 1: 690, 5: 2990, 10: 5690 } },
   { seconds: 30, name: '从容看看', description: '给搭配多一点观察时间', prices: { 1: 1290, 5: 5690, 10: 10900 } },
   { seconds: 60, name: '多面探索', description: '留出转身与换图的空间', prices: { 1: 2390, 5: 10900, 10: 20900 } },
 ] as const;

@@ -49,7 +49,7 @@
     <div class="workspace">
       <section class="garment-panel panel" aria-labelledby="garment-title">
         <div class="section-heading"><h2 id="garment-title">选一张参考图</h2><svg class="icon subtle"><use href="#i-hanger"/></svg></div>
-        <p class="section-description">当前体验：实时换装，从一件上衣开始。</p>
+        <p class="section-description">当前体验：实时换装，从一件服装开始。</p>
 
         <input id="file-input" class="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" tabindex="-1" aria-label="选择服装参考图">
         <button id="upload-button" class="upload-zone" type="button" aria-label="上传或替换参考图" aria-describedby="file-help">
@@ -88,7 +88,7 @@
             <h3 id="overlay-title">正在准备映想画面</h3><p id="overlay-description">稍等片刻，让灵感就位。</p>
           </div>
           <div id="view-label" class="view-label" hidden>映想画面 · 界面演示</div>
-          <div class="stage-bottomline"><span id="stage-hint">画面保持清晰，让上半身进入镜头。</span><span class="sound-off">不采集音频</span></div>
+          <div class="stage-bottomline"><span id="stage-hint">画面保持清晰，让试穿区域完整进入镜头。</span><span class="sound-off">不采集音频</span></div>
         </div>
 
         <div class="mirror-controls">
@@ -107,7 +107,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
-  <dialog id="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><span class="eyebrow">映想 · 体验指南</span><button class="icon-button" type="button" data-close aria-label="关闭体验指南"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="guide-title">从一个灵感，<br>看见另一种可能。</h2><ol class="guide-steps"><li><strong>先从实时换装开始</strong><p>选择一张清晰的上衣参考图，或使用示意素材体验流程。</p></li><li><strong>让相机画面准备就绪</strong><p>正式使用时，在自然光下让上半身进入镜头；当前原型不启用相机。</p></li><li><strong>边看边换，随时结束</strong><p>体验中可以更换参考图、对比原始画面，按下结束即可退出。</p></li></ol><p class="dialog-footnote">提示词创作、室内背景、宠物与摆件等方向正在规划中，当前尚未开放。</p><button class="primary-button dialog-primary" type="button" data-close>回到创作空间 <svg class="icon"><use href="#i-arrow"/></svg></button></dialog>
+  <dialog id="guide-dialog" aria-labelledby="guide-title"><div class="dialog-heading"><span class="eyebrow">映想 · 体验指南</span><button class="icon-button" type="button" data-close aria-label="关闭体验指南"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="guide-title">从一个灵感，<br>看见另一种可能。</h2><ol class="guide-steps"><li><strong>先从实时换装开始</strong><p>选择一张清晰的服装参考图，或使用示意素材体验流程。</p></li><li><strong>让相机画面准备就绪</strong><p>正式使用时，在自然光下让试穿区域完整进入镜头；当前原型不启用相机。</p></li><li><strong>边看边换，随时结束</strong><p>体验中可以更换参考图、对比原始画面，按下结束即可退出。</p></li></ol><p class="dialog-footnote">提示词创作、室内背景、宠物与摆件等方向正在规划中，当前尚未开放。</p><button class="primary-button dialog-primary" type="button" data-close>回到创作空间 <svg class="icon"><use href="#i-arrow"/></svg></button></dialog>
 
   <dialog id="privacy-dialog" aria-labelledby="privacy-title"><div class="dialog-heading"><span class="eyebrow">你的画面，由你决定</span><button class="icon-button" type="button" data-close aria-label="关闭画面与隐私说明"><svg class="icon"><use href="#i-close"/></svg></button></div><h2 id="privacy-title">开启映想前，<br>先了解画面如何处理。</h2><div class="privacy-copy"><p>正式体验中，你选择的参考图片与相机视频会发送给云端模型服务，用于生成画面。首个体验场景为实时换装。</p><p>映想不采集麦克风音频，不默认录制相机或生成视频；你可以随时结束体验。</p><p>模型服务的数据处理及留存条件需在正式接入时核实，并在这里明确展示。换装场景仅作视觉展示，不提供真实尺码或合身保证。</p><p class="prototype-callout">当前为本地原型，不访问相机、不连接模型、不发送图片。参考图仅在当前页面预览。</p></div><button class="primary-button dialog-primary" type="button" data-close>了解，继续探索 <svg class="icon"><use href="#i-check"/></svg></button></dialog>
 

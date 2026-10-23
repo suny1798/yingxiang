@@ -3,7 +3,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: '映想 — 让想象，在眼前发生。',
-  description: '映想实时画面创作。上传上衣参考图，开启实时换装。',
+  description: '映想实时画面创作。上传服装参考图，开启实时换装。',
   icons: { icon: '/assets/mark.svg' },
 };
 
