@@ -20,9 +20,9 @@ export function SiteShell({ active, children }: { active: SitePage; children: Re
     await state.refresh();
   };
   return <Context.Provider value={{ ...state, openLogin: () => setOpen(true), logout }}><div className={s.site}>
-    <SiteHeader active={active} account={state.account} onLogin={() => setOpen(true)} />
+    <SiteHeader active={active} account={state.account} onLogin={() => setOpen(true)} onLogout={logout} />
     {children}
-    <footer className={s.footer}><div><Link href="/" className={s.footerBrand}>映想 <span>✳</span></Link><p>让想象，在眼前发生。</p></div><nav aria-label="页脚导航"><Link href="/pricing">价格方案</Link><Link href="/studio" prefetch={false}>创作空间</Link><Link href="/account" prefetch={false}>个人中心</Link></nav><p className={s.footerNote}>从实时换装开始。<br />不采集音频，不默认录制。</p></footer>
+    <footer className={s.footer}><div><Link href="/" className={s.footerBrand}>映想 <span>✳</span></Link><p>让想象，在眼前发生。</p></div><nav aria-label="页脚导航"><Link href="/pricing">价格方案</Link><Link href="/studio" prefetch={false}>创作空间</Link><Link href="/account" prefetch={false}>个人中心</Link><Link href="/help">帮助中心</Link><Link href="/help/feedback">问题反馈</Link><Link href="/privacy">隐私与使用说明</Link><Link href="/terms">用户协议</Link></nav><p className={s.footerNote}>从实时换装开始。<br />不采集音频，不默认录制。</p></footer>
     {open && <div className={studioStyles.studio} style={{ minHeight: 0, paddingBottom: 0 }}><AccountDialog account={state.account} onClose={() => setOpen(false)} onChanged={async () => { await state.refresh(); setOpen(false); }} onLogout={logout} /></div>}
   </div></Context.Provider>;
 }

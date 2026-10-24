@@ -1,7 +1,10 @@
 import styles from './studio.module.css';
 
-export type IconName = 'arrow' | 'upload' | 'camera' | 'lock' | 'hanger' | 'check' | 'close' | 'info' | 'sun' | 'switch';
+export type IconName = 'download' | 'arrow' | 'upload' | 'camera' | 'lock' | 'hanger' | 'check' | 'close' | 'info' | 'sun' | 'switch' | 'mirror' | 'history';
 const paths: Record<IconName, React.ReactNode> = {
+  download: <path d="M12 3v12m-4-4 4 4 4-4M5 17v4h14v-4" />,
+  history: <><path d="M3 5v5h5M3.5 10a9 9 0 1 1 1.7 8M12 7v5l3 2" /></>,
+  mirror: <><path d="M12 3v3m0 3v3m0 3v3m0 3v-1M3 7l5 3v7l-5 3zm18 0-5 3v7l5 3z" /></>,
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
   upload: <path d="M12 16V4m-4 4 4-4 4 4M5 15v5h14v-5" />,
   camera: <><path d="M4 7h4l2-3h4l2 3h4v13H4z" /><circle cx="12" cy="13" r="3.5" /></>,

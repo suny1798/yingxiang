@@ -12,10 +12,12 @@
   --sage: #64715b;
   --error: #9b4037;
   --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-scale: 1.15;
+  --font-min: 11px;
 }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.6 var(--font-body); padding-bottom: 0; -webkit-font-smoothing: antialiased; }
+html { scroll-behavior: smooth; scrollbar-gutter: stable both-edges; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(14px * var(--font-scale))); line-height: 1.6; font-family: var(--font-body);; padding-bottom: 0; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; }
 button, a, input { -webkit-tap-highlight-color: transparent; }
 button, a { touch-action: manipulation; }
@@ -28,3 +30,7 @@ button, a, input, select { transition: background .18s, color .18s, border-color
 button { -webkit-appearance: none; }
 [hidden] { display: none !important; }
 h1, h2, h3, p { margin: 0; }
+.star-hover-spin { transform-origin: 50% 50%; }
+.star-hover-spin:hover { animation: star-hover-turn .8s cubic-bezier(.22,.8,.22,1) both; }
+@keyframes star-hover-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .star-hover-spin:hover { animation: none; } }

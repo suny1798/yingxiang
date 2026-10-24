@@ -1,4 +1,5 @@
 'use client';
+import { useNotice } from '@/hooks/use-notice';
 
 import { useEffect, useRef, useState } from 'react';
 import { PAYMENT_STATES, type OrderView } from '@/lib/payments';
@@ -30,6 +31,7 @@ export function SandboxPurchase({ sku }: { sku: string }) {
     } catch (e) { setError(e instanceof Error ? e.message : '支付准备未完成，请到订单中核查。'); }
     finally { setBusy(false); }
   };
+  useNotice(error);
   return <><button type="button" disabled={!enabled || busy} className={enabled ? s.primary : s.disabledPurchase} onClick={() => void buy()}>{busy ? '正在准备…' : enabled ? '沙盒测试付款' : '购买暂未开放'}</button>{enabled && <p>仅测试付款，测试权益不能消耗真实模型。</p>}{error && <p role="alert">{error}</p>}</>;
 }
 export function SandboxOrders() {
@@ -47,5 +49,6 @@ export function SandboxOrders() {
     try { const value = await api(orderId ? '/api/payments/reconcile' : '/api/payments/orders', orderId ? { orderId } : undefined); setOrders(value.orders); setCredits(value.sandboxCredits); if (resume && value.url) { const url = new URL(value.url); if (url.origin !== 'https://checkout.stripe.com') throw new Error('支付链接无法验证。'); window.location.assign(url.href); } }
     catch (e) { setError(e instanceof Error ? e.message : '订单读取失败。'); } finally { setBusy(false); }
   };
+  useNotice(error);
   return <><p>正式购买暂未开放。以下仅为沙盒订单；返回此页不会自动认定付款。</p><button type="button" className={s.outline} disabled={busy} onClick={() => void refresh()}>刷新订单</button>{Object.keys(credits).length > 0 && <p>测试权益（不可用于真实模型）：{Object.entries(credits).map(([sec, n]) => `${sec}秒 × ${n}次`).join(' / ')}</p>}{error && <p role="alert">{error}</p>}{orders.length ? <div className={s.historyTable}><table><thead><tr><th>沙盒方案</th><th>金额</th><th>状态</th><th>核查</th></tr></thead><tbody>{orders.map((o) => <tr key={o.id}><td>{o.seconds}秒 × {o.count}次<br /><small>{o.id}</small></td><td>¥{money(o.amount)}</td><td>{PAYMENT_STATES[o.state]}</td><td><button type="button" disabled={busy} onClick={() => void refresh(o.id)}>查单</button>{(o.state === 'pending' || o.state === 'creating') && <button type="button" disabled={busy} onClick={() => void refresh(o.id, true)}>继续测试付款</button>}</td></tr>)}</tbody></table></div> : <p>暂无沙盒订单。</p>}</>;
 }
