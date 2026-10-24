@@ -68,7 +68,7 @@ export function SiteHeader({ active, account, onLogin, onLogout }: { active: Sit
   const current = (href: string) => href === '/account' ? pathname === '/account' : pathname === href;
   return <header className={s.header}><div className={s.headerInner}>
     <Link href="/" className={s.brand} aria-label="映想首页">映想<span aria-hidden="true">✳</span></Link>
-    <nav className={s.navigation} aria-label="主导航">{[ 
+    <nav className={s.navigation} aria-label="主导航">{[
       ['home', '/', '首页'], ['studio', '/studio', '创作空间'], ['works', '/works', '我的作品'], ['pricing', '/pricing', '价格方案'], ['help', '/help', '帮助中心'],
     ].map(([page, href, label]) => <Link key={page} href={href} prefetch={false} className={active === page ? s.navActive : undefined} aria-current={active === page ? 'page' : undefined}>{label}</Link>)}</nav>
     <div className={s.headerActions}>{!account ? <span className={s.accountPending} role="status" aria-label="正在读取账号">账号读取中…</span> : account.user ? <div ref={menu} className={s.accountMenu}>
