@@ -1,18 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, writeFile } from 'node:fs/promises';
-import os from 'node:os';
-import path from 'node:path';
 import type { ModelDefinition, RealTimeClient, RealTimeClientConnectOptions } from '@decartai/sdk';
 import { PromptSession } from '../src/lib/prompt/session';
-import { PROMPT_POLICY, PROMPT_EXAMPLES, promptText } from '../src/lib/prompt/policy';
+import { PROMPT_EXAMPLES, promptText } from '../src/lib/prompt/policy';
 import { DecartPromptAdapter, preparePromptSdk, type PromptAdapter, type PromptConnectOptions } from '../src/lib/prompt/adapter';
 import { LocalCamera } from '../src/lib/media/local-camera';
 import { RemotePreview } from '../src/lib/media/remote-preview';
 import type { RealtimeSdkFactory } from '../src/lib/media/decart-realtime';
-import { PromptGate } from '../src/lib/server/prompt-gate';
-import { StudioError } from '../src/lib/server/studio-gate';
 
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>((done) => { resolve = done; }); return { promise, resolve }; };
@@ -117,75 +111,4 @@ test('提示词连接取消清理迟到客户端/远端；签发或更新失败�
 test('本机已安装SDK能解析固定Lucy2.5模型，准备组件不会签发或建连', async () => {
   let called = false; const connector = await preparePromptSdk(async () => { called = true; throw new Error(); });
   assert.ok(connector.model); assert.match(JSON.stringify(connector.model), /lucy-2.5/); assert.equal(called, false);
-});
-
-const origin = 'http://127.0.0.1:8787', user = randomUUID();
-const environment = { YINGXIANG_PROMPT_ENABLED: 'true', YINGXIANG_PROMPT_BUDGET_USD: '0.60', YINGXIANG_PROMPT_MAX_SESSIONS: '2', DECART_API_KEY: 'unit-permanent-secret' };
-const get = () => new Request(`${origin}/api/prompt/status`, { headers: { host: '127.0.0.1:8787' } });
-const request = (access?: string, changes: Record<string, unknown> = {}) => new Request(`${origin}/api/prompt/token`, { method: 'POST', headers: { host: '127.0.0.1:8787', origin, 'content-type': 'application/json', 'x-studio-access': access ?? '' }, body: JSON.stringify({ attemptId: randomUUID(), consentVersion: PROMPT_POLICY.consentVersion, durationSec: 15, ...changes }) });
-const code = (value: string) => (error: unknown) => error instanceof StudioError && error.code === value;
-async function gateSetup(options: { env?: Record<string, string>; unknown?: boolean; invalid?: 'model' | 'origin' | 'duration' | 'ttl' } = {}) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), 'yingxiang-prompt-')), sent: unknown[] = [];
-  const upstream: typeof fetch = async (input, init) => {
-    assert.equal(String(input), 'https://api.decart.ai/v1/client/tokens'); assert.equal(init?.redirect, 'error');
-    assert.equal(new Headers(init?.headers).get('X-API-KEY'), 'unit-permanent-secret');
-    sent.push(JSON.parse(String(init?.body)));
-    if (options.unknown) throw new Error('unit-permanent-secret RAWDIAGNOSTIC');
-    return Response.json({ apiKey: 'ek_unit_ephemeral', expiresAt: new Date(Date.now() + (options.invalid === 'ttl' ? 90_000 : 9000)).toISOString(), permissions: { models: [options.invalid === 'model' ? 'lucy-vton-3.6' : 'lucy-2.5'], origins: [options.invalid === 'origin' ? 'https://other.example' : origin] }, constraints: { realtime: { maxSessionDuration: options.invalid === 'duration' ? 60 : 15 } } });
-  };
-  return { directory, sent, upstream, gate: new PromptGate(directory, options.env ?? environment, upstream) };
-}
-
-test('独立开关/预算/密钥/次数缺失默认关闭，匿名不返回访问凭据', async () => {
-  for (const env of [{}, { ...environment, YINGXIANG_PROMPT_ENABLED: 'false' }, { ...environment, YINGXIANG_PROMPT_BUDGET_USD: '0' }, { ...environment, YINGXIANG_PROMPT_MAX_SESSIONS: '0' }, { ...environment, DECART_API_KEY: '' }]) {
-    const s = await gateSetup({ env }); const status = await s.gate.status(get(), user); assert.equal(status.available, false); assert.equal(status.access, undefined); await assert.rejects(s.gate.issue(request(), user), code('PROMPT_DISABLED')); assert.equal(s.sent.length, 0);
-  }
-  const s = await gateSetup(); assert.equal((await s.gate.status(get(), null)).access, undefined); assert.ok((await s.gate.status(get(), user)).access);
-});
-
-test('错误来源/凭据/确认版本、非15秒及注入模型/提示词均在上游前拒绝', async () => {
-  const s = await gateSetup(), { access } = await s.gate.status(get(), user);
-  const cross = request(access); cross.headers.set('origin', 'https://other.example'); await assert.rejects(s.gate.issue(cross, user), code('ORIGIN_REJECTED'));
-  await assert.rejects(s.gate.issue(request('bad'), user), code('PROMPT_UNAUTHORIZED'));
-  for (const changes of [{ durationSec: 60 }, { consentVersion: 'old' }, { model: 'other' }, { prompt: 'private words' }]) await assert.rejects(s.gate.issue(request(access, changes), user), code('INVALID_PROMPT_SESSION'));
-  assert.equal(s.sent.length, 0);
-});
-
-test('并发全局预留、同UUID不重发、重启保持预算；仅固定模型/Origin/15秒短令牌', async () => {
-  const s = await gateSetup(), { access } = await s.gate.status(get(), user), id = randomUUID();
-  const results = await Promise.allSettled([s.gate.issue(request(access, { attemptId: id }), user), s.gate.issue(request(access), randomUUID())]);
-  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1); assert.equal(s.sent.length, 1);
-  assert.deepEqual(s.sent[0], { expiresIn: 10, allowedModels: ['lucy-2.5'], allowedOrigins: [origin], constraints: { realtime: { maxSessionDuration: 15 } } });
-  const file = path.join(s.directory, 'limits.json'), ledger = JSON.parse(await readFile(file, 'utf8'));
-  assert.equal(ledger.attempts[0].estimateUsd, .30); assert.doesNotMatch(JSON.stringify(ledger), /unit-permanent-secret|ek_unit_ephemeral|prompt|RAWDIAGNOSTIC/);
-  const restarted = new PromptGate(s.directory, environment, s.upstream);
-  await assert.rejects(restarted.issue(request(access, { attemptId: ledger.attempts[0].id }), user), code('PROMPT_ATTEMPT_SPENT'));
-  assert.equal((await restarted.status(get(), user)).available, false);
-  ledger.attempts[0].leaseUntil = 0; await writeFile(file, JSON.stringify(ledger));
-  assert.equal((await restarted.status(get(), user)).available, true); await restarted.issue(request(access), user);
-  assert.equal((await restarted.status(get(), user)).available, false); assert.equal(s.sent.length, 2);
-});
-
-test('返回模型/来源/时长/TTL不符或上游失败留unknown，未知占用预算且阻止重试', async () => {
-  for (const options of [{ unknown: true }, { invalid: 'model' as const }, { invalid: 'origin' as const }, { invalid: 'duration' as const }, { invalid: 'ttl' as const }]) {
-    const s = await gateSetup(options), { access } = await s.gate.status(get(), user), id = randomUUID();
-    await assert.rejects(s.gate.issue(request(access, { attemptId: id }), user), code('PROMPT_TOKEN_UNKNOWN'));
-    await assert.rejects(s.gate.issue(request(access, { attemptId: id }), user), code('PROMPT_ATTEMPT_SPENT'));
-    await assert.rejects(s.gate.issue(request(access), user), code('PROMPT_LIMIT')); assert.equal(s.sent.length, 1);
-    const text = await readFile(path.join(s.directory, 'limits.json'), 'utf8'); assert.equal(JSON.parse(text).attempts[0].state, 'unknown'); assert.doesNotMatch(text, /unit-permanent-secret|ek_unit_ephemeral|RAWDIAGNOSTIC/);
-  }
-});
-
-test('损坏的额度记录失败关闭，不可重建空账本重新赠送', async () => {
-  const s = await gateSetup(); await s.gate.status(get(), user); const file = path.join(s.directory, 'limits.json'); await writeFile(file, 'broken');
-  await assert.rejects(s.gate.status(get(), user), code('PROMPT_STORE_UNAVAILABLE')); assert.equal(await readFile(file, 'utf8'), 'broken'); assert.equal(s.sent.length, 0);
-});
-
-test('总预算与有限次数分别约束；连接窗口过后也不退回或重置用量', async () => {
-  for (const env of [{ ...environment, YINGXIANG_PROMPT_BUDGET_USD: '0.30', YINGXIANG_PROMPT_MAX_SESSIONS: '20' }, { ...environment, YINGXIANG_PROMPT_BUDGET_USD: '5', YINGXIANG_PROMPT_MAX_SESSIONS: '1' }]) {
-    const s = await gateSetup({ env }), { access } = await s.gate.status(get(), user);
-    await s.gate.issue(request(access), user);
-    const file = path.join(s.directory, 'limits.json'), ledger = JSON.parse(await readFile(file, 'utf8')); ledger.attempts[0].leaseUntil = 0; await writeFile(file, JSON.stringify(ledger));
-    assert.equal((await s.gate.status(get(), user)).available, false); await assert.rejects(s.gate.issue(request(access), user), code('PROMPT_LIMIT')); assert.equal(s.sent.length, 1);
-  }
 });

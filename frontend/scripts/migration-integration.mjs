@@ -1,0 +1,63 @@
+// 只连接 scripts.integration_server 的隔离替身环境；禁止用于真实运行端口。
+import assert from 'node:assert/strict';
+import { randomUUID, createHmac } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+const base = 'http://127.0.0.1:8789';
+let cookie = '';
+async function call(path, options = {}) {
+  const response = await fetch(base + path, {...options, headers: {Origin:base, Cookie:cookie,...options.headers}});
+  const set = response.headers.get('set-cookie'); if (set) cookie = set.split(';')[0];
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  return response;
+}
+const post = (path, value, headers={}) => call(path,{method:'POST',headers:{'content-type':'application/json',...headers},body:JSON.stringify(value)});
+const username = 'it_' + Date.now().toString(16);
+let response = await post('/api/account/register',{username,password:'test-password-only'});
+assert.equal(response.status,200, await response.clone().text());
+assert.ok(cookie.startsWith('yingxiang_session='));
+assert.match(response.headers.get('set-cookie'), /HttpOnly; SameSite=Lax; Path=\//);
+assert.equal((await (await call('/api/account/me')).json()).user.username, username);
+assert.equal((await post('/api/account/logout',{}, {Origin:'https://evil.example'})).status,403);
+assert.equal((await call('/api/account/me/')).status,404);
+assert.equal((await call('/api/account/me',{method:'PUT'})).status,405);
+assert.equal((await post('/api/v1/sessions',{})).status,503);
+console.log('PASS 真实双进程代理：Cookie/Origin/尾斜杠/方法/旧接口');
+const status = await (await call('/api/studio/status')).json();
+response = await post('/api/studio/token',{attemptId:randomUUID(),consentVersion:status.policy.consentVersion,durationSec:15},{'x-studio-access':status.access});
+assert.equal(response.status,200,await response.clone().text());
+assert.equal((await response.json()).apiKey,'fixture_temporary_key');
+assert.equal((await (await call('/api/account/me')).json()).trialRemaining,0);
+console.log('PASS 经同源代理的替身签发与一次权益');
+const data = await readFile('public/assets/try-on-demo.mp4');
+const padding = Buffer.alloc(12*1024*1024); padding.writeUInt32BE(padding.length); padding.write('free',4);
+const video = Buffer.concat([data,padding]);
+const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=','base64');
+const form = new FormData(); form.set('data',new Blob([video],{type:'video/mp4'}),'private.mp4'); form.set('reference_image',new Blob([png],{type:'image/png'}),'private.png'); form.set('consentVersion','2026-10-23-video-v1');
+const ident = randomUUID();
+response = await call('/api/video/jobs',{method:'POST',headers:{'x-video-attempt':ident},body:form});
+assert.equal(response.status,200,await response.clone().text());
+assert.equal((await response.json()).state,'completed');
+response = await call(`/api/video/jobs/${ident}/content?download=1`);
+assert.equal(response.status,200); assert.match(response.headers.get('content-disposition'),/^attachment;/);
+assert.equal(response.headers.get('cross-origin-resource-policy'),'same-origin');
+assert.deepEqual(Buffer.from(await response.arrayBuffer()),data);
+console.log(`PASS ${video.length} 字节上传完整到达、9秒媒体检查及结果流式下载`);
+response = await post('/api/payments/checkout',{requestId:randomUUID(),sku:'tryon-v1-15-5'});
+assert.equal(response.status,200,await response.clone().text());
+const checkout = await response.json();
+const body = JSON.stringify({id:'evt_proxy_'+randomUUID(),object:'event',type:'checkout.session.completed',livemode:false,data:{object:{id:'cs_test_'+checkout.orderId}}});
+const timestamp = Math.floor(Date.now()/1000).toString();
+const signature = `t=${timestamp},v1=${createHmac('sha256','whsec_integration_fixture').update(timestamp+'.'+body).digest('hex')}`;
+response = await call('/api/payments/webhook',{method:'POST',body:body+' ',headers:{'stripe-signature':signature}}); assert.equal(response.status,400);
+for(let n=0;n<2;n++) {
+  response = await call('/api/payments/webhook',{method:'POST',body,headers:{'stripe-signature':signature}});
+  assert.equal(response.status,200,await response.clone().text());
+}
+const payments = await (await call('/api/payments/orders')).json();
+assert.deepEqual(payments.sandboxCredits,{'15':5});
+assert.equal(payments.orders[0].state,'paid');
+assert.equal((await (await call('/api/account/me')).json()).trialRemaining,0);
+console.log('PASS 原始Webhook字节验签、篡改拒绝、两次重放一次发放及沙盒隔离');
+await post('/api/account/logout',{});
+assert.equal((await (await call('/api/account/me')).json()).user,null);

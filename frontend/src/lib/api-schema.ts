@@ -1,0 +1,17 @@
+// 由 docs/api/openapi.json 生成；请运行 npm run api:types，勿手工修改。
+export type HTTPValidationError = { "detail"?: Array<ValidationError>; };
+export type ValidationError = { "loc": Array<string | number>; "msg": string; "type": string; "input"?: unknown; "ctx"?: {  }; };
+export type VideoHistoryItem = { "id": string; "title": string; "archived": boolean; "state": "submitting" | "unknown" | "pending" | "processing" | "completed" | "failed"; "createdAt": string; "expiresAt": string; "seconds": number; "estimateUsd": number; "expired": boolean; };
+export type VideoHistoryPage = { "items": Array<VideoHistoryItem>; "page": number; "pageSize": number; "pages": number; "total": number; };
+export type AuthRequest = { "username": string; "password": string; };
+export type TokenRequest = { "attemptId": string; "consentVersion": string; "durationSec"?: number; };
+export type PromptTokenRequest = { "attemptId": string; "consentVersion": string; "durationSec": 15; };
+export type CheckoutRequest = { "requestId": string; "sku": string; };
+export type ReconcileRequest = { "orderId": string; };
+export type ObservationRequest = { "attemptId": string; "firstFrameMs": number | null; "providerReportedSeconds": number | null; "localTracksEnded": boolean; "outcome": "ended" | "error"; };
+export type DurationView = { "seconds": 15 | 30 | 60; "limit": number; "remaining": number; };
+export type HistoryView = { "id": string; "createdAt": string; "durationSec": 15 | 30 | 60; "state": "used" | "review"; "outcome"?: "ended" | "error" | null; };
+export type UserView = { "id": string; "username": string; "createdAt": string; };
+export type AccountView = { "user": UserView | null; "trial": "ready" | "review" | "used" | null; "trialLimit": number; "trialRemaining": number; "durations": Array<DurationView>; "history": Array<HistoryView>; };
+export type Error = { "code": string; "message": string; "retryable": boolean; };
+export type ApiError = { "error": Error; "requestId": string; };

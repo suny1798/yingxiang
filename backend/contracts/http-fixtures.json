@@ -1,0 +1,699 @@
+[
+  {
+    "scenario": {
+      "path": "/api/v1/config"
+    },
+    "status": 200,
+    "body": {
+      "apiVersion": "v1",
+      "mode": "real",
+      "scene": "clothing",
+      "maxDurationSec": 60,
+      "defaultDurationSec": 15,
+      "durationOptions": [
+        15,
+        30,
+        60
+      ],
+      "consentVersion": "2026-10-23-preview-cloud-v2",
+      "image": {
+        "maxBytes": 10485760,
+        "maxPixels": 20000000,
+        "maxEdge": 1024,
+        "mimeTypes": [
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ]
+      },
+      "features": {
+        "camera": true,
+        "realtime": false,
+        "invitations": false,
+        "promptEditing": false
+      }
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/v1/health"
+    },
+    "status": 200,
+    "body": {
+      "status": "ok",
+      "application": "yingxiang",
+      "mode": "real",
+      "providerReady": false,
+      "storageReady": false
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/v1/sessions",
+      "method": "POST",
+      "body": {}
+    },
+    "status": 503,
+    "body": {
+      "error": {
+        "code": "SERVICE_DISABLED",
+        "message": "账号与会话服务尚未启用。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/me"
+    },
+    "status": 200,
+    "body": {
+      "user": null,
+      "trial": null,
+      "trialLimit": 0,
+      "trialRemaining": 0,
+      "durations": [
+        {
+          "seconds": 15,
+          "limit": 0,
+          "remaining": 0
+        },
+        {
+          "seconds": 30,
+          "limit": 0,
+          "remaining": 0
+        },
+        {
+          "seconds": 60,
+          "limit": 0,
+          "remaining": 0
+        }
+      ],
+      "history": []
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/studio/status"
+    },
+    "status": 200,
+    "body": {
+      "enabled": false,
+      "keyConfigured": false,
+      "available": false,
+      "policy": {
+        "batchId": "studio-manual-v1",
+        "model": "lucy-vton-3.6",
+        "sdk": "0.2.12",
+        "consentVersion": "2026-10-23-preview-cloud-v2",
+        "approvedBudgetUsd": 5,
+        "tokenTtlSec": 10,
+        "connectionCapSec": 15,
+        "clientWindowSec": 15,
+        "durationOptions": [
+          15,
+          30,
+          60
+        ],
+        "standardUsdPerSec": 0.02,
+        "prompt": "Replace only the current upper-body clothing with the garment in the reference image. Preserve the person, face, body, pose, background and lighting."
+      },
+      "state": "disabled"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/prompt/status"
+    },
+    "status": 200,
+    "body": {
+      "available": false,
+      "message": "实时编辑待开放，可先准备提示词与相机预览。"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/video/jobs"
+    },
+    "status": 200,
+    "body": {
+      "available": false,
+      "message": "视频生成待开放，可先预览素材。",
+      "jobs": []
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/payments/status"
+    },
+    "status": 200,
+    "body": {
+      "testEnabled": false,
+      "liveEnabled": false
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/payments/orders"
+    },
+    "status": 401,
+    "body": {
+      "error": {
+        "code": "LOGIN_REQUIRED",
+        "message": "请先登录后继续。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/payments/checkout",
+      "method": "POST",
+      "body": {}
+    },
+    "status": 503,
+    "body": {
+      "error": {
+        "code": "PAYMENTS_DISABLED",
+        "message": "沙盒支付尚未配置，正式购买暂未开放。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/payments/webhook",
+      "method": "POST",
+      "body": {}
+    },
+    "status": 503,
+    "body": {
+      "error": {
+        "code": "PAYMENTS_DISABLED",
+        "message": "沙盒支付尚未配置，正式购买暂未开放。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/studio/token",
+      "method": "POST",
+      "body": {},
+      "origin": null
+    },
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "ORIGIN_REJECTED",
+        "message": "页面来源不符，请从本机验证入口重新打开。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/studio/token",
+      "method": "POST",
+      "body": {}
+    },
+    "status": 401,
+    "body": {
+      "error": {
+        "code": "LOGIN_REQUIRED",
+        "message": "请先登录后继续。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/prompt/token",
+      "method": "POST",
+      "body": {}
+    },
+    "status": 401,
+    "body": {
+      "error": {
+        "code": "LOGIN_REQUIRED",
+        "message": "请先登录后继续。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/video/jobs",
+      "method": "POST",
+      "body": {}
+    },
+    "status": 401,
+    "body": {
+      "error": {
+        "code": "LOGIN_REQUIRED",
+        "message": "请先登录后继续。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/register",
+      "method": "POST",
+      "body": {
+        "username": "contract_user",
+        "password": "test-password-only"
+      },
+      "origin": "https://evil.example"
+    },
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "ORIGIN_REJECTED",
+        "message": "页面来源不符，请从本机验证入口重新打开。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/register",
+      "method": "POST",
+      "body": {},
+      "contentType": "text/plain"
+    },
+    "status": 415,
+    "body": {
+      "error": {
+        "code": "INVALID_REQUEST",
+        "message": "请使用JSON请求。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/register",
+      "method": "POST",
+      "body": {
+        "username": "ab",
+        "password": "12345678"
+      }
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "INVALID_ACCOUNT",
+        "message": "账号需为3—24位字母、数字或下划线，密码需为8—128位。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/login",
+      "method": "POST",
+      "body": {
+        "username": "contract_user",
+        "password": "test-password-only"
+      }
+    },
+    "status": 401,
+    "body": {
+      "error": {
+        "code": "INVALID_CREDENTIALS",
+        "message": "账号或密码不正确。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/register",
+      "method": "POST",
+      "body": {
+        "username": "contract_user",
+        "password": "test-password-only"
+      }
+    },
+    "status": 200,
+    "body": {
+      "user": {
+        "id": "<uuid>",
+        "username": "contract_user",
+        "createdAt": "<timestamp>"
+      },
+      "trial": "ready",
+      "trialLimit": 1,
+      "trialRemaining": 1,
+      "durations": [
+        {
+          "seconds": 15,
+          "limit": 1,
+          "remaining": 1
+        },
+        {
+          "seconds": 30,
+          "limit": 0,
+          "remaining": 0
+        },
+        {
+          "seconds": 60,
+          "limit": 0,
+          "remaining": 0
+        }
+      ],
+      "history": []
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": [
+      "HttpOnly",
+      "SameSite=Lax",
+      "Path=/",
+      "Max-Age=604800"
+    ]
+  },
+  {
+    "scenario": {
+      "path": "/api/account/me",
+      "cookie": true
+    },
+    "status": 200,
+    "body": {
+      "user": {
+        "id": "<uuid>",
+        "username": "contract_user",
+        "createdAt": "<timestamp>"
+      },
+      "trial": "ready",
+      "trialLimit": 1,
+      "trialRemaining": 1,
+      "durations": [
+        {
+          "seconds": 15,
+          "limit": 1,
+          "remaining": 1
+        },
+        {
+          "seconds": 30,
+          "limit": 0,
+          "remaining": 0
+        },
+        {
+          "seconds": 60,
+          "limit": 0,
+          "remaining": 0
+        }
+      ],
+      "history": []
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/payments/orders",
+      "cookie": true
+    },
+    "status": 200,
+    "body": {
+      "orders": [],
+      "sandboxCredits": {}
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/studio/token",
+      "method": "POST",
+      "body": {},
+      "cookie": true
+    },
+    "status": 503,
+    "body": {
+      "error": {
+        "code": "SERVICE_DISABLED",
+        "message": "请先在服务端配置密钥并启用本机验证。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/prompt/token",
+      "method": "POST",
+      "body": {},
+      "cookie": true
+    },
+    "status": 503,
+    "body": {
+      "error": {
+        "code": "PROMPT_DISABLED",
+        "message": "实时编辑尚未开放。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/video/jobs",
+      "method": "POST",
+      "body": {},
+      "cookie": true
+    },
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "INVALID_VIDEO_ATTEMPT",
+        "message": "缺少有效的提交编号，请刷新后重试。",
+        "retryable": false
+      },
+      "requestId": "<uuid>"
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/logout",
+      "method": "POST",
+      "cookie": true
+    },
+    "status": 200,
+    "body": {
+      "accepted": true
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": [
+      "HttpOnly",
+      "SameSite=Lax",
+      "Path=/",
+      "Max-Age=0"
+    ]
+  },
+  {
+    "scenario": {
+      "path": "/api/account/me",
+      "cookie": true
+    },
+    "status": 200,
+    "body": {
+      "user": null,
+      "trial": null,
+      "trialLimit": 0,
+      "trialRemaining": 0,
+      "durations": [
+        {
+          "seconds": 15,
+          "limit": 0,
+          "remaining": 0
+        },
+        {
+          "seconds": 30,
+          "limit": 0,
+          "remaining": 0
+        },
+        {
+          "seconds": 60,
+          "limit": 0,
+          "remaining": 0
+        }
+      ],
+      "history": []
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/account/unknown"
+    },
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "接口不存在。"
+      }
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  },
+  {
+    "scenario": {
+      "path": "/api/payments/unknown"
+    },
+    "status": 404,
+    "body": {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "接口不存在。"
+      }
+    },
+    "headers": {
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff"
+    },
+    "cookieFlags": null
+  }
+]

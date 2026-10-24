@@ -1,0 +1,96 @@
+{
+  "publicConfig": {
+    "apiVersion": "v1",
+    "mode": "real",
+    "scene": "clothing",
+    "maxDurationSec": 60,
+    "defaultDurationSec": 15,
+    "durationOptions": [
+      15,
+      30,
+      60
+    ],
+    "consentVersion": "2026-10-23-preview-cloud-v2",
+    "image": {
+      "maxBytes": 10485760,
+      "maxPixels": 20000000,
+      "maxEdge": 1024,
+      "mimeTypes": [
+        "image/jpeg",
+        "image/png",
+        "image/webp"
+      ]
+    },
+    "features": {
+      "camera": true,
+      "realtime": false,
+      "invitations": false,
+      "promptEditing": false
+    }
+  },
+  "studio": {
+    "batchId": "studio-manual-v1",
+    "model": "lucy-vton-3.6",
+    "sdk": "0.2.12",
+    "consentVersion": "2026-10-23-preview-cloud-v2",
+    "approvedBudgetUsd": 5,
+    "tokenTtlSec": 10,
+    "connectionCapSec": 15,
+    "clientWindowSec": 15,
+    "durationOptions": [
+      15,
+      30,
+      60
+    ],
+    "standardUsdPerSec": 0.02,
+    "prompt": "Replace only the current upper-body clothing with the garment in the reference image. Preserve the person, face, body, pose, background and lighting."
+  },
+  "prompt": {
+    "model": "lucy-2.5",
+    "sdk": "0.2.12",
+    "consentVersion": "2026-10-23-prompt-v1",
+    "durationSec": 15,
+    "tokenTtlSec": 10,
+    "usdPerSecond": 0.02,
+    "maxPromptLength": 500
+  },
+  "video": {
+    "model": "lucy-vton-3.6",
+    "consentVersion": "2026-10-23-video-v1",
+    "maxBytes": 26214400,
+    "maxSeconds": 15,
+    "resultWindowMs": 86400000,
+    "usdPerSecond": 0.04,
+    "prompt": "Dress the person in the garment from the reference image. Preserve the person, face, body, pose, background and lighting."
+  },
+  "passwords": [
+    {
+      "password": "test-password-only",
+      "salt": "00112233445566778899aabbccddeeff",
+      "jsLength": 18,
+      "hash": "25e426163d5b6e956df93a06067d56f27772d0c5049b136c3ec5e836f8a7486ae46fa37bf9eeb5b5a723e4f61135cae0c48b0665dc6761243e974e0a93130d94"
+    },
+    {
+      "password": "中文密码123456",
+      "salt": "00112233445566778899aabbccddeeff",
+      "jsLength": 10,
+      "hash": "f9c7c7a28480d91bde22406ba43732731e39d2ff3656ff6546002fc0dd5bbfa0a688c1d05d2ccb47b150ba54098e4cb0d3fe6a9e012013805cb5db8f2e1a5309"
+    },
+    {
+      "password": "👗👗👗👗",
+      "salt": "00112233445566778899aabbccddeeff",
+      "jsLength": 8,
+      "hash": "526914e767e124c824d648ba95cd16a3bc9983f1f9825e09a650080152df09f7195bf3dc3dd1c54bd93c30989c244d9c7950c17642dbfce1a2657ca82e2f05aa"
+    },
+    {
+      "password": "\ud800abc123456",
+      "salt": "00112233445566778899aabbccddeeff",
+      "jsLength": 10,
+      "hash": "505d6f193809e1d0ca6cf69e4d376b6a8136e771a8e45fc2cc4b2de3ff299af3c0233e847f3ae58b391443fe3c0f3853c5c28d623266f677185f4cde5180db21"
+    }
+  ],
+  "session": {
+    "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "hash": "ffe054fe7ae0cb6dc65c3af9b61d5209f439851db43d0ba5997337df154668eb"
+  }
+}

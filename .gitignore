@@ -22,6 +22,20 @@ test-results/
 output/playwright/
 *.log
 
+# Python 后端运行环境与私有数据
+backend/.runtime/
+backend/.venv/
+backend/.venv-verify/
+backend/data/
+backend/backups/
+__pycache__/
+.pytest_cache/
+*.pyc
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+
 # 系统与编辑器临时文件
 .DS_Store
 Thumbs.db
