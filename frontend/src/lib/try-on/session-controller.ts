@@ -1,4 +1,4 @@
-import { ACTIVE_PHASES, type Garment, type SessionSnapshot, type TryOnAdapter, type View } from './types';
+import { ACTIVE_PHASES, ExperienceError, type Garment, type SessionSnapshot, type TryOnAdapter, type View } from './types';
 import { DEFAULT_DURATION_SEC } from '../limits';
 import { isDurationSec, type DurationSec } from '../studio/policy';
 
@@ -10,14 +10,17 @@ export class SessionController {
   private listeners = new Set<() => void>();
   private work: AbortController | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private connectionDeadlineAt: number | null = null;
+  private readonly connectionTimeoutMs: number;
   private pendingGarment: Garment | null = null;
   private updating = false;
   private durationMs: number;
   private readonly now: () => number;
 
-  constructor(private readonly adapter: TryOnAdapter, options: { durationMs?: number; now?: () => number } = {}) {
+  constructor(private readonly adapter: TryOnAdapter, options: { durationMs?: number; now?: () => number; connectionTimeoutMs?: number } = {}) {
     this.durationMs = options.durationMs ?? DEFAULT_DURATION_SEC * 1000;
     this.now = options.now ?? Date.now;
+    this.connectionTimeoutMs = options.connectionTimeoutMs ?? 30_000;
   }
 
   getSnapshot = (): SessionSnapshot => this.snapshot;
@@ -46,13 +49,24 @@ export class SessionController {
     this.patch({ durationSec, remainingSeconds: durationSec, deadlineAt: null });
   }
 
-  private beginDeadline(): void {
-    if (this.snapshot.deadlineAt !== null) return;
-    this.patch({ deadlineAt: this.now() + this.durationMs, remainingSeconds: Math.ceil(this.durationMs / 1000) });
+  private beginConnectionWait(): void {
+    if (this.connectionDeadlineAt !== null) return;
+    this.connectionDeadlineAt = this.now() + this.connectionTimeoutMs;
     this.timer = setInterval(() => this.tick(), 200);
   }
 
+  private beginDeadline(): void {
+    if (this.snapshot.deadlineAt !== null) return;
+    this.connectionDeadlineAt = null;
+    this.patch({ deadlineAt: this.now() + this.durationMs, remainingSeconds: Math.ceil(this.durationMs / 1000) });
+    if (!this.timer) this.timer = setInterval(() => this.tick(), 200);
+  }
+
   tick(): void {
+    if (this.connectionDeadlineAt !== null && this.now() >= this.connectionDeadlineAt && this.work) {
+      this.handleError(new ExperienceError('CONNECTION_TIMEOUT', '等待生成画面超时，本轮连接已停止，不会自动重试。请核查网络和使用记录。'), this.work.signal);
+      return;
+    }
     if (this.snapshot.deadlineAt === null || !ACTIVE_PHASES.has(this.snapshot.phase)) return;
     const remainingSeconds = Math.max(0, Math.ceil((this.snapshot.deadlineAt - this.now()) / 1000));
     if (remainingSeconds === 0) this.stop('本次换装已结束，可继续查看相机原画。');
@@ -69,12 +83,14 @@ export class SessionController {
     try {
       await this.adapter.connect({ garment, durationSec: this.snapshot.durationSec, signal: operation.signal, onError: (error) => this.handleError(error, operation.signal), onPhase: (phase) => {
         if (!this.isCurrent(operation.signal)) return;
-        if (phase === 'connecting') this.beginDeadline();
+        if (phase === 'creatingSession' || phase === 'connecting') this.beginConnectionWait();
         this.patch({ phase });
       } });
       if (!this.isCurrent(operation.signal)) return;
       this.tick();
       if (!this.isCurrent(operation.signal)) return;
+      // 适配器在远端视频实际播放后才完成连接；等待时间不扣体验秒数。
+      this.beginDeadline();
       this.patch({ phase: 'live' });
       if (this.pendingGarment) void this.flushGarment();
     } catch (error) { this.handleError(error, operation.signal); }
@@ -99,14 +115,14 @@ export class SessionController {
   private handleError(error: unknown, signal: AbortSignal): void {
     if (!this.isCurrent(signal)) return;
     const message = error instanceof Error ? error.message : '画面暂时无法准备，请稍后重试。';
-    this.cancelWork();
+    this.cancelWork(error instanceof Error ? error : undefined);
     this.patch({ phase: 'error', message });
   }
 
-  private cancelWork(): void {
-    this.work?.abort(); this.work = null;
+  private cancelWork(reason?: Error): void {
+    this.work?.abort(reason); this.work = null;
     if (this.timer) clearInterval(this.timer);
-    this.timer = null; this.pendingGarment = null; this.updating = false;
+    this.timer = null; this.connectionDeadlineAt = null; this.pendingGarment = null; this.updating = false;
     this.adapter.stop();
   }
 

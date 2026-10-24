@@ -2,7 +2,7 @@ import { VIDEO_POLICY } from './policy';
 
 interface Box { type: string; start: number; end: number }
 /** 保守接收普通MP4，拒绝碎片、多个轨道和无法复核的时间表；不解码或转码媒体。 */
-export function inspectVideo(bytes: Uint8Array): { seconds: number; width: number; height: number } {
+export function inspectVideo(bytes: Uint8Array, options: { allowAudio?: boolean } = {}): { seconds: number; width: number; height: number; hasAudio?: boolean } {
   const invalid = (message = '视频格式无法验证，请导出为普通H.264 MP4后再试。'): never => { throw new Error(message); };
   if (bytes.length < 32 || bytes.length > VIDEO_POLICY.maxBytes) invalid('请选择不超过25MB的MP4视频。');
   const data = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -31,14 +31,14 @@ export function inspectVideo(bytes: Uint8Array): { seconds: number; width: numbe
     return found[0];
   };
   const length = (box: Box, minimum: number) => { if (box.end - box.start < minimum) invalid(); };
-  const timing = (box: Box): { seconds: number; scale: number } => {
+  const timing = (box: Box, maximum = VIDEO_POLICY.maxSeconds + 0.001): { seconds: number; scale: number } => {
     length(box, 20); const version = bytes[box.start];
     if (version !== 0 && version !== 1) invalid();
     length(box, version ? 32 : 20);
     const scale = data.getUint32(box.start + (version ? 20 : 12));
     const ticks = version ? Number(data.getBigUint64(box.start + 24)) : data.getUint32(box.start + 16);
     const seconds = ticks / scale;
-    if (!scale || !Number.isFinite(seconds) || seconds < 1 || seconds > VIDEO_POLICY.maxSeconds + 0.001) invalid('首版支持1—15秒视频，请先裁剪后再上传。');
+    if (!scale || !Number.isFinite(seconds) || seconds < 1 || seconds > maximum) invalid('首版支持1—15秒视频，请先裁剪后再上传。');
     return { seconds, scale };
   };
   const top = boxes(0, bytes.length);
@@ -47,20 +47,24 @@ export function inspectVideo(bytes: Uint8Array): { seconds: number; width: numbe
   if (!top.some((box) => box.type === 'mdat' && box.end > box.start)) invalid();
   const movie = one(top, 'moov'), movieBoxes = boxes(movie.start, movie.end);
   if (movieBoxes.some((box) => box.type === 'mvex')) invalid();
-  const movieTime = timing(one(movieBoxes, 'mvhd'));
+  const movieTime = timing(one(movieBoxes, 'mvhd'), options.allowAudio ? 86400 : 15.001);
   const tracks = movieBoxes.filter((box) => box.type === 'trak');
+  const videoTracks: Box[] = [], audioTracks: Box[] = [];
   for (const track of tracks) {
     const media = one(boxes(track.start, track.end), 'mdia');
     const handler = one(boxes(media.start, media.end), 'hdlr'); length(handler, 12);
-    if (text(handler.start + 8, 4) === 'soun') invalid('视频含有音轨，请先在剪辑工具中移除音轨后导出。');
+    const kind = text(handler.start + 8, 4);
+    if (kind === 'soun') { if (!options.allowAudio) invalid('视频仍有音轨，自动处理未完成，请重新选择视频。'); audioTracks.push(track); }
+    else if (kind === 'vide') videoTracks.push(track);
+    else invalid('暂不支持此视频轨道结构，请选择普通MP4视频。');
   }
-  if (tracks.length !== 1) invalid('请选择仅含一条画面轨道、无音轨的MP4。');
-  const trackBoxes = boxes(tracks[0].start, tracks[0].end);
+  if (videoTracks.length !== 1 || audioTracks.length > 4) invalid('请选择仅含一条画面轨道的MP4视频。');
+  const trackBoxes = boxes(videoTracks[0].start, videoTracks[0].end);
   const media = one(trackBoxes, 'mdia'), mediaBoxes = boxes(media.start, media.end);
   const handler = one(mediaBoxes, 'hdlr'); length(handler, 12);
   if (text(handler.start + 8, 4) !== 'vide') invalid();
   const mediaTime = timing(one(mediaBoxes, 'mdhd'));
-  if (Math.abs(mediaTime.seconds - movieTime.seconds) > 0.15) invalid('视频时间信息不一致，请重新导出后再试。');
+  if (!audioTracks.length && Math.abs(mediaTime.seconds - movieTime.seconds) > 0.15) invalid('视频时间信息不一致，请重新导出后再试。');
   const minf = one(mediaBoxes, 'minf'), stbl = one(boxes(minf.start, minf.end), 'stbl');
   const sampleBoxes = boxes(stbl.start, stbl.end), stsd = one(sampleBoxes, 'stsd'); length(stsd, 8);
   if (data.getUint32(stsd.start + 4) !== 1) invalid();
@@ -87,7 +91,7 @@ export function inspectVideo(bytes: Uint8Array): { seconds: number; width: numbe
   if (edits[0]) {
     const edit = one(boxes(edits[0].start, edits[0].end), 'elst'); length(edit, 20);
     // 不接受变速、多段编辑或版本1编辑表，避免元数据低报处理时长。
-    if (bytes[edit.start] !== 0 || data.getUint32(edit.start + 4) !== 1 || edit.end - edit.start !== 20 || data.getInt32(edit.start + 12) < 0 || data.getUint32(edit.start + 16) !== 65536 || Math.abs(data.getUint32(edit.start + 8) / movieTime.scale - movieTime.seconds) > 0.05) invalid('暂不支持变速或多段编辑时间表，请先重新导出视频。');
+    if (bytes[edit.start] !== 0 || data.getUint32(edit.start + 4) !== 1 || edit.end - edit.start !== 20 || data.getInt32(edit.start + 12) < 0 || data.getUint32(edit.start + 16) !== 65536 || Math.abs(data.getUint32(edit.start + 8) / movieTime.scale - (audioTracks.length ? mediaTime.seconds : movieTime.seconds)) > 0.05) invalid('暂不支持变速或多段编辑时间表，请先重新导出视频。');
   }
-  return { seconds: Math.max(seconds, movieTime.seconds), width, height };
+  return { seconds: Math.max(seconds, audioTracks.length ? mediaTime.seconds : movieTime.seconds), width, height, ...(options.allowAudio ? { hasAudio: !!audioTracks.length } : {}) };
 }

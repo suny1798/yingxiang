@@ -9,7 +9,7 @@ export const VIDEO_POLICY = {
 } as const;
 export type VideoJobState = 'submitting' | 'unknown' | 'pending' | 'processing' | 'completed' | 'failed';
 export interface VideoJobView {
-  id: string; state: VideoJobState; createdAt: string; expiresAt: string;
+  id: string; title?: string; state: VideoJobState; createdAt: string; expiresAt: string;
   seconds: number; estimateUsd: number; expired: boolean;
 }
 export interface VideoServiceView { available: boolean; message: string; jobs: VideoJobView[] }

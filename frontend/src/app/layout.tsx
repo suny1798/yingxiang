@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { NoticeCenter } from '@/components/notice-center';
 
 export const metadata: Metadata = {
   title: '映想 — 让想象，在眼前发生。',
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN"><body>{children}</body></html>;
+  return <html lang="zh-CN"><body>{children}<NoticeCenter /></body></html>;
 }

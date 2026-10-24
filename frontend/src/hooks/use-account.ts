@@ -1,31 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
-import type { AccountView } from '@/lib/account';
+import { useEffect, useSyncExternalStore } from 'react';
+import { useNotice } from './use-notice';
+import { accountSession } from '@/lib/account-session';
 
 export function useAccount() {
-  const [account, setAccount] = useState<AccountView | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const revision = useRef(0);
-  const refresh = useCallback(async () => {
-    const operation = ++revision.current;
-    try {
-      const response = await fetch('/api/account/me', { cache: 'no-store' });
-      if (!response.ok) throw new Error('暂时无法读取账号，请稍后重试。');
-      const value = await response.json() as AccountView;
-      if (revision.current === operation) { setAccount(value); setError(null); }
-      return value;
-    } catch (failure) {
-      if (revision.current === operation) setError(failure instanceof Error ? failure.message : '账号暂不可用。');
-      return null;
-    }
-  }, []);
+  const { account, error } = useSyncExternalStore(accountSession.subscribe, accountSession.getSnapshot, accountSession.getServerSnapshot);
+  useNotice(error);
   useEffect(() => {
-    const update = () => { if (!document.hidden) void refresh(); };
+    const update = () => { if (!document.hidden) void accountSession.revalidate(); };
     update();
     const timer = setInterval(update, 10_000);
     window.addEventListener('focus', update);
-    return () => { ++revision.current; clearInterval(timer); window.removeEventListener('focus', update); };
-  }, [refresh]);
-  return { account, error, refresh };
+    return () => { clearInterval(timer); window.removeEventListener('focus', update); };
+  }, []);
+  return { account, error, refresh: accountSession.refresh };
 }

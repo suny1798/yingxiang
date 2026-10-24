@@ -45,7 +45,7 @@ export class DecartRealtime {
     let stage: 'camera' | 'status' | 'sdk' | 'connection' = 'camera';
     let safeFailure: ExperienceError | null = null, connectionReady = false;
     const fail = (error: Error) => { if (this.work !== work || work.signal.aborted) return; work.result = 'error'; options.onError?.(error); };
-    const onAbort = () => this.stop(); options.signal.addEventListener('abort', onAbort, { once: true });
+    const onAbort = () => { if (options.signal.reason instanceof ExperienceError) work.result = 'error'; this.stop(); }; options.signal.addEventListener('abort', onAbort, { once: true });
     try {
       if (this.mediaOptions.keepLocalPreview) {
         const preview = this.camera.getSnapshot();

@@ -32,6 +32,7 @@ export interface ConnectOptions {
 export interface TryOnAdapter {
   readonly mode: 'real';
   readonly initialView?: View;
+  /** 远端生成视频实际播放后才完成；仅取得令牌或收到流不算就绪。 */
   connect(options: ConnectOptions): Promise<void>;
   updateGarment(garment: Garment, signal: AbortSignal): Promise<void>;
   stop(): void;

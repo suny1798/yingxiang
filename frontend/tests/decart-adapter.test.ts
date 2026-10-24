@@ -14,12 +14,12 @@ function media() {
   const track = new Track();
   return { track, stream: { getTracks: () => [track], getVideoTracks: () => [track], getAudioTracks: () => [], clone: () => media().stream } as unknown as MediaStream };
 }
-function setup(options: { pendingConnect?: boolean; failDisconnect?: boolean; failToken?: boolean; browserDefault?: boolean; failInitialConnection?: boolean; sharedPreview?: boolean; wrongDuration?: number } = {}) {
+function setup(options: { pendingConnect?: boolean; failDisconnect?: boolean; failToken?: boolean; browserDefault?: boolean; failInitialConnection?: boolean; sharedPreview?: boolean; wrongDuration?: number; deferRemotePlayback?: boolean; now?: () => number } = {}) {
   const local = media(), output = media(), remote = new RemotePreview();
   let cameraRequests = 0, remoteConnections = 0;
   const camera = new LocalCamera(async () => cameraRequests++ === 0 ? local.stream : media().stream);
   camera.subscribe(() => { const stream = camera.getSnapshot(); if (stream) camera.markPlaying(stream); });
-  remote.subscribe(() => { const stream = remote.getSnapshot(); if (stream) remote.markPlaying(stream); });
+  remote.subscribe(() => { const stream = remote.getSnapshot(); if (stream && !options.deferRemotePlayback) remote.markPlaying(stream); });
   const requests: Array<{ url: string; body: unknown }> = [], updates: unknown[] = [];
   const inputStreams: MediaStream[] = [];
   let disconnects = 0, connectOptions: RealTimeClientConnectOptions | null = null;
@@ -43,7 +43,7 @@ function setup(options: { pendingConnect?: boolean; failDisconnect?: boolean; fa
       args.onRemoteStream(remoteConnections++ === 0 ? output.stream : media().stream); return client;
     } };
   };
-  const adapter = new DecartTryOnAdapter(camera, remote, options.browserDefault ? undefined : request, factory, { keepLocalPreview: options.sharedPreview }), controller = new SessionController(adapter, { durationMs: 15000 });
+  const adapter = new DecartTryOnAdapter(camera, remote, options.browserDefault ? undefined : request, factory, { keepLocalPreview: options.sharedPreview }), controller = new SessionController(adapter, { durationMs: 15000, now: options.now });
   controller.setGarment(garment); controller.setConsent(true);
   return { controller, adapter, camera, remote, local, output, requests, request, updates, finish, inputStreams, cameraRequests: () => cameraRequests, options: () => connectOptions, provider: () => provider(), disconnects: () => disconnects };
 }
@@ -200,5 +200,49 @@ test('令牌响应的时长不一致时拒绝继续，不展示远端或再次�
     assert.equal(s.controller.getSnapshot().phase, 'error');
     assert.equal(s.remote.getSnapshot(), null);
     assert.equal(s.requests.filter((item) => item.url.endsWith('token')).length, 1);
+  } finally { s.controller.reset(); }
+});
+
+
+test('收到远端流尚未播放时不倒计时，首帧播放后从完整15秒开始', async () => {
+  let now = 1000;
+  const s = setup({ deferRemotePlayback: true, now: () => now });
+  try {
+    const running = s.controller.start();
+    for (let i = 0; i < 10 && !s.remote.getSnapshot(); i++) await settle();
+    assert.equal(s.remote.getSnapshot(), s.output.stream);
+    assert.equal(s.controller.getSnapshot().phase, 'connecting');
+    assert.equal(s.controller.getSnapshot().deadlineAt, null);
+    now += 20_000; s.controller.tick();
+    assert.equal(s.controller.getSnapshot().remainingSeconds, 15);
+    s.remote.markPlaying(s.output.stream); await running;
+    assert.equal(s.controller.getSnapshot().phase, 'live');
+    assert.equal(s.controller.getSnapshot().deadlineAt, now + 15_000);
+    now += 5000; s.controller.tick();
+    assert.equal(s.controller.getSnapshot().remainingSeconds, 10);
+    s.remote.markPlaying(s.output.stream);
+    assert.equal(s.controller.getSnapshot().deadlineAt, 36_000);
+    now += 10_000; s.controller.tick();
+    assert.equal(s.controller.getSnapshot().phase, 'ended');
+    assert.equal(s.requests.filter((r) => r.url.endsWith('token')).length, 1);
+    assert.equal(s.output.track.readyState, 'ended');
+  } finally { s.controller.reset(); }
+});
+
+test('远端一直未播放则独立超时并记录error，不重签且释放输入和远端流', async () => {
+  let now = 1000;
+  const s = setup({ deferRemotePlayback: true, now: () => now });
+  try {
+    const running = s.controller.start();
+    for (let i = 0; i < 10 && !s.remote.getSnapshot(); i++) await settle();
+    assert.equal(s.remote.getSnapshot(), s.output.stream);
+    now += 30_000; s.controller.tick(); await running;
+    assert.equal(s.controller.getSnapshot().phase, 'error');
+    assert.equal(s.adapter.lastObservation?.outcome, 'error');
+    assert.equal(s.adapter.lastObservation?.firstFrameMs, null);
+    assert.equal(s.output.track.readyState, 'ended');
+    assert.equal(s.local.track.readyState, 'ended');
+    assert.equal(s.disconnects(), 1);
+    assert.equal(s.requests.filter((r) => r.url.endsWith('token')).length, 1);
   } finally { s.controller.reset(); }
 });

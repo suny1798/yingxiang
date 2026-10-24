@@ -136,19 +136,24 @@ test('衣橱点选三张图复用单连接和期限，删除最后一张才结�
 });
 
 
-test('三档从connecting开始截止，活动中不可改档，换衣不续时，结束后可另选', async () => {
+test('三档从视频就绪开始计时，建连等待不扣秒、活动中不改档且换衣不续时', async () => {
   for (const seconds of [15, 30, 60] as const) {
     let now = 1000;
     const adapter = new ControlledAdapter(), controller = new SessionController(adapter, { now: () => now });
     try {
       controller.setGarment(garment('first')); controller.setConsent(true); controller.setDuration(seconds);
       const running = controller.start();
-      assert.equal(controller.getSnapshot().deadlineAt, 1000 + seconds * 1000);
+      assert.equal(controller.getSnapshot().deadlineAt, null);
+      assert.equal(controller.getSnapshot().remainingSeconds, seconds);
       assert.equal(adapter.connections[0].options.durationSec, seconds);
       controller.setDuration(seconds === 15 ? 60 : 15);
       assert.equal(controller.getSnapshot().durationSec, seconds);
-      now += 4000; adapter.connections[0].wait.resolve(); await running;
-      assert.equal(controller.getSnapshot().remainingSeconds, seconds - 4);
+      now += 20_000; controller.tick();
+      assert.equal(controller.getSnapshot().phase, 'connecting');
+      assert.equal(controller.getSnapshot().remainingSeconds, seconds);
+      adapter.connections[0].wait.resolve(); await running;
+      assert.equal(controller.getSnapshot().deadlineAt, now + seconds * 1000);
+      assert.equal(controller.getSnapshot().remainingSeconds, seconds);
       const deadline = controller.getSnapshot().deadlineAt;
       controller.setGarment(garment('next')); assert.equal(controller.getSnapshot().deadlineAt, deadline);
       now = deadline!; controller.tick(); adapter.updates[0].wait.resolve(); await settle();
@@ -157,4 +162,39 @@ test('三档从connecting开始截止，活动中不可改档，换衣不续时�
       controller.setDuration(120 as never); assert.equal(controller.getSnapshot().durationSec, 30);
     } finally { controller.reset(); }
   }
+});
+
+
+test('建连独立超时显示错误，迟到的视频不能启动计时或恢复连接', async () => {
+  let now = 1000;
+  const adapter = new ControlledAdapter(), controller = new SessionController(adapter, { now: () => now });
+  try {
+    controller.setGarment(garment('initial')); controller.setConsent(true);
+    const running = controller.start();
+    now += 29_999; controller.tick();
+    assert.equal(controller.getSnapshot().phase, 'connecting');
+    assert.equal(controller.getSnapshot().deadlineAt, null);
+    now++; controller.tick();
+    assert.equal(controller.getSnapshot().phase, 'error');
+    assert.match(controller.getSnapshot().message!, /等待生成画面超时/);
+    assert.equal(adapter.connections[0].options.signal.aborted, true);
+    adapter.connections[0].wait.resolve(); await running;
+    assert.equal(controller.getSnapshot().phase, 'error');
+    assert.equal(controller.getSnapshot().deadlineAt, null);
+    assert.equal(controller.getSnapshot().remainingSeconds, 15);
+    assert.equal(adapter.connections.length, 1);
+  } finally { controller.reset(); }
+});
+
+test('计时器延迟执行时，超出建连时限的就绪结果仍不能绕过超时', async () => {
+  let now = 1000;
+  const adapter = new ControlledAdapter(), controller = new SessionController(adapter, { now: () => now });
+  try {
+    controller.setGarment(garment('initial')); controller.setConsent(true);
+    const running = controller.start();
+    now += 30_001;
+    adapter.connections[0].wait.resolve(); await running;
+    assert.equal(controller.getSnapshot().phase, 'error');
+    assert.equal(controller.getSnapshot().deadlineAt, null);
+  } finally { controller.reset(); }
 });
