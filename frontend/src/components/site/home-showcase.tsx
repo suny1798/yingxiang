@@ -5,10 +5,10 @@ import { useEffect, useRef, useState } from 'react';
 import s from './home-showcase.module.css';
 
 const scenes = [
-  { image: '/assets/home/hero-live-v3.webp', alt: 'AI概念图：服装参考图与相机换装画面关联，非实际生成结果' },
-  { image: '/assets/home/hero-video-v3.webp', alt: 'AI概念图：原视频、服装参考、换装预览与视频时间线，非实际生成结果' },
-  { image: '/assets/home/hero-prompt-v3.webp', alt: 'AI概念图：叠加及移除提示词来改变画面背景；实时编辑目前仅交互预览' },
-  { image: '/assets/home/hero-workspace-v3.webp', alt: 'AI概念图：相机换装、视频换装、提示词编辑的三功能创作工作台' },
+  { image: '/assets/home/hero-live-left-v4.webp', alt: 'AI概念图：服装参考图与相机换装画面关联，非实际生成结果' },
+  { image: '/assets/home/hero-video-male-wide-v5.webp', alt: 'AI概念图：原视频、服装参考、换装预览与视频时间线，非实际生成结果' },
+  { image: '/assets/home/hero-prompt-left-v4.webp', alt: 'AI概念图：叠加及移除提示词来改变画面背景；实时编辑目前仅交互预览' },
+  { image: '/assets/home/hero-workspace-left-v4.webp', alt: 'AI概念图：相机换装、视频换装、提示词编辑的三功能创作工作台' },
 ];
 
 export function HomeShowcase() {
@@ -66,7 +66,7 @@ export function HomeShowcase() {
     onKeyDown={(event) => { if (event.key === 'ArrowLeft') { event.preventDefault(); choose(-1); } if (event.key === 'ArrowRight') { event.preventDefault(); choose(1); } }}>
     <div className={s.frame}>
       {scenes.map((item, value) => <div key={item.image} role="group" aria-roledescription="幻灯片" aria-label={t(`${value + 1} / ${scenes.length}`)} aria-hidden={value !== index} className={s.slide} data-active={value === index}>
-        <img src={item.image} alt={t(item.alt)} width={1672} height={941} loading="eager" decoding="async" />
+        <img src={item.image} alt={t(item.alt)} width={2172} height={724} loading="eager" decoding="async" />
       </div>)}
     </div>
     <div className={s.arrows}><button type="button" aria-label={t("上一张背景")} onClick={() => choose(-1)}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12H4m7-7-7 7 7 7" /></svg></button><button type="button" aria-label={t("下一张背景")} onClick={() => choose(1)}><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 12h16m-7-7 7 7-7 7" /></svg></button></div>

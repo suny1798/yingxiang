@@ -1,8 +1,9 @@
 .showcase { position:absolute; inset:0; z-index:0; overflow:hidden; }
-.frame { position:absolute; inset:0; background:var(--paper); }
+.frame { position:absolute; inset:0; background:var(--paper); mask-image:linear-gradient(180deg,transparent,#000 2%,#000 98%,transparent); }
 .slide { position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity 1.2s ease; }
 .slide[data-active=true] { opacity:1; }
-.slide img { display:block; position:absolute; right:0; top:0; width:auto; max-width:none; height:100%; mask-image:linear-gradient(180deg,transparent,#000 2%,#000 98%,transparent); }
+/* 每帧只显示一张完整扩图，避免原图与扩图景物错位后产生双影。 */
+.slide img { display:block; position:absolute; inset:0; width:100%; max-width:none; height:100%; object-fit:cover; object-position:right center; }
 .frame:after { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg,light-dark(#f8f7f4e8, color-mix(in srgb, var(--surface) 91%, transparent)) 0%,light-dark(#f8f7f4c4, color-mix(in srgb, var(--surface) 77%, transparent)) 18%,light-dark(#f8f7f473, color-mix(in srgb, var(--surface) 45%, transparent)) 26%,light-dark(#f8f7f41f, color-mix(in srgb, var(--surface) 12%, transparent)) 35%,transparent 43%); }
 :global(html[data-theme=dark]) .frame:after { background:linear-gradient(90deg,var(--paper) 0%,color-mix(in srgb,var(--paper) 97%,transparent) 30%,color-mix(in srgb,var(--paper) 90%,transparent) 40%,transparent 65%); }
 .arrows { position:absolute; z-index:2; right:max(48px,calc((100% - 1200px)/2)); bottom:30px; display:flex; gap:14px; }

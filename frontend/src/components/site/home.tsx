@@ -9,7 +9,7 @@ import h from './home.module.css';
 
 const scenes = [
   { name: '实时换装', tag: '相机里的此刻', image: 'hero-live-v3.webp', href: '/studio', title: '喜欢的衣服，现在试试看。', copy: '打开相机，放入服装参考图。在相机原画和映想画面之间切换，同一次连接里也可以继续换衣服。', action: '开始实时换装', note: '新账号可免费体验一次15秒' },
-  { name: '视频换装', tag: '视频里的片刻', image: 'hero-video-v3.webp', href: '/studio/video', title: '已有的片段，也能换个搭配。', copy: '上传一段人物视频和服装参考图，生成后预览、对比，再保存喜欢的版本。视频中的音轨会自动移除。', action: '进入视频换装', note: '支持1—15秒人物视频 · 测试开放中' },
+  { name: '视频换装', tag: '视频里的片刻', image: 'hero-video-male-v5.webp', href: '/studio/video', title: '已有的片段，也能换个搭配。', copy: '上传一段人物视频和服装参考图，生成后预览、对比，再保存喜欢的版本。视频中的音轨会自动移除。', action: '进入视频换装', note: '支持1—15秒人物视频 · 测试开放中' },
   { name: '实时编辑', tag: '一句话里的想法', image: 'hero-prompt-v3.webp', href: '/studio/edit', title: '一点点想法，慢慢叠加。', copy: '先打开相机，再写下想法。发送的提示词可以叠加、移除，先体验属于你的创作方式。', action: '预览实时编辑', note: '交互预览 · AI画面同步尚未接入' },
 ];
 
