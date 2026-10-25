@@ -31,6 +31,9 @@ function PricingContent() {
   }, [account?.user?.id]);
   const purchasePlan = CREATION_PLANS.find(plan => plan.id === confirming);
   const scenePolicy = CREATION_SCENES[scene];
+  const selectedPlan = CREATION_PLANS.find(plan => plan.id === selected)!;
+  const cost = creditsFor(scene, seconds);
+  const uses = estimatedUses(selected, scene, seconds);
   const changeScene = (value: CreationScene) => { setScene(value); setSeconds(15); };
 
   return <><main className={s.page}>
@@ -49,10 +52,10 @@ function PricingContent() {
     <section className={s.usage} aria-labelledby="usage-title">
       <div className={s.sectionHeading}><div><p className={s.eyebrow}>{t("让额度更好理解")}</p><h2 id="usage-title">{t("这些积分，能创作多少次？")}</h2></div><p>{t("三种功能共用积分，可自由搭配使用。")}</p></div>
       <div className={s.calculator}><div className={s.sceneSwitch} role="group" aria-label={t("用量估算功能")}>{sceneKeys.map((key) => <button type="button" key={key} aria-pressed={scene === key} onClick={() => changeScene(key)}>{t(CREATION_SCENES[key].label)}</button>)}</div><div className={s.duration} role="group" aria-label={t("每次示例时长")}><span>{t("每次")}</span>{scenePolicy.examples.map((value) => <button type="button" key={value} aria-pressed={seconds === value} onClick={() => setSeconds(value)}>{t(value)} {t(" 秒")}</button>)}</div><p className={s.rate}>{creditsFor(scene, seconds)} {t(" 积分 / 次")}{scene === 'edit' && t(' · 功能上线后适用')}</p></div>
-      <div className={s.estimates} aria-live="polite">{CREATION_PLANS.map((plan) => {
-        const uses = estimatedUses(plan.id, scene, seconds);
-        return <div key={plan.id}><span>{t(plan.name)}</span>{uses === null ? <strong className={s.unavailable}>{t("不包含实时编辑")}</strong> : <p><strong>{uses}</strong><span>{t("次 × ")}{seconds} {t(" 秒")}</span></p>}<small>{t(uses === null ? '可选创作包或进阶包' : `全部 ${plan.credits} 积分用于${scenePolicy.label}`)}</small></div>;
-      })}</div><p className={s.usageNote}>{t("以上为单功能用量示例，不是三份独立额度；本页估算不会扣除积分或启动生成。")}</p>
+      <div className={s.estimates} aria-live="polite" aria-atomic="true">
+        <div className={s.selectedAllowance}><span>{t('当前所选套餐')}</span><strong>{t(selectedPlan.name)}</strong><span>{selectedPlan.credits.toLocaleString(intlLocale)} {t('创作积分')}</span></div>
+        <div className={s.estimateResult}>{uses === null ? <><strong className={s.unavailable}>{t('不包含实时编辑')}</strong><span>{t('可选创作包或进阶包')}</span></> : <><span>{t('预计可创作')}</span><p><strong>{uses.toLocaleString(intlLocale)}</strong><span>{t('次 × ')}{seconds} {t(' 秒')}{t(scenePolicy.label)}</span></p><span>{t(`剩余 ${selectedPlan.credits - uses * cost} 积分`)}</span></>}</div>
+      </div><p className={s.usageNote}>{t('按所选套餐的全部积分估算，切换套餐、功能或时长即可更新；不会扣除积分或启动生成。')}</p>
     </section>
     <section className={s.faq} aria-labelledby="faq-title"><div><p className={s.eyebrow}>{t("开始之前")}</p><h2 id="faq-title">{t("把规则说清楚。")}</h2><Link href="/privacy" target="_blank" rel="noopener noreferrer">{t("隐私与使用说明 ↗")}</Link></div><div>{faqs.map(([question, answer]) => <details key={question}><summary>{t(question)}<span aria-hidden="true">＋</span></summary><p>{t(answer)}</p></details>)}</div></section>
   </main>{purchasePlan && <PurchaseConfirmation plan={purchasePlan} checkout={checkout} username={account?.user?.username ?? null} onClose={() => { if (!checkout.busy) setConfirming(null); }} onConfirm={() => { if (!account?.user) setConfirming(null); void checkout.buy(`credits-v1-${purchasePlan.id}`); }} />}</>;
