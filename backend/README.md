@@ -1,5 +1,21 @@
 # 映想后端
 
+## 管理权限（0004）
+
+`/admin`复用普通账号会话，以数据库role区分user/admin；管理员导航不是鉴权边界。新建账号默认user，用户名suny本身不会自动获得权限。管理修改记录审计，不提供任意SQL/密钥编辑、媒体读取、订单改价或风险账本删除。
+
+既有数据库升级前停止后端写入，显式备份，再运行迁移与完整性检查：
+
+```powershell
+.venv/Scripts/python.exe -m scripts.ops backup --destination data/backups/pre-admin-0004.sqlite3
+.venv/Scripts/python.exe -m scripts.ops init
+.venv/Scripts/python.exe -m scripts.ops check
+# 仅用于明确授权的既有账号；不会创建新账号或改变其额度。
+.venv/Scripts/python.exe -m scripts.ops grant-admin --username suny
+```
+
+备份目标不可覆盖，已有同名备份时选择新名称。授权命令幂等并留下`admin.bootstrap`审计，不按注册名自动提权；网页角色变更、账号暂停会撤销目标旧会话。服务暂停取消后仍受`.env`既有密钥、名单、预算和次数门禁限制。不要通过编辑角色、删除审计或清空预留来规避限制。其他管理员只能由受保护管理接口或显式本机授权配置。
+
 FastAPI/Pydantic、同步 SQLAlchemy/Alembic、SQLite 单机持久化。网页和浏览器媒体逻辑仍在 `frontend/`；Next.js 仅转发同源 `/api/*`。所有 Python 命令在本目录执行。
 
 ## 安装与运行
@@ -66,3 +82,9 @@ Copy-Item .env.example .env
 当前schema revision为0002。新增video_history只保存标题/归档，旧任务通过左连接直接出现在历史中，不回填或重置额度。历史GET/POST需登录和同源且校验所有者；归档不删除任务、不释放预算，活动/未知任务不可归档。媒体仍不由后端保存。
 
 旧0001升级：先停后端写入，运行`python -m scripts.ops backup --destination backups/指定新备份.sqlite3`，再`python -m alembic upgrade head`和`python -m scripts.ops check`，成功后重启。不能改已部署0001或通过downgrade删除业务数据。本机本轮备份pre-video-history-20261024.sqlite3；13张原表行数和内容指纹均保持一致。
+
+## 长期有效积分包与0003升级
+
+0003增加独立sandbox_credit_packs及积分订单字段；升级在事务中保存/重建payment_events依赖并恢复全部事件，保留旧订单字段和请求快照。不更改0001/0002。先停写、备份，再upgrade head和ops check，成功后重启；本轮备份backups/pre-credit-packages-20261025.sqlite3，14张原业务表逐字段比对一致，完整性与外键检查通过。
+
+credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和原子幂等积分发放。积分不设到期；测试包保存在独立表，真实模型额度不读它。Checkout链接超时仍保留。/api/payments/orders与reconcile新增sandboxPointBalance、sandboxCreditPacks；旧sandboxCredits仍表示旧次数包。客户端只提交SKU，不能自报价格。正式支付仍关闭。
