@@ -8,8 +8,9 @@ import { notify } from '@/lib/notices';
 import type { AccountView } from '@/lib/account';
 import s from './site.module.css';
 import { PreferenceControls } from './preference-controls';
+import { SiteAnnouncement } from './site-announcement';
 
-export type SitePage = 'home' | 'pricing' | 'studio' | 'account' | 'privacy' | 'works' | 'help' | 'terms';
+export type SitePage = 'home' | 'pricing' | 'studio' | 'account' | 'privacy' | 'works' | 'help' | 'terms' | 'admin';
 
 const ACCOUNT_NAV = [
   ['/account', '个人中心'],
@@ -73,7 +74,7 @@ export function SiteHeader({ active, account, onLogin, onLogout }: { active: Sit
     <Link href="/" className={s.brand} aria-label={t("映想首页")}>{t("映想")}<span aria-hidden="true">✳</span></Link>
     <nav className={s.navigation} aria-label={t("主导航")}>{[
       ['home', '/', '首页'], ['studio', '/studio', '创作空间'], ['works', '/works', '我的作品'], ['pricing', '/pricing', '价格方案'], ['help', '/help', '帮助中心'],
-    ].map(([page, href, label]) => <Link key={page} href={href} prefetch={false} className={active === page ? s.navActive : undefined} aria-current={active === page ? 'page' : undefined}>{t(label)}</Link>)}</nav>
+    ].map(([page, href, label]) => <Link key={page} href={href} prefetch={false} className={active === page ? s.navActive : undefined} aria-current={active === page ? 'page' : undefined}>{t(label)}</Link>)}{account?.user?.role === 'admin' && <Link href="/admin" prefetch={false} className={active === 'admin' ? s.navActive : undefined} aria-current={active === 'admin' ? 'page' : undefined}>{t('管理后台')}</Link>}</nav>
     <div className={s.headerActions}><PreferenceControls />{!account ? <span className={s.accountPending} role="status" aria-label={t("正在读取账号")}>{t("账号读取中…")}</span> : account.user ? <div ref={menu} className={s.accountMenu}>
       <button ref={trigger} type="button" className={`${s.accountLink} ${s.accountTrigger}`} aria-label={t("账号菜单")} aria-expanded={open} aria-controls={menuId} onClick={() => open ? closeMenu() : openMenu()}><span className={s.avatarDot}>{account.user.username[0].toUpperCase()}</span><span>{t("个人中心")}</span><span className={s.chevron} aria-hidden="true"><svg viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5 6 6l4.5-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span></button>
       {(open || closing) && position && <div className={`${s.accountPopover} ${closing ? s.accountPopoverClosing : ''}`} style={{ left: position.left, top: position.top, '--caret-left': `${position.caret}px` } as CSSProperties} aria-hidden={closing || undefined}>
@@ -83,5 +84,5 @@ export function SiteHeader({ active, account, onLogin, onLogout }: { active: Sit
         <button type="button" className={s.accountSignout} disabled={busy} onClick={() => void signout()}>{t(busy ? '正在退出…' : '退出登录')}<span aria-hidden="true">→</span></button>
       </div>}
     </div> : <button type="button" className={s.loginButton} onClick={onLogin}>{t("登录 / 注册")}</button>}</div>
-  </div></header>;
+  </div><SiteAnnouncement /></header>;
 }

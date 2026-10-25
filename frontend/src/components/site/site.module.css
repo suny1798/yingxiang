@@ -1,4 +1,6 @@
 .site { min-height: 100dvh; color: var(--ink); background: transparent; display: flex; flex-direction: column; }
+.siteAnnouncement { position: fixed; bottom: 24px; left: 24px; z-index: 24; display: flex; align-items: start; gap: 18px; max-width: min(440px, calc(100vw - 48px)); padding: 14px 18px; background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 12px; box-shadow: 0 4px 18px #0001; font-size: 14px; line-height: 1.7; }
+.siteAnnouncement button { padding: 0; border: 0; color: var(--muted); background: transparent; font-size: 20px; }
 .container, .headerInner, .footer { width: min(1200px, calc(100% - 96px)); margin-inline: auto; }
 /* 桌面页头、页脚铺满窗口；正文继续使用居中阅读宽度。 */
 @media (min-width: 1051px) {
