@@ -1,0 +1,70 @@
+.page { width: min(1200px, calc(100% - 96px)); margin: 0 auto; padding: 70px 0 80px; }
+.hero { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; padding-bottom: 60px; }
+.eyebrow { color: var(--accent); font-size: 13px; letter-spacing: 2px; }
+.hero h1 { font: 500 45px/1.45 "Songti SC", "SimSun", serif; margin: 16px 0; }
+.hero h1 span { color: var(--accent); }
+.intro { color: var(--muted); font-size: 15px; line-height: 1.9; }
+.searchPanel { border-left: 2px solid var(--accent); padding: 10px 0 10px 30px; }
+.searchPanel label { display: block; font-size: 19px; margin-bottom: 18px; }
+.search { display: flex; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px 17px; }
+.search:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.search > span { color: var(--accent); font-size: 30px; line-height: 1; }
+.search input { width: 100%; min-width: 0; border: 0; background: transparent; outline: none; font-size: 15px; color: var(--ink); }
+.search input::-webkit-search-cancel-button { display: none; }
+.search button { border: 0; background: none; font-size: 23px; color: var(--muted); }
+.suggestions { display: flex; gap: 9px; align-items: center; margin-top: 17px; font-size: 13px; }
+.suggestions > span { color: var(--muted); margin-right: 4px; }
+.suggestions button { padding: 5px 12px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); }
+.suggestions button:hover { border-color: var(--accent); color: var(--accent); }
+.searchPanel > p { color: var(--muted); font-size: 12px; margin-top: 18px; }
+.sectionHead { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 22px; }
+.sectionHead h2 { font-size: 22px; font-weight: 500; }
+.sectionHead > span { color: var(--muted); font-size: 13px; }
+.guideGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 22px; overflow: hidden; background: var(--surface); }
+.guide { padding: 30px; }
+.guide + .guide { border-left: 1px solid var(--line); }
+.guideTitle { display: flex; gap: 12px; align-items: center; }
+.guideTitle > span { color: var(--accent); font-size: 25px; }
+.guideTitle h3 { font-size: 20px; font-weight: 500; }
+.guideTitle small { color: var(--accent); background: var(--accent-soft); padding: 3px 8px; border-radius: 12px; font-size: 11px; margin-left: auto; }
+.guide > p { color: var(--muted); font-size: 14px; margin: 11px 0 22px; }
+.guide ol { padding-left: 22px; margin: 0 0 26px; font-size: 14px; line-height: 2.1; }
+.guide li::marker { color: var(--accent); }
+.guide > a { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--accent); border-top: 1px solid var(--line); padding-top: 17px; }
+.guide > a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.reference { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 60px; margin-top: 70px; align-items: start; }
+.sidebar { position: sticky; top: 117px; }
+.sidebar h2 { font: 500 27px/1.5 "Songti SC", "SimSun", serif; margin-bottom: 24px; }
+.sidebar nav { display: grid; gap: 5px; }
+.sidebar nav button { display: flex; justify-content: space-between; align-items: center; padding: 12px 15px; background: transparent; border: 1px solid transparent; border-radius: 10px; text-align: left; font-size: 14px; }
+.sidebar nav button > span:last-child { font-size: 12px; color: var(--muted); }
+.sidebar nav button[aria-pressed=true] { background: var(--accent-soft); color: var(--accent); }
+.sidebar nav button:hover { border-color: var(--line); }
+.sidebar > a { display: inline-block; margin: 25px 15px 0; color: var(--accent); font-size: 13px; }
+.questions { min-width: 0; }
+.resultsHead { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 0 17px; color: var(--muted); font-size: 13px; border-bottom: 1px solid var(--line); }
+.resultsHead button { border: 0; background: none; color: var(--accent); font-size: 13px; }
+.question { border-bottom: 1px solid var(--line); }
+.question summary { list-style: none; cursor: pointer; display: flex; gap: 24px; justify-content: space-between; align-items: center; padding: 24px 4px; font-size: 16px; }
+.question summary::-webkit-details-marker { display: none; }
+.question summary > span { color: var(--accent); font-size: 24px; line-height: 1; transition: transform .2s; }
+.question[open] summary { color: var(--accent); }
+.question[open] summary > span { transform: rotate(45deg); }
+.answer { padding: 0 36px 25px 4px; font-size: 15px; line-height: 1.95; }
+.answer p + p { margin-top: 11px; }
+.answer a { display: inline-block; color: var(--accent); margin-top: 14px; }
+.answer a:hover, .sidebar > a:hover, .support a:hover { text-decoration: underline; text-underline-offset: 4px; }
+.empty { padding: 55px 20px; text-align: center; background: var(--surface); border-radius: 16px; margin-top: 20px; }
+.empty > span { font-size: 40px; color: var(--accent); }
+.empty h3 { font-size: 21px; margin: 10px 0; font-weight: 500; }
+.empty p { color: var(--muted); font-size: 14px; line-height: 1.9; }
+.empty button { border: 1px solid var(--accent); border-radius: 24px; background: transparent; color: var(--accent); padding: 10px 20px; margin-top: 22px; }
+.support { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 40px; margin-top: 70px; }
+.support h2 { font: 500 27px/1.55 "Songti SC", "SimSun", serif; margin: 13px 0; }
+.support > div > p:not(.eyebrow) { color: var(--muted); font-size: 14px; line-height: 1.9; }
+.support a { display: inline-block; color: var(--accent); font-size: 14px; margin-top: 20px; }
+.checklist { border-left: 1px solid var(--line); padding-left: 35px; }
+.checklist h3 { font-size: 17px; font-weight: 500; }
+.checklist ul { margin: 15px 0; padding-left: 20px; font-size: 14px; line-height: 2.1; }
+.checklist li::marker { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .question summary > span { transition: none; } }

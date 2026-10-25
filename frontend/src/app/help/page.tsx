@@ -1,5 +1,7 @@
 import { localizedMetadata } from '@/lib/server/localized-metadata';
 import type { Metadata } from 'next';
-import { PlaceholderPage } from '@/components/site/placeholder-page';
-export async function generateMetadata(): Promise<Metadata> { return localizedMetadata({ title: '帮助中心 · 映想' }); }
-export default function Page() { return <PlaceholderPage title="帮助中心" active="help" feedback description="常见问题与使用说明正在整理，完成后会在这里更新。" />; }
+import { SiteShell } from '@/components/site/site-shell';
+import { HelpCenter } from '@/components/site/help-center';
+
+export async function generateMetadata(): Promise<Metadata> { return localizedMetadata({ title: '帮助中心 · 映想', description: '从第一次打开相机，到保存你的作品。查找映想三种创作方式的操作指南、素材要求、额度说明与常见问题。' }); }
+export default function Page() { return <SiteShell active="help"><HelpCenter /></SiteShell>; }
