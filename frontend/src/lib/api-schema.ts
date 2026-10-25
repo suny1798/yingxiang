@@ -1,4 +1,5 @@
 // 由 docs/api/openapi.json 生成；请运行 npm run api:types，勿手工修改。
+export type DurationView = { "seconds": 15 | 30 | 60; "limit": number; "remaining": number; };
 export type HTTPValidationError = { "detail"?: Array<ValidationError>; };
 export type ValidationError = { "loc": Array<string | number>; "msg": string; "type": string; "input"?: unknown; "ctx"?: {  }; };
 export type VideoHistoryItem = { "id": string; "title": string; "archived": boolean; "state": "submitting" | "unknown" | "pending" | "processing" | "completed" | "failed"; "createdAt": string; "expiresAt": string; "seconds": number; "estimateUsd": number; "expired": boolean; };
@@ -9,9 +10,11 @@ export type PromptTokenRequest = { "attemptId": string; "consentVersion": string
 export type CheckoutRequest = { "requestId": string; "sku": string; };
 export type ReconcileRequest = { "orderId": string; };
 export type ObservationRequest = { "attemptId": string; "firstFrameMs": number | null; "providerReportedSeconds": number | null; "localTracksEnded": boolean; "outcome": "ended" | "error"; };
-export type DurationView = { "seconds": 15 | 30 | 60; "limit": number; "remaining": number; };
 export type HistoryView = { "id": string; "createdAt": string; "durationSec": 15 | 30 | 60; "state": "used" | "review"; "outcome"?: "ended" | "error" | null; };
 export type UserView = { "id": string; "username": string; "createdAt": string; };
 export type AccountView = { "user": UserView | null; "trial": "ready" | "review" | "used" | null; "trialLimit": number; "trialRemaining": number; "durations": Array<DurationView>; "history": Array<HistoryView>; };
 export type Error = { "code": string; "message": string; "retryable": boolean; };
 export type ApiError = { "error": Error; "requestId": string; };
+export type PaymentOrderView = { "id": string; "sku": string; "seconds": 15 | 30 | 60 | null; "count": 1 | 5 | 10 | null; "amount": number; "currency": "cny"; "state": "creating" | "pending" | "paid" | "failed" | "expired"; "createdAt": string; "fulfilledAt"?: string | null; "planId"?: "light" | "creator" | "plus" | null; "credits"?: number | null; };
+export type SandboxCreditPackView = { "orderId": string; "planId": "light" | "creator" | "plus"; "credits": number; "scenes": Array<"tryon" | "video" | "edit">; "createdAt": string; };
+export type PaymentsView = { "orders": Array<PaymentOrderView>; "sandboxCredits": {  }; "sandboxCreditPacks": Array<SandboxCreditPackView>; "sandboxPointBalance": number; "url"?: string | null; };

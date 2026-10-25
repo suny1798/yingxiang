@@ -97,6 +97,34 @@ class VideoHistoryPage(DTO):
     total: int
 
 
+class PaymentOrderView(DTO):
+    id: str
+    sku: str
+    seconds: Literal[15, 30, 60] | None
+    count: Literal[1, 5, 10] | None
+    amount: int
+    currency: Literal["cny"]
+    state: Literal["creating", "pending", "paid", "failed", "expired"]
+    createdAt: str
+    fulfilledAt: str | None = None
+    planId: Literal["light", "creator", "plus"] | None = None
+    credits: int | None = None
+
+class SandboxCreditPackView(DTO):
+    orderId: str
+    planId: Literal["light", "creator", "plus"]
+    credits: int
+    scenes: list[Literal["tryon", "video", "edit"]]
+    createdAt: str
+
+class PaymentsView(DTO):
+    orders: list[PaymentOrderView]
+    sandboxCredits: dict[str, int]
+    sandboxCreditPacks: list[SandboxCreditPackView]
+    sandboxPointBalance: int
+    url: str | None = None
+
+
 def extend_openapi(app):
     from fastapi.openapi.utils import get_openapi
     def openapi():
@@ -104,7 +132,7 @@ def extend_openapi(app):
             return app.openapi_schema
         schema = get_openapi(title=app.title, version=app.version, routes=app.routes)
         components = schema.setdefault("components", {}).setdefault("schemas", {})
-        for model in (AuthRequest, TokenRequest, PromptTokenRequest, CheckoutRequest, ReconcileRequest, ObservationRequest, AccountView, ApiError):
+        for model in (AuthRequest, TokenRequest, PromptTokenRequest, CheckoutRequest, ReconcileRequest, ObservationRequest, AccountView, ApiError, PaymentsView):
             value = model.model_json_schema(ref_template="#/components/schemas/{model}")
             components.update(value.pop("$defs", {}))
             components[model.__name__] = value
@@ -123,6 +151,8 @@ def extend_openapi(app):
         schema["paths"]["/api/video/jobs"]["post"]["requestBody"] = {"required": True, "content": {"multipart/form-data": {"schema": {"type": "object", "additionalProperties": False, "required": ["data", "reference_image", "consentVersion"], "properties": {"data": {"type": "string", "format": "binary"}, "reference_image": {"type": "string", "format": "binary"}, "consentVersion": {"type": "string"}}}}}}
         schema["paths"]["/api/video/prepare"]["post"]["requestBody"] = {"required": True, "content": {"video/mp4": {"schema": {"type": "string", "format": "binary"}}}}
         schema["paths"]["/api/video/jobs/{ident}/history"]["post"]["requestBody"] = {"required": True, "content": {"application/json": {"schema": {"type": "object", "additionalProperties": False, "minProperties": 1, "properties": {"title": {"type": "string", "minLength": 1, "maxLength": 60}, "archived": {"type": "boolean"}}}}}}
+        for path, method in (("/api/payments/orders", "get"), ("/api/payments/reconcile", "post")):
+            schema["paths"][path][method]["responses"]["200"] = {"description": "沙盒订单与长期有效测试积分，独立于真实模型额度。", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PaymentsView"}}}}
         app.openapi_schema = schema
         return schema
     app.openapi = openapi

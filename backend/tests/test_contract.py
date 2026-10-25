@@ -38,7 +38,12 @@ def test_29_node_route_contract_fixtures(client):
             response = client.request(scenario.get("method", "GET"), scenario["path"], **kwargs)
         label = scenario["path"] + " " + str(scenario.get("cookie", False))
         assert response.status_code == fixture["status"], label + response.text
-        assert normalize(response.json()) == fixture["body"], label
+        actual = response.json()
+        if scenario["path"] == "/api/payments/orders" and response.status_code == 200:
+            # 新积分字段为增量扩展，旧 Node 合同仍逐项保留。
+            assert actual.pop("sandboxCreditPacks") == []
+            assert actual.pop("sandboxPointBalance") == 0
+        assert normalize(actual) == fixture["body"], label
         for key, value in fixture["headers"].items():
             assert response.headers.get(key) == value
         set_cookie = response.headers.get("set-cookie")

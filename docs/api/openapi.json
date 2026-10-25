@@ -517,10 +517,12 @@
         "operationId": "payment_orders_api_payments_orders_get",
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "沙盒订单与长期有效测试积分，独立于真实模型额度。",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsView"
+                }
               }
             }
           },
@@ -719,10 +721,12 @@
         "operationId": "reconcile_api_payments_reconcile_post",
         "responses": {
           "200": {
-            "description": "Successful Response",
+            "description": "沙盒订单与长期有效测试积分，独立于真实模型额度。",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/PaymentsView"
+                }
               }
             }
           },
@@ -2908,6 +2912,35 @@
   },
   "components": {
     "schemas": {
+      "DurationView": {
+        "additionalProperties": false,
+        "properties": {
+          "seconds": {
+            "enum": [
+              15,
+              30,
+              60
+            ],
+            "title": "Seconds",
+            "type": "integer"
+          },
+          "limit": {
+            "title": "Limit",
+            "type": "integer"
+          },
+          "remaining": {
+            "title": "Remaining",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "seconds",
+          "limit",
+          "remaining"
+        ],
+        "title": "DurationView",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -3213,35 +3246,6 @@
         "title": "ObservationRequest",
         "type": "object"
       },
-      "DurationView": {
-        "additionalProperties": false,
-        "properties": {
-          "seconds": {
-            "enum": [
-              15,
-              30,
-              60
-            ],
-            "title": "Seconds",
-            "type": "integer"
-          },
-          "limit": {
-            "title": "Limit",
-            "type": "integer"
-          },
-          "remaining": {
-            "title": "Remaining",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "seconds",
-          "limit",
-          "remaining"
-        ],
-        "title": "DurationView",
-        "type": "object"
-      },
       "HistoryView": {
         "additionalProperties": false,
         "properties": {
@@ -3423,6 +3427,225 @@
           "requestId"
         ],
         "title": "ApiError",
+        "type": "object"
+      },
+      "PaymentOrderView": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "sku": {
+            "title": "Sku",
+            "type": "string"
+          },
+          "seconds": {
+            "anyOf": [
+              {
+                "enum": [
+                  15,
+                  30,
+                  60
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seconds"
+          },
+          "count": {
+            "anyOf": [
+              {
+                "enum": [
+                  1,
+                  5,
+                  10
+                ],
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Count"
+          },
+          "amount": {
+            "title": "Amount",
+            "type": "integer"
+          },
+          "currency": {
+            "const": "cny",
+            "title": "Currency",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "creating",
+              "pending",
+              "paid",
+              "failed",
+              "expired"
+            ],
+            "title": "State",
+            "type": "string"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          },
+          "fulfilledAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fulfilledat"
+          },
+          "planId": {
+            "anyOf": [
+              {
+                "enum": [
+                  "light",
+                  "creator",
+                  "plus"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Planid"
+          },
+          "credits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Credits"
+          }
+        },
+        "required": [
+          "id",
+          "sku",
+          "seconds",
+          "count",
+          "amount",
+          "currency",
+          "state",
+          "createdAt"
+        ],
+        "title": "PaymentOrderView",
+        "type": "object"
+      },
+      "SandboxCreditPackView": {
+        "additionalProperties": false,
+        "properties": {
+          "orderId": {
+            "title": "Orderid",
+            "type": "string"
+          },
+          "planId": {
+            "enum": [
+              "light",
+              "creator",
+              "plus"
+            ],
+            "title": "Planid",
+            "type": "string"
+          },
+          "credits": {
+            "title": "Credits",
+            "type": "integer"
+          },
+          "scenes": {
+            "items": {
+              "enum": [
+                "tryon",
+                "video",
+                "edit"
+              ],
+              "type": "string"
+            },
+            "title": "Scenes",
+            "type": "array"
+          },
+          "createdAt": {
+            "title": "Createdat",
+            "type": "string"
+          }
+        },
+        "required": [
+          "orderId",
+          "planId",
+          "credits",
+          "scenes",
+          "createdAt"
+        ],
+        "title": "SandboxCreditPackView",
+        "type": "object"
+      },
+      "PaymentsView": {
+        "additionalProperties": false,
+        "properties": {
+          "orders": {
+            "items": {
+              "$ref": "#/components/schemas/PaymentOrderView"
+            },
+            "title": "Orders",
+            "type": "array"
+          },
+          "sandboxCredits": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Sandboxcredits",
+            "type": "object"
+          },
+          "sandboxCreditPacks": {
+            "items": {
+              "$ref": "#/components/schemas/SandboxCreditPackView"
+            },
+            "title": "Sandboxcreditpacks",
+            "type": "array"
+          },
+          "sandboxPointBalance": {
+            "title": "Sandboxpointbalance",
+            "type": "integer"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Url"
+          }
+        },
+        "required": [
+          "orders",
+          "sandboxCredits",
+          "sandboxCreditPacks",
+          "sandboxPointBalance"
+        ],
+        "title": "PaymentsView",
         "type": "object"
       }
     }

@@ -191,7 +191,8 @@ def test_paid_transaction_failure_does_not_mark_event_or_fulfilled(client, app):
     assert pay.list(hashed)["sandboxCredits"] == {"15": 1}
 
 
-def test_stripe_real_sdk_signature_and_query_current_state(settings):
+@pytest.mark.parametrize("sku,expected_points", [("tryon-v1-15-5",0),("credits-v1-creator",450)])
+def test_stripe_real_sdk_signature_and_query_current_state(settings,sku,expected_points):
     from types import SimpleNamespace
     env = {"YINGXIANG_PAYMENTS_TEST_ENABLED": "true", "STRIPE_SECRET_KEY": "sk_test_fixture", "STRIPE_WEBHOOK_SECRET": "whsec_fixture", "STRIPE_EXPECTED_ACCOUNT_ID": "acct_fixture"}
     settings = replace(settings, env=env)
@@ -203,7 +204,7 @@ def test_stripe_real_sdk_signature_and_query_current_state(settings):
         browser.headers["origin"] = settings.public_origin
         user_id = signup(browser)
         hashed = digest(browser.cookies.get("yingxiang_session"))
-        order = pay.reserve(hashed, "tryon-v1-15-5", str(uuid4()), settings.public_origin)
+        order = pay.reserve(hashed, sku, str(uuid4()), settings.public_origin)
         current = {"id": "cs_test_fixture", "livemode": False, "mode": "payment", "client_reference_id": order["id"], "metadata": {"orderId": order["id"], "userId": user_id, "sku": order["sku"]}, "currency": "cny", "amount_total": order["amount"], "status": "complete", "payment_status": "paid"}
         # 官方 SDK 负责验签，仅查单替换为本地固定响应。
         client.v1.checkout.sessions.retrieve = lambda _: current
@@ -216,7 +217,8 @@ def test_stripe_real_sdk_signature_and_query_current_state(settings):
         pay.webhook(payload, headers["stripe-signature"])
         assert browser.post("/api/payments/webhook", content=payload, headers=headers).status_code == 200
         assert browser.post("/api/payments/webhook", content=payload, headers=headers).status_code == 200
-        assert pay.list(hashed)["sandboxCredits"] == {"15": 5}
+        assert pay.list(hashed)["sandboxPointBalance"] == expected_points
+        assert pay.list(hashed)["sandboxCredits"] == ({} if expected_points else {"15": 5})
 
 
 @pytest.mark.parametrize("scene", ["studio", "prompt"])

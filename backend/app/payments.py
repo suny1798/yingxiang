@@ -9,13 +9,23 @@ from sqlalchemy import select, insert, update
 
 from .accounts import one, grant
 from .core import BusinessError, UUID, iso, now_ms
-from .models import orders, events, grants
+from .models import orders, events, grants, credit_packs
 
 API_VERSION = "2026-09-30.endive"
 PRICES = {15: {1: 690, 5: 2990, 10: 5690}, 30: {1: 1290, 5: 5690, 10: 10900}, 60: {1: 2390, 5: 10900, 10: 20900}}
 
 
+CREDIT_PLANS = {
+    "light": {"name": "轻享包", "amount": 3900, "credits": 120, "scenes": ["tryon", "video"]},
+    "creator": {"name": "创作包", "amount": 12900, "credits": 450, "scenes": ["tryon", "video", "edit"]},
+    "plus": {"name": "进阶包", "amount": 32900, "credits": 1200, "scenes": ["tryon", "video", "edit"]},
+}
+
 def product(sku):
+    for ident, plan in CREDIT_PLANS.items():
+        if sku == f"credits-v1-{ident}":
+            return {"sku": sku, "plan_id": ident, "credits": plan["credits"], "seconds": None, "count": None, "amount": plan["amount"], "currency": "cny", "template_version": "credits-v1"}
+
     for sec, counts in PRICES.items():
         for count, amount in counts.items():
             if sku == f"tryon-v1-{sec}-{count}":
@@ -25,10 +35,13 @@ def product(sku):
 
 def checkout_params(order, origin):
     suffix = "".join(chr(97 + byte % 26) for byte in hashlib.sha256(order["id"].encode()).digest()[:8])
+    name = (f"映想{CREDIT_PLANS[order['plan_id']]['name']} · {order['credits']}积分（沙盒，积分不过期）" if order.get("plan_id") else f"映想实时换装 · {order['seconds']}秒 × {order['count']}次（沙盒）")
+    account_path = "/account/orders" if order.get("plan_id") else "/account"
+    return_query = f"&orderId={order['id']}" if order.get("plan_id") else ""
     return {"mode": "payment", "client_reference_id": order["id"],
         "metadata": {"orderId": order["id"], "userId": order["user_id"], "sku": order["sku"]},
-        "line_items": [{"quantity": 1, "price_data": {"currency": order["currency"], "unit_amount": order["amount"], "product_data": {"name": f"映想实时换装 · {order['seconds']}秒 × {order['count']}次（沙盒）"}}}],
-        "success_url": f"{origin}/account?payment=returned", "cancel_url": f"{origin}/account?payment=cancelled",
+        "line_items": [{"quantity": 1, "price_data": {"currency": order["currency"], "unit_amount": order["amount"], "product_data": {"name": name}}}],
+        "success_url": f"{origin}{account_path}?payment=returned{return_query}", "cancel_url": f"{origin}{account_path}?payment=cancelled",
         "adaptive_pricing": {"enabled": False}, "integration_identifier": f"yingxiang_test_{suffix}"}
 
 
@@ -63,7 +76,8 @@ class Payments:
             for row in session.execute(select(grants).where(grants.c.user_id == user["id"], grants.c.environment == "stripe_sandbox")).mappings():
                 key = str(row["seconds"])
                 credits[key] = credits.get(key, 0) + row["total"] - row["reserved"] - row["used"] - row["revoked"]
-            return {"orders": [{"id": r["id"], "sku": r["sku"], "seconds": r["seconds"], "count": r["count"], "amount": r["amount"], "currency": r["currency"], "createdAt": iso(r["created_at"]), "state": r["state"], **({"fulfilledAt": iso(r["fulfilled_at"])} if r["fulfilled_at"] is not None else {})} for r in rows], "sandboxCredits": credits}
+            packs = [{"orderId": r["order_id"], "planId": r["plan_id"], "credits": r["credits"], "scenes": json.loads(r["scenes"]), "createdAt": iso(r["created_at"])} for r in session.execute(select(credit_packs).where(credit_packs.c.user_id == user["id"])).mappings()]
+            return {"sandboxCreditPacks": packs, "sandboxPointBalance": sum(p["credits"] for p in packs), "orders": [{"id": r["id"], "sku": r["sku"], **({"planId": r["plan_id"], "credits": r["credits"]} if r["plan_id"] else {}), "seconds": r["seconds"], "count": r["count"], "amount": r["amount"], "currency": r["currency"], "createdAt": iso(r["created_at"]), "state": r["state"], **({"fulfilledAt": iso(r["fulfilled_at"])} if r["fulfilled_at"] is not None else {})} for r in rows], "sandboxCredits": credits}
 
     def reserve(self, hashed, sku, request_id, origin):
         if not isinstance(request_id, str) or not UUID.fullmatch(request_id):
@@ -111,7 +125,10 @@ class Payments:
                 changes["checkout_url"] = value["url"]
             if value.get("status") == "complete" and value.get("payment_status") == "paid":
                 if order["fulfilled_at"] is None:
-                    grant(session, order["user_id"], order["seconds"], order["count"], "paid", f"order:{order['id']}", "stripe_sandbox")
+                    if order["plan_id"]:
+                        session.execute(insert(credit_packs).values(order_id=order["id"], user_id=order["user_id"], plan_id=order["plan_id"], credits=order["credits"], scenes=json.dumps(CREDIT_PLANS[order["plan_id"]]["scenes"]), created_at=now_ms()))
+                    else:
+                        grant(session, order["user_id"], order["seconds"], order["count"], "paid", f"order:{order['id']}", "stripe_sandbox")
                     changes["fulfilled_at"] = now_ms()
                 changes["state"] = "paid"
             elif order["fulfilled_at"] is None:

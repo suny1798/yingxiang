@@ -7,7 +7,7 @@ from sqlalchemy.engine import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import NullPool
 
-REVISION = "0002"
+REVISION = "0003"
 
 
 def wal_safe(version):

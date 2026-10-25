@@ -30,12 +30,13 @@ attempts = Table("usage_attempts", metadata,
     CheckConstraint("account_state IS NULL OR account_state IN ('review','used')", name="account_state"))
 orders = Table("orders", metadata,
     Column("id", String, primary_key=True), Column("user_id", ForeignKey("users.id"), nullable=False), Column("request_id", String, nullable=False),
-    Column("sku", String, nullable=False), Column("seconds", Integer, nullable=False), Column("count", Integer, nullable=False), Column("amount", Integer, nullable=False),
+    Column("sku", String, nullable=False), Column("seconds", Integer), Column("count", Integer), Column("amount", Integer, nullable=False),
+    Column("plan_id", String), Column("credits", Integer),
     Column("currency", String, nullable=False), Column("state", String, nullable=False), Column("created_at", BigInteger, nullable=False),
     Column("session_id", String, unique=True), Column("checkout_url", Text), Column("expires_at", BigInteger), Column("fulfilled_at", BigInteger),
     Column("request_snapshot", Text), Column("template_version", String, nullable=False, server_default="node-v1"),
     UniqueConstraint("user_id", "request_id"), CheckConstraint("state IN ('creating','pending','paid','failed','expired')", name="state"),
-    CheckConstraint("seconds IN (15,30,60) AND count IN (1,5,10) AND amount > 0 AND currency='cny'", name="product"))
+    CheckConstraint("amount > 0 AND currency='cny' AND ((plan_id IS NULL AND credits IS NULL AND seconds IS NOT NULL AND count IS NOT NULL AND seconds IN (15,30,60) AND count IN (1,5,10)) OR (plan_id IS NOT NULL AND plan_id IN ('light','creator','plus') AND credits IS NOT NULL AND credits > 0 AND seconds IS NULL AND count IS NULL))", name="product"))
 events = Table("payment_events", metadata,
     Column("id", String, primary_key=True), Column("order_id", ForeignKey("orders.id")), Column("source", String, nullable=False), Column("created_at", BigInteger, nullable=False))
 campaigns = Table("budget_campaigns", metadata,
@@ -56,3 +57,11 @@ imports = Table("migration_imports", metadata,
     Column("fingerprint", String, primary_key=True), Column("importer_version", String, nullable=False), Column("manifest", Text, nullable=False), Column("summary", Text, nullable=False), Column("created_at", BigInteger, nullable=False))
 # 只保存本机门禁 nonce；不保存模型 token、原始 SDK 诊断或媒体。
 access = Table("scene_access", metadata, Column("scene", String, primary_key=True), Column("value", String, nullable=False))
+
+# 沙盒积分隔离存储，无到期字段；真实模型授权不读取此表。
+credit_packs = Table("sandbox_credit_packs", metadata,
+    Column("order_id", ForeignKey("orders.id"), primary_key=True),
+    Column("user_id", ForeignKey("users.id"), nullable=False, index=True),
+    Column("plan_id", String, nullable=False), Column("credits", Integer, nullable=False),
+    Column("scenes", Text, nullable=False), Column("created_at", BigInteger, nullable=False),
+    CheckConstraint("credits > 0", name="credits"))
