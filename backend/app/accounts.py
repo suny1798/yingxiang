@@ -27,6 +27,8 @@ class Accounts:
 
     def user(self, session, hashed, required=False):
         value = session.execute(select(users).join(sessions, users.c.id == sessions.c.user_id).where(sessions.c.hash == hashed, sessions.c.expires_at > now_ms())).mappings().first()
+        if value is not None and value["disabled"]:
+            value = None
         if value is None and required:
             raise BusinessError("LOGIN_REQUIRED", "请先登录后继续。", 401)
         return value
@@ -48,7 +50,7 @@ class Accounts:
             remaining = sum(r["total"] - r["reserved"] - r["used"] - r["revoked"] for r in items)
             durations.append({"seconds": seconds, "limit": total, "remaining": remaining})
         total, remaining = durations[0]["limit"], durations[0]["remaining"]
-        return {"user": {"id": user["id"], "username": user["username"], "createdAt": iso(user["created_at"])},
+        return {"user": {"id": user["id"], "username": user["username"], "createdAt": iso(user["created_at"]), "role": user.get("role", "user")},
             "trial": "ready" if remaining > 0 else "review" if any(a["seconds"] == 15 and a["account_state"] == "review" for a in history) else "used",
             "trialLimit": total, "trialRemaining": remaining, "durations": durations,
             "history": [{"id": a["id"], "createdAt": iso(a["created_at"]), "durationSec": a["seconds"], "state": a["account_state"], **({"outcome": a["outcome"]} if a["outcome"] else {})} for a in list(reversed(history[-20:]))]}
@@ -100,6 +102,10 @@ class Accounts:
                     user = {"id": str(uuid4()), "username": username, "salt": salt, "password_hash": encoded, "created_at": now_ms()}
                     session.execute(insert(users).values(**user))
                     grant(session, user["id"], 15, 1, "free", f"signup:{user['id']}")
+                else:
+                    user = one(session, users, users.c.id == user["id"])
+                    if user["disabled"]:
+                        raise BusinessError("ACCOUNT_DISABLED", "账号已暂停，请联系项目维护者。", 403)
                 session.execute(insert(sessions).values(hash=digest(token), user_id=user["id"], expires_at=now_ms() + SESSION_MS))
                 value = self.view(session, user)
         except IntegrityError:

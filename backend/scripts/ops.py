@@ -76,13 +76,34 @@ def snapshot(source, destination):
 
 def main():
     parser = argparse.ArgumentParser(description="映想显式数据库运维（不发起上游调用）")
-    parser.add_argument("action", choices=("init", "check", "snapshot", "dry-run", "import", "backup", "restore", "openapi"))
+    parser.add_argument("action", choices=("init", "check", "snapshot", "dry-run", "import", "backup", "restore", "openapi", "grant-admin"))
+    parser.add_argument("--username")
     parser.add_argument("--source", type=Path)
     parser.add_argument("--destination", type=Path)
     args = parser.parse_args()
     settings = Settings.load()
     result = {"action": args.action, "ok": True}
-    if args.action == "snapshot":
+    if args.action == "grant-admin":
+        if not args.username:
+            parser.error('grant-admin 需要已有账号 username')
+        from app.models import users, admin_audit
+        from app.core import now_ms
+        from sqlalchemy import select, update, insert
+        from uuid import uuid4
+        db = Database(settings.database, settings.journal_mode)
+        try:
+            db.readiness()
+            with db.transaction(True) as session:
+                user = session.execute(select(users).where(users.c.username == args.username.lower())).mappings().first()
+                if not user or user['disabled']:
+                    raise ValueError('需要已存在且可用的账号')
+                if user['role'] != 'admin':
+                    session.execute(update(users).where(users.c.id == user['id']).values(role='admin'))
+                    session.execute(insert(admin_audit).values(id=str(uuid4()), request_id=str(uuid4()), actor_id=user['id'], action='admin.bootstrap', target=user['id'], reason='本机运维显式授权管理员', changes=json.dumps({'before': user['role'], 'after': 'admin', 'via': 'local-cli'}), created_at=now_ms()))
+                result['role'] = 'admin'
+        finally:
+            db.close()
+    elif args.action == "snapshot":
         if args.source is None or args.destination is None:
             parser.error("snapshot 需要 source 和 destination")
         result.update(snapshot(args.source, args.destination))

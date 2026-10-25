@@ -43,6 +43,7 @@ class UserView(DTO):
     id: str
     username: str
     createdAt: str
+    role: Literal["user", "admin"] = "user"
 
 
 class DurationView(DTO):
@@ -137,6 +138,12 @@ def extend_openapi(app):
             components.update(value.pop("$defs", {}))
             components[model.__name__] = value
         requests = {"/api/account/register": AuthRequest, "/api/account/login": AuthRequest, "/api/studio/token": TokenRequest, "/api/prompt/token": PromptTokenRequest, "/api/studio/observation": ObservationRequest, "/api/payments/checkout": CheckoutRequest, "/api/payments/reconcile": ReconcileRequest}
+        from .admin import UserChange, QuotaChange, SettingsChange
+        for path, model in {'/api/admin/users/{ident}': UserChange, '/api/admin/users/{ident}/quota': QuotaChange, '/api/admin/settings/{key}': SettingsChange}.items():
+            value = model.model_json_schema(ref_template="#/components/schemas/{model}")
+            components.update(value.pop('$defs', {}))
+            components[model.__name__] = value
+            requests[path] = model
         for path, model in requests.items():
             schema["paths"][path]["post"]["requestBody"] = {"required": True, "content": {"application/json": {"schema": {"$ref": f"#/components/schemas/{model.__name__}"}}}}
         for path, methods in schema["paths"].items():

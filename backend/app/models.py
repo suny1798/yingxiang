@@ -6,7 +6,9 @@ metadata = MetaData(naming_convention={"ix": "ix_%(table_name)s_%(column_0_name)
 users = Table("users", metadata,
     Column("id", String, primary_key=True), Column("username", String, nullable=False, unique=True),
     Column("salt", String, nullable=False), Column("password_hash", String, nullable=False),
-    Column("algorithm", String, nullable=False, server_default="scrypt-n16384-r8-p1-dk64"), Column("created_at", BigInteger, nullable=False))
+    Column("algorithm", String, nullable=False, server_default="scrypt-n16384-r8-p1-dk64"), Column("created_at", BigInteger, nullable=False),
+    Column("role", String, nullable=False, server_default="user"), Column("disabled", Integer, nullable=False, server_default="0"),
+    CheckConstraint("role IN ('user','admin')", name="role"), CheckConstraint("disabled IN (0,1)", name="disabled"))
 sessions = Table("auth_sessions", metadata,
     Column("hash", String, primary_key=True), Column("user_id", ForeignKey("users.id"), nullable=False, index=True), Column("expires_at", BigInteger, nullable=False))
 limits = Table("auth_rate_limits", metadata,
@@ -65,3 +67,13 @@ credit_packs = Table("sandbox_credit_packs", metadata,
     Column("plan_id", String, nullable=False), Column("credits", Integer, nullable=False),
     Column("scenes", Text, nullable=False), Column("created_at", BigInteger, nullable=False),
     CheckConstraint("credits > 0", name="credits"))
+
+# 管理操作只保存必要的业务变化，不存凭据、媒体或完整请求。
+admin_audit = Table("admin_audit", metadata,
+    Column("id", String, primary_key=True), Column("request_id", String, unique=True, nullable=False),
+    Column("actor_id", ForeignKey("users.id"), nullable=False), Column("action", String, nullable=False),
+    Column("target", String, nullable=False), Column("reason", String, nullable=False),
+    Column("changes", Text, nullable=False), Column("created_at", BigInteger, nullable=False))
+admin_settings = Table("admin_settings", metadata,
+    Column("key", String, primary_key=True), Column("value", Text, nullable=False),
+    Column("version", Integer, nullable=False, server_default="0"))

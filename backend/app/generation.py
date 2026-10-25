@@ -9,6 +9,7 @@ from sqlalchemy import select, insert, update, func
 from starlette.concurrency import run_in_threadpool
 
 from .accounts import one
+from .admin import paused
 from .core import BusinessError, DURATIONS, UUID, now_ms, iso, millis, check_access
 from .models import access, attempts, reservations, campaigns, jobs, users, video_history
 
@@ -42,6 +43,8 @@ class Generation:
 
     def studio_status(self):
         enabled, key = self.settings.env.get("YINGXIANG_STUDIO_ENABLED") == "true", bool(self.key())
+        with self.db.transaction() as session:
+            enabled = enabled and not paused(session, 'studio')
         return {"enabled": enabled, "keyConfigured": key, "available": enabled and key, "policy": STUDIO, "state": "disabled" if not enabled else "missing-key" if not key else "ready", **({"access": self.nonce("studio")} if enabled and key else {})}
 
     def config(self, scene):
@@ -65,7 +68,7 @@ class Generation:
         config = self.config("prompt")
         rows = session.execute(select(attempts).where(attempts.c.scene == "prompt")).mappings().all()
         reserved = session.execute(select(reservations).where(reservations.c.scene == "prompt")).mappings().all()
-        if not config["enabled"]:
+        if not config["enabled"] or paused(session, 'prompt'):
             return {"available": False, "message": "实时编辑待开放，可先准备提示词与相机预览。"}
         if not self.scene_allowed(session, "prompt", user_id):
             return {"available": False, "message": "实时编辑目前仅向指定测试账号开放。"}
@@ -87,6 +90,8 @@ class Generation:
     def authenticate(self, scene, supplied):
         prompt = scene == "prompt"
         enabled = self.config("prompt")["enabled"] if prompt else self.settings.env.get("YINGXIANG_STUDIO_ENABLED") == "true" and bool(self.key())
+        with self.db.transaction() as session:
+            enabled = enabled and not paused(session, scene)
         if not enabled:
             raise BusinessError("PROMPT_DISABLED" if prompt else "SERVICE_DISABLED", "实时编辑尚未开放。" if prompt else "请先在服务端配置密钥并启用本机验证。", 503)
         check_access(supplied, self.nonce(scene), prompt)
@@ -101,6 +106,8 @@ class Generation:
         if not number(seconds) or seconds not in ((15,) if prompt else DURATIONS):
             raise BusinessError("INVALID_PROMPT_SESSION" if prompt else "INVALID_DURATION", "连接参数或云端确认无效。" if prompt else "请选择15秒、30秒或1分钟。")
         with self.db.transaction(True) as session:
+            if paused(session, scene):
+                raise BusinessError('SERVICE_PAUSED', '该功能已暂停新生成，请稍后再试。', 503)
             if prompt:
                 user = self.accounts.user(session, hashed, True)
                 if one(session, attempts, attempts.c.id == ident):
@@ -177,6 +184,7 @@ class Generation:
     def video_status(self, user_id):
         config = self.config("video")
         with self.db.transaction() as session:
+            config['enabled'] = config['enabled'] and not paused(session, 'video')
             rows = session.execute(select(jobs).order_by(jobs.c.created_at, jobs.c.id)).mappings().all()
             active = any(r["state"] not in ("completed", "failed") for r in rows)
             remaining = config["budget"] - sum(r["micro_usd"] for r in rows)
@@ -203,7 +211,10 @@ class Generation:
         config = self.config("video")
         estimate = math.ceil(seconds) * 40_000
         with self.db.transaction(True) as session:
-            if not config["enabled"] or not self.scene_allowed(session, "video", user_id):
+            user = one(session, users, users.c.id == user_id)
+            if not user or user['disabled']:
+                raise BusinessError('LOGIN_REQUIRED', '请先登录后继续。', 401)
+            if paused(session, 'video') or not config["enabled"] or not self.scene_allowed(session, "video", user_id):
                 raise BusinessError("VIDEO_DISABLED", "视频换装目前仅向指定测试账号开放。", 503)
             row = one(session, jobs, jobs.c.id == ident)
             if row:

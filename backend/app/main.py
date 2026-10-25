@@ -41,6 +41,8 @@ def create_app(settings=None, *, transport=None, stripe_client=None):
     app = FastAPI(title="映想 API", version="0.1.0", redirect_slashes=False, lifespan=lifespan, docs_url=None, redoc_url=None)
     payments = Payments(db, accounts, settings, stripe_client)
     app.state.db, app.state.accounts, app.state.payments, app.state.settings = db, accounts, payments, settings
+    from .admin import install_admin
+    install_admin(app, db, accounts, settings, payments)
 
     @app.middleware("http")
     async def guard(request, call_next):
