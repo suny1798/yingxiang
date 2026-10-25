@@ -1,11 +1,11 @@
 .host { position:fixed; inset:auto 20px 20px auto; transform:none; margin:0; padding:0; width:min(380px,calc(100vw - 32px)); max-width:none; border:0; background:transparent; color:var(--ink); overflow:visible; z-index:2147483647; pointer-events:none; display:none; }
 .host[data-visible=true] { display:grid; gap:8px; }
-.notice { pointer-events:auto; display:flex; align-items:flex-start; gap:9px; padding:11px 10px 11px 12px; background:#fffefa; border:1px solid #dbd1cc; border-left:3px solid var(--accent); border-radius:10px; box-shadow:0 6px 24px #2926221c; animation:arrive .18s ease-out; }
+.notice { pointer-events:auto; display:flex; align-items:flex-start; gap:9px; padding:11px 10px 11px 12px; background:light-dark(#fffefa, var(--surface)); border:1px solid light-dark(#dbd1cc, var(--line)); border-left:3px solid var(--accent); border-radius:10px; box-shadow:0 6px 24px #2926221c; animation:arrive .18s ease-out; }
 .symbol { flex:none; width:21px; height:21px; display:grid; place-items:center; border-radius:50%; color:var(--accent); background:var(--accent-soft); font-size:max(var(--font-min), calc(14px * var(--font-scale))); font-weight:600; }
-.notice[data-kind=error] { border-left-color:#a13932; }
-.notice[data-kind=error] .symbol { color:#a13932; background:#fbe9e6; }
-.notice[data-kind=success] { border-left-color:#60724f; }
-.notice[data-kind=success] .symbol { color:#516341; background:#edf2e7; }
+.notice[data-kind=error] { border-left-color:light-dark(#a13932, var(--error)); }
+.notice[data-kind=error] .symbol { color:light-dark(#a13932, var(--error)); background:light-dark(#fbe9e6, var(--surface)); }
+.notice[data-kind=success] { border-left-color:light-dark(#60724f, var(--sage)); }
+.notice[data-kind=success] .symbol { color:light-dark(#516341, var(--sage)); background:light-dark(#edf2e7, var(--surface)); }
 .content { min-width:0; flex:1; line-height:1.55; }
 .content strong { font-size:max(var(--font-min), calc(12px * var(--font-scale))); font-weight:600; margin-right:7px; }
 .content p { display:inline; font-size:max(var(--font-min), calc(13px * var(--font-scale))); margin:0; overflow-wrap:anywhere; }

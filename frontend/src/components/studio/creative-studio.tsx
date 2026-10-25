@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/components/preferences';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useNotice } from '@/hooks/use-notice';
@@ -16,6 +17,7 @@ import { StudioModes } from './studio-modes';
 import styles from './studio.module.css';
 
 export function CreativeStudio() {
+  const { t } = useI18n();
   const { controller, snapshot, camera, stream, preview, previewState, remote, remoteStream, unavailable } = useTryOnSession();
   const onGarment = useCallback((garment: Garment | null) => controller.setGarment(garment), [controller]);
   const input = useGarmentInput(onGarment);
@@ -56,7 +58,7 @@ export function CreativeStudio() {
   return <div className={styles.studio} data-mode="realtime" data-session-active={active} onDragOver={(event) => event.preventDefault()} onDrop={(event) => event.preventDefault()}>
     <SiteHeader active="studio" account={account} onLogin={() => setAccountOpen(true)} onLogout={logout} />
     <main id="creative-space" className={`${styles['page-shell']} ${styles['creation-shell']}`}>
-      <div className={styles['workbench-title']}><h1>创作空间</h1><span>实时换装</span><Link href="/account" prefetch={false}>{account?.user ? `剩余 ${account.durations.reduce((sum, item) => sum + item.remaining, 0)} 次` : '我的权益'} ↗</Link></div>
+      <div className={styles['workbench-title']}><h1>{t("创作空间")}</h1><span>{t("实时换装")}</span><Link href="/account" prefetch={false}>{t(account?.user ? `剩余 ${account.durations.reduce((sum, item) => sum + item.remaining, 0)} 次` : '我的权益')} ↗</Link></div>
       <StudioModes active="realtime" />
       <div className={styles.workspace}>
         <GarmentPicker snapshot={snapshot} input={input} fileRef={fileRef} />
@@ -65,7 +67,7 @@ export function CreativeStudio() {
           onStart={() => void start()} onStop={() => controller.stop()} onCameraToggle={() => { if (stream || previewState.phase === 'requesting') closeCamera(); else void preview.start(); }}
           onView={(value) => { setView(value); controller.setView(value); }} onDuration={(value) => controller.setDuration(value)} onConsent={(value) => controller.setConsent(value)} onChoose={() => fileRef.current?.click()} />
       </div>
-      <footer className={styles['creation-footer']}><span /><Link href="/privacy#realtime" target="_blank" rel="noopener noreferrer">隐私与使用说明 ↗</Link></footer>
+      <footer className={styles['creation-footer']}><span /><Link href="/privacy#realtime" target="_blank" rel="noopener noreferrer">{t("隐私与使用说明 ↗")}</Link></footer>
     </main>
     {accountOpen && <AccountDialog account={account} onClose={() => setAccountOpen(false)} onChanged={async () => { await refresh(); setAccountOpen(false); }} onLogout={logout} />}
   </div>;

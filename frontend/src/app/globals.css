@@ -11,12 +11,30 @@
   --stage: #eeebe6;
   --sage: #64715b;
   --error: #9b4037;
+  --on-accent: #fffefa;
+  --preview-background: #eeebe6;
   --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --font-scale: 1.15;
   --font-min: 11px;
 }
+:root[data-theme=dark] {
+  color-scheme: dark;
+  --paper: #191718;
+  --surface: #242123;
+  --ink: #eee9e5;
+  --muted: #b8acb0;
+  --accent: #dfa0b4;
+  --accent-hover: #edb5c5;
+  --accent-soft: #3c2a32;
+  --line: #453b40;
+  --stage: #302b2d;
+  --preview-background: #302b2d;
+  --sage: #a9ba99;
+  --error: #f0a096;
+  --on-accent: #261b20;
+}
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scrollbar-gutter: stable both-edges; }
+html { scroll-behavior: smooth; scroll-padding-top: 89px; scrollbar-gutter: stable both-edges; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(14px * var(--font-scale))); line-height: 1.6; font-family: var(--font-body);; padding-bottom: 0; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; }
 button, a, input { -webkit-tap-highlight-color: transparent; }
@@ -34,3 +52,8 @@ h1, h2, h3, p { margin: 0; }
 .star-hover-spin:hover { animation: star-hover-turn .8s cubic-bezier(.22,.8,.22,1) both; }
 @keyframes star-hover-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .star-hover-spin:hover { animation: none; } }
+
+/* 全站共用官方生图背景；首页轮播由自身背景覆盖。 */
+body { background-color:var(--paper); background-image:url('/assets/ambient-pebbles-v2.webp'); background-repeat:no-repeat; background-position:center; background-size:cover; background-attachment:fixed; }
+@media print { body { background-image:none; } }
+:root[data-theme=dark] body { background-blend-mode: multiply; }

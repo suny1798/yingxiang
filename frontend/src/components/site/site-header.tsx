@@ -1,22 +1,25 @@
 'use client';
 
+import { useI18n } from '@/components/preferences';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { notify } from '@/lib/notices';
 import type { AccountView } from '@/lib/account';
 import s from './site.module.css';
+import { PreferenceControls } from './preference-controls';
 
 export type SitePage = 'home' | 'pricing' | 'studio' | 'account' | 'privacy' | 'works' | 'help' | 'terms';
 
 const ACCOUNT_NAV = [
-  ['/account', '个人中心', '权益概览'],
-  ['/account/usage', '使用记录', '最近 20 条'],
-  ['/account/orders', '我的订单', '订单记录'],
-  ['/account/security', '账号设置', '登录与密码'],
+  ['/account', '个人中心'],
+  ['/account/usage', '使用记录'],
+  ['/account/orders', '我的订单'],
+  ['/account/security', '账号设置'],
 ] as const;
 
 export function SiteHeader({ active, account, onLogin, onLogout }: { active: SitePage; account: AccountView | null; onLogin: () => void; onLogout: () => Promise<void> }) {
+  const { t } = useI18n();
   const pathname = usePathname();
   const [open, setOpen] = useState(false), [closing, setClosing] = useState(false), [busy, setBusy] = useState(false);
   const [position, setPosition] = useState<{ left: number; top: number; caret: number } | null>(null);
@@ -67,19 +70,18 @@ export function SiteHeader({ active, account, onLogin, onLogout }: { active: Sit
   };
   const current = (href: string) => href === '/account' ? pathname === '/account' : pathname === href;
   return <header className={s.header}><div className={s.headerInner}>
-    <Link href="/" className={s.brand} aria-label="映想首页">映想<span aria-hidden="true">✳</span></Link>
-    <nav className={s.navigation} aria-label="主导航">{[
+    <Link href="/" className={s.brand} aria-label={t("映想首页")}>{t("映想")}<span aria-hidden="true">✳</span></Link>
+    <nav className={s.navigation} aria-label={t("主导航")}>{[
       ['home', '/', '首页'], ['studio', '/studio', '创作空间'], ['works', '/works', '我的作品'], ['pricing', '/pricing', '价格方案'], ['help', '/help', '帮助中心'],
-    ].map(([page, href, label]) => <Link key={page} href={href} prefetch={false} className={active === page ? s.navActive : undefined} aria-current={active === page ? 'page' : undefined}>{label}</Link>)}</nav>
-    <div className={s.headerActions}>{!account ? <span className={s.accountPending} role="status" aria-label="正在读取账号">账号读取中…</span> : account.user ? <div ref={menu} className={s.accountMenu}>
-      <button ref={trigger} type="button" className={`${s.accountLink} ${s.accountTrigger}`} aria-label="账号菜单" aria-expanded={open} aria-controls={menuId} onClick={() => open ? closeMenu() : openMenu()}><span className={s.avatarDot}>{account.user.username[0].toUpperCase()}</span><span>个人中心</span><span className={s.chevron} aria-hidden="true"><svg viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5 6 6l4.5-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span></button>
+    ].map(([page, href, label]) => <Link key={page} href={href} prefetch={false} className={active === page ? s.navActive : undefined} aria-current={active === page ? 'page' : undefined}>{t(label)}</Link>)}</nav>
+    <div className={s.headerActions}><PreferenceControls />{!account ? <span className={s.accountPending} role="status" aria-label={t("正在读取账号")}>{t("账号读取中…")}</span> : account.user ? <div ref={menu} className={s.accountMenu}>
+      <button ref={trigger} type="button" className={`${s.accountLink} ${s.accountTrigger}`} aria-label={t("账号菜单")} aria-expanded={open} aria-controls={menuId} onClick={() => open ? closeMenu() : openMenu()}><span className={s.avatarDot}>{account.user.username[0].toUpperCase()}</span><span>{t("个人中心")}</span><span className={s.chevron} aria-hidden="true"><svg viewBox="0 0 12 8" fill="none"><path d="M1.5 1.5 6 6l4.5-4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span></button>
       {(open || closing) && position && <div className={`${s.accountPopover} ${closing ? s.accountPopoverClosing : ''}`} style={{ left: position.left, top: position.top, '--caret-left': `${position.caret}px` } as CSSProperties} aria-hidden={closing || undefined}>
-        <div className={s.accountPopoverHead}><span className={s.avatarDot} aria-hidden="true">{account.user.username[0].toUpperCase()}</span><div><strong title={account.user.username}>{account.user.username}</strong><small>已登录 · 映想</small></div></div>
-        <nav id={menuId} className={s.accountNav} aria-label="账号导航">
-          {ACCOUNT_NAV.map(([href, label, note]) => <Link key={href} href={href} prefetch={false} aria-label={label} aria-current={current(href) ? 'page' : undefined} className={s.accountItem} onClick={() => closeMenu(false)}><span className={s.accountItemText}><strong>{label}</strong><small>{note}</small></span><span className={s.accountItemArrow} aria-hidden="true">↗</span></Link>)}
+        <nav id={menuId} className={s.accountNav} aria-label={t("账号导航")}>
+          {ACCOUNT_NAV.map(([href, label]) => <Link key={href} href={href} prefetch={false} aria-label={t(label)} aria-current={current(href) ? 'page' : undefined} className={s.accountItem} onClick={() => closeMenu(false)}><span className={s.accountItemText}><strong>{t(label)}</strong></span><span className={s.accountItemArrow} aria-hidden="true">↗</span></Link>)}
         </nav>
-        <button type="button" className={s.accountSignout} disabled={busy} onClick={() => void signout()}>{busy ? '正在退出…' : '退出登录'}<span aria-hidden="true">→</span></button>
+        <button type="button" className={s.accountSignout} disabled={busy} onClick={() => void signout()}>{t(busy ? '正在退出…' : '退出登录')}<span aria-hidden="true">→</span></button>
       </div>}
-    </div> : <button type="button" className={s.loginButton} onClick={onLogin}>登录 / 注册</button>}</div>
+    </div> : <button type="button" className={s.loginButton} onClick={onLogin}>{t("登录 / 注册")}</button>}</div>
   </div></header>;
 }

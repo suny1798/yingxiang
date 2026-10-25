@@ -1,4 +1,5 @@
+import { localizedMetadata } from '@/lib/server/localized-metadata';
 import type { Metadata } from 'next';
 import { PricingPage } from '@/components/site/pricing';
-export const metadata: Metadata = { title: '价格方案 · 映想', description: '15秒、30秒、1分钟，按时长与次数选择体验方案。新用户可免费体验一次，付费暂未开放。' };
+export async function generateMetadata(): Promise<Metadata> { return localizedMetadata({ title: '价格方案 · 映想', description: '轻享、创作与进阶三档积分方案，涵盖实时换装、视频换装及拟定实时编辑权益。积分长期有效，支持沙盒测试购买，正式购买暂未开放。' }); }
 export default function Page() { return <PricingPage />; }

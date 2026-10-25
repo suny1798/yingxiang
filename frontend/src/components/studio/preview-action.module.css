@@ -1,4 +1,4 @@
-.button[data-preview-action] { display:inline-flex; align-items:center; justify-content:center; flex:none; gap:7px; min-height:36px; padding:8px 12px; border:1px solid #c9a5b0; border-radius:24px; background:#f7eff2; color:var(--accent); font-size:max(var(--font-min), calc(11px * var(--font-scale))); line-height:1.4; white-space:nowrap; cursor:pointer; transition:background-color .18s,color .18s,border-color .18s; }
+.button[data-preview-action] { display:inline-flex; align-items:center; justify-content:center; flex:none; gap:7px; min-height:36px; padding:8px 12px; border:1px solid light-dark(#c9a5b0, var(--line)); border-radius:24px; background:light-dark(#f7eff2, var(--surface)); color:var(--accent); font-size:max(var(--font-min), calc(11px * var(--font-scale))); line-height:1.4; white-space:nowrap; cursor:pointer; transition:background-color .18s,color .18s,border-color .18s; }
 .button[data-preview-action] svg { width:14px; height:14px; }
 .button[data-preview-action][aria-pressed=false] svg { opacity:.55; }
 .button[data-preview-action]:hover:not(:disabled) { border-color:var(--accent); color:var(--accent); }

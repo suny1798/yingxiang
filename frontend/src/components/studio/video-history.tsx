@@ -1,4 +1,5 @@
 'use client';
+import { useI18n } from '@/components/preferences';
 import { useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { VideoHistoryItem, VideoHistoryPage } from '@/lib/api-schema';
@@ -15,6 +16,7 @@ async function json<T>(response: Response): Promise<T> {
 }
 
 export function VideoHistory({ owner, onSelect, onChanged }: { owner: string | null; onSelect: (item: VideoHistoryItem) => void; onChanged: (item: VideoHistoryItem) => Promise<void> }) {
+  const { t, intlLocale } = useI18n();
   const dialog = useRef<HTMLDialogElement>(null), titleId = useId();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -55,23 +57,23 @@ export function VideoHistory({ owner, onSelect, onChanged }: { owner: string | n
   };
   const close = () => { dialog.current?.close(); setOpen(false); setEditing(null); };
   return <>
-    <button type="button" className={s.trigger} disabled={!mounted} aria-label="历史视频" onClick={() => { setOpen(true); dialog.current?.showModal(); }}><Icon name="history" />历史视频<span>↗</span></button>
+    <button type="button" className={s.trigger} disabled={!mounted} aria-label={t("历史视频")} onClick={() => { setOpen(true); dialog.current?.showModal(); }}><Icon name="history" />{t("历史视频")}<span>↗</span></button>
     {mounted && createPortal(<dialog ref={dialog} className={s.dialog} aria-labelledby={titleId} onClose={() => { setOpen(false); setEditing(null); }}>
-      <header className={s.header}><div><span className={s.eyebrow}>映想 · 你的创作</span><h2 id={titleId}>历史视频</h2></div><button type="button" className={s.close} aria-label="关闭历史记录" onClick={close}>×</button></header>
-      <p className={s.description}>主动选择后才会加载视频。结果访问窗口为24小时，请及时下载保存。</p>
-      {!owner ? <div className={s.empty}><Icon name="lock" /><h3>登录后查看历史视频</h3><p>你的生成记录会跟随账号保存。</p></div> : <>
-        <div className={s.toolbar}><div className={s.tabs} role="group" aria-label="历史记录分类"><button type="button" aria-pressed={!archived} disabled={!!busy} onClick={() => { setArchived(false); setPage(1); setEditing(null); }}>视频记录</button><button type="button" aria-pressed={archived} disabled={!!busy} onClick={() => { setArchived(true); setPage(1); setEditing(null); }}>已归档</button></div><button className={s.refresh} type="button" disabled={loading || !!busy} onClick={() => setReload((value) => value + 1)}>刷新记录 ↻</button></div>
-        {loading ? <div role="status" className={s.empty}><p>正在读取历史记录…</p></div> : error ? <div role="alert" className={s.empty}><p>{error}</p><button type="button" className={s.retry} onClick={() => setReload((value) => value + 1)}>重新读取</button></div> : data?.items.length ? <ul className={s.list}>{data.items.map((item) => {
+      <header className={s.header}><div><span className={s.eyebrow}>{t("映想 · 你的创作")}</span><h2 id={titleId}>{t("历史视频")}</h2></div><button type="button" className={s.close} aria-label={t("关闭历史记录")} onClick={close}>×</button></header>
+      <p className={s.description}>{t("主动选择后才会加载视频。结果访问窗口为24小时，请及时下载保存。")}</p>
+      {!owner ? <div className={s.empty}><Icon name="lock" /><h3>{t("登录后查看历史视频")}</h3><p>{t("你的生成记录会跟随账号保存。")}</p></div> : <>
+        <div className={s.toolbar}><div className={s.tabs} role="group" aria-label={t("历史记录分类")}><button type="button" aria-pressed={!archived} disabled={!!busy} onClick={() => { setArchived(false); setPage(1); setEditing(null); }}>{t("视频记录")}</button><button type="button" aria-pressed={archived} disabled={!!busy} onClick={() => { setArchived(true); setPage(1); setEditing(null); }}>{t("已归档")}</button></div><button className={s.refresh} type="button" disabled={loading || !!busy} onClick={() => setReload((value) => value + 1)}>{t("刷新记录 ↻")}</button></div>
+        {loading ? <div role="status" className={s.empty}><p>{t("正在读取历史记录…")}</p></div> : error ? <div role="alert" className={s.empty}><p>{t(error)}</p><button type="button" className={s.retry} onClick={() => setReload((value) => value + 1)}>{t("重新读取")}</button></div> : data?.items.length ? <ul className={s.list}>{data.items.map((item) => {
           const expired = item.expired || Date.parse(item.expiresAt) <= Date.now();
           return <li key={item.id} className={s.item}><div className={s.poster} aria-hidden="true">▷</div><div className={s.details}>
-            {editing?.id === item.id ? <form className={s.rename} onSubmit={(event) => { event.preventDefault(); void change(item, { title: editing.title }); }}><input autoFocus aria-label="视频名称" value={editing.title} maxLength={60} disabled={!!busy} onChange={(event) => setEditing({ id: item.id, title: event.target.value })} /><div><button type="submit" disabled={!!busy}>保存名称</button><button type="button" disabled={!!busy} onClick={() => setEditing(null)}>取消</button></div></form> : <><div className={s.itemHeading}><h3 title={item.title}>{item.title}</h3><span className={s.badge} data-state={expired ? 'expired' : item.state}>{expired ? '已过期' : VIDEO_STATE_LABEL[item.state]}</span></div><p className={s.meta}>{new Date(item.createdAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}<span> · {item.seconds.toFixed(1)}秒</span></p><div className={s.actions}>
-              <button type="button" className={s.view} disabled={!!busy || expired || item.archived || item.state !== 'completed'} onClick={() => { close(); onSelect(item); }}>{expired ? '结果已过期' : item.archived ? '恢复后查看' : item.state === 'completed' ? '查看 / 下载' : '等待任务结果'}</button>
-              <button type="button" disabled={!!busy} onClick={() => setEditing({ id: item.id, title: item.title })}>重命名</button>
-              <button type="button" disabled={!!busy || (!item.archived && !['completed', 'failed'].includes(item.state))} title={['completed', 'failed'].includes(item.state) ? undefined : '任务完成或失败后可归档'} onClick={() => void change(item, { archived: !item.archived })}>{busy === item.id ? '正在保存…' : item.archived ? '恢复' : '归档'}</button>
+            {editing?.id === item.id ? <form className={s.rename} onSubmit={(event) => { event.preventDefault(); void change(item, { title: editing.title }); }}><input autoFocus aria-label={t("视频名称")} value={editing.title} maxLength={60} disabled={!!busy} onChange={(event) => setEditing({ id: item.id, title: event.target.value })} /><div><button type="submit" disabled={!!busy}>{t("保存名称")}</button><button type="button" disabled={!!busy} onClick={() => setEditing(null)}>{t("取消")}</button></div></form> : <><div className={s.itemHeading}><h3 title={item.title}>{item.title}</h3><span className={s.badge} data-state={expired ? 'expired' : item.state}>{t(expired ? '已过期' : VIDEO_STATE_LABEL[item.state])}</span></div><p className={s.meta}>{t(new Date(item.createdAt).toLocaleString(intlLocale, { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }))}<span> · {t(item.seconds.toFixed(1))}{t("秒")}</span></p><div className={s.actions}>
+              <button type="button" className={s.view} disabled={!!busy || expired || item.archived || item.state !== 'completed'} onClick={() => { close(); onSelect(item); }}>{t(expired ? '结果已过期' : item.archived ? '恢复后查看' : item.state === 'completed' ? '查看 / 下载' : '等待任务结果')}</button>
+              <button type="button" disabled={!!busy} onClick={() => setEditing({ id: item.id, title: item.title })}>{t("重命名")}</button>
+              <button type="button" disabled={!!busy || (!item.archived && !['completed', 'failed'].includes(item.state))} title={t(['completed', 'failed'].includes(item.state) ? undefined : '任务完成或失败后可归档')} onClick={() => void change(item, { archived: !item.archived })}>{t(busy === item.id ? '正在保存…' : item.archived ? '恢复' : '归档')}</button>
             </div></>}
           </div></li>;
-        })}</ul> : <div className={s.empty}><Icon name="history" /><h3>{archived ? '还没有归档的视频' : '还没有历史视频'}</h3><p>{archived ? '归档的记录会放在这里，随时可以恢复。' : '完成一次视频换装后，可以在这里查看和整理。'}</p></div>}
-        <footer className={s.footer}><span>归档后可恢复</span><nav aria-label="历史记录分页"><button type="button" disabled={loading || !!busy || (data?.page ?? page) <= 1} onClick={() => { setPage((value) => value - 1); setEditing(null); }}>上一页</button><span>{data?.page ?? page} / {data?.pages ?? 1}</span><button type="button" disabled={loading || !!busy || (data?.page ?? page) >= (data?.pages ?? 1)} onClick={() => { setPage((value) => value + 1); setEditing(null); }}>下一页</button></nav></footer>
+        })}</ul> : <div className={s.empty}><Icon name="history" /><h3>{t(archived ? '还没有归档的视频' : '还没有历史视频')}</h3><p>{t(archived ? '归档的记录会放在这里，随时可以恢复。' : '完成一次视频换装后，可以在这里查看和整理。')}</p></div>}
+        <footer className={s.footer}><span>{t("归档后可恢复")}</span><nav aria-label={t("历史记录分页")}><button type="button" disabled={loading || !!busy || (data?.page ?? page) <= 1} onClick={() => { setPage((value) => value - 1); setEditing(null); }}>{t("上一页")}</button><span>{data?.page ?? page} / {data?.pages ?? 1}</span><button type="button" disabled={loading || !!busy || (data?.page ?? page) >= (data?.pages ?? 1)} onClick={() => { setPage((value) => value + 1); setEditing(null); }}>{t("下一页")}</button></nav></footer>
       </>}
     </dialog>, document.body)}
   </>;

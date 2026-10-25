@@ -1,5 +1,6 @@
 'use client';
 
+import { useI18n } from '@/components/preferences';
 import Link from 'next/link';
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useAccount } from '@/hooks/use-account';
@@ -12,6 +13,7 @@ type AccountContext = ReturnType<typeof useAccount> & { openLogin: () => void; l
 const Context = createContext<AccountContext | null>(null);
 export function useSiteAccount() { const value = useContext(Context); if (!value) throw new Error('缺少账号容器'); return value; }
 export function SiteShell({ active, children }: { active: SitePage; children: ReactNode }) {
+  const { t } = useI18n();
   const state = useAccount();
   const [open, setOpen] = useState(false);
   const logout = async () => {
@@ -22,7 +24,7 @@ export function SiteShell({ active, children }: { active: SitePage; children: Re
   return <Context.Provider value={{ ...state, openLogin: () => setOpen(true), logout }}><div className={s.site}>
     <SiteHeader active={active} account={state.account} onLogin={() => setOpen(true)} onLogout={logout} />
     {children}
-    <footer className={s.footer}><div><Link href="/" className={s.footerBrand}>映想 <span>✳</span></Link><p>让想象，在眼前发生。</p></div><nav aria-label="页脚导航"><Link href="/pricing">价格方案</Link><Link href="/studio" prefetch={false}>创作空间</Link><Link href="/account" prefetch={false}>个人中心</Link><Link href="/help">帮助中心</Link><Link href="/help/feedback">问题反馈</Link><Link href="/privacy">隐私与使用说明</Link><Link href="/terms">用户协议</Link></nav><p className={s.footerNote}>从实时换装开始。<br />不采集音频，不默认录制。</p></footer>
+    <footer className={s.footer}><div><Link href="/" className={s.footerBrand}>{t("映想 ")}<span>✳</span></Link><p>{t("让想象，在眼前发生。")}</p></div><nav aria-label={t("页脚导航")}><Link href="/pricing">{t("价格方案")}</Link><Link href="/studio" prefetch={false}>{t("创作空间")}</Link><Link href="/account" prefetch={false}>{t("个人中心")}</Link><Link href="/help">{t("帮助中心")}</Link><Link href="/help/feedback">{t("问题反馈")}</Link><Link href="/privacy">{t("隐私与使用说明")}</Link><Link href="/terms">{t("用户协议")}</Link></nav><p className={s.footerNote}>{t("从实时换装开始。")}<br />{t("不采集音频，不默认录制。")}</p></footer>
     {open && <div className={studioStyles.studio} style={{ minHeight: 0, paddingBottom: 0 }}><AccountDialog account={state.account} onClose={() => setOpen(false)} onChanged={async () => { await state.refresh(); setOpen(false); }} onLogout={logout} /></div>}
   </div></Context.Provider>;
 }

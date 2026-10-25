@@ -1,9 +1,10 @@
+import { localizedMetadata } from '@/lib/server/localized-metadata';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SiteShell } from '@/components/site/site-shell';
 import s from './privacy.module.css';
 
-export const metadata: Metadata = { title: '隐私与使用说明 · 映想', description: '了解相机预览、云端处理、视频保存与历史记录。' };
+export async function generateMetadata(): Promise<Metadata> { return localizedMetadata({ title: '隐私与使用说明 · 映想', description: '了解相机预览、云端处理、视频保存与历史记录。' }); }
 
 export default function PrivacyPage() {
   return <SiteShell active="privacy"><main className={s.page}>
