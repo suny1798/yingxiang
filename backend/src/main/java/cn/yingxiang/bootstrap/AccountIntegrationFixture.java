@@ -66,6 +66,40 @@ public final class AccountIntegrationFixture {
                     }
                     if (action.equals("cleanup")) {
                         try (var statement = connection.createStatement()) { statement.execute("DROP SCHEMA \"" + target + "\" CASCADE"); }
+                    } else if (action.equals("quota-reserve") || action.equals("quota-confirm")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        var dataSource = SchemaOperations.dataSource(config, false);
+                        var env = new org.springframework.core.env.StandardEnvironment();
+                        env.getPropertySources().addFirst(new org.springframework.core.env.MapPropertySource("quota-fixture", Map.of("migration.db-schema", target)));
+                        var service = new EntitlementReservationService(new org.springframework.jdbc.core.JdbcTemplate(dataSource),
+                                new org.springframework.jdbc.datasource.DataSourceTransactionManager(dataSource), env);
+                        if (action.equals("quota-reserve")) {
+                            service.reserve((String) body.get("hashed"), (String) body.get("attemptId"), ((Number) body.get("seconds")).intValue());
+                        } else report.put("transitionApplied", service.confirmIssued((String) body.get("attemptId")));
+                    } else if (action.equals("quota-state")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String username = String.valueOf(body.get("username"));
+                        List<Map<String, Object>> grants = new ArrayList<>(), attempts = new ArrayList<>(), entries = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT g.id,g.seconds,g.environment,g.total,g.reserved,g.used,g.revoked FROM entitlement_grants g JOIN users u ON u.id=g.user_id WHERE u.username=? ORDER BY g.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) grants.add(Map.of("id", rows.getString(1), "seconds", rows.getInt(2), "environment", rows.getString(3),
+                                        "total", rows.getInt(4), "reserved", rows.getInt(5), "used", rows.getInt(6), "revoked", rows.getInt(7)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT a.id,a.seconds,a.state,a.account_state FROM usage_attempts a JOIN users u ON u.id=a.user_id WHERE u.username=? ORDER BY a.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) attempts.add(Map.of("id", rows.getString(1), "seconds", rows.getInt(2), "state", rows.getString(3), "accountState", rows.getString(4)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT e.operation_key,e.kind,e.quantity FROM entitlement_entries e JOIN entitlement_grants g ON g.id=e.grant_id JOIN users u ON u.id=g.user_id WHERE u.username=? ORDER BY e.operation_key")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) entries.add(Map.of("operationKey", rows.getString(1), "kind", rows.getString(2), "quantity", rows.getInt(3)));
+                            }
+                        }
+                        report.put("grants", grants); report.put("attempts", attempts); report.put("entries", entries);
                     } else if (action.equals("stats")) {
                         Map<String, Object> body = json.readValue(System.in, Map.class);
                         String username = String.valueOf(body.getOrDefault("username", ""));
@@ -115,10 +149,12 @@ public final class AccountIntegrationFixture {
                 }
             }
             report.put("status", "OK"); exit = 0;
+        } catch (BusinessFailure error) {
+            report.clear(); report.put("status", "DOMAIN_REJECTED"); report.put("code", error.code); report.put("httpStatus", error.status); report.put("message", error.getMessage()); exit = 2;
         } catch (Exception error) {
             report.clear(); report.put("status", "FIXTURE_FAILED"); report.put("code", ConnectionProbe.failureCode(error));
         }
-        System.out.println(json.writeValueAsString(report)); System.exit(exit);
+        System.out.writeBytes((json.writeValueAsString(report) + "\n").getBytes(java.nio.charset.StandardCharsets.UTF_8)); System.exit(exit);
     }
 
     private static int constraintChecks(Connection connection) throws SQLException {

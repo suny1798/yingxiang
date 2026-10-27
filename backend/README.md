@@ -67,6 +67,17 @@ java -jar target/yingxiang-backend-0.1.0.jar --migration.auth-enabled=true --mig
 
 限流按原全局60／15分、账号10／15分、注册20／小时规则保存PG窗口，Redis仅做可用性门禁；不可用时注册／登录503，本人读取仍可用。Redis脚本／ACL／窗口迁移归后续M19。正式账号导入、Vue入口及生产权限隔离未完成。证据见[M11报告](../docs/reports/2026-10-27-M11-Java登录注册与首次赠送.md)。
 
+## 权益预留内部服务（M12-a）
+
+新增EntitlementReservationService：本人real_usage额度原子预留、unknown占用与幂等签发确认。没有浏览器调用确认的入口，没有上游模型调用；供应商接口仍关闭。只有将来可信签发适配器验证成功后才调用confirmIssued，不能由客户端直接“确认”。
+
+```powershell
+# backend/；随机临时schema与原SQLite状态对照，两个独立JVM做竞争，结束清理
+.venv/Scripts/python.exe -m scripts.java_quota_contracts
+```
+
+31项真实PG领域检查通过，覆盖最后一次竞争、沙盒／归属、unknown持久性、重复确认和异常回滚。M12完整签发／令牌校验与浏览器闭环未实现，详见[M12-a报告](../docs/reports/2026-10-27-M12-a-权益原子预留与确认.md)。
+
 ## 迁移环境配置（M02）
 
 请在本机填写 [backend/.env.migration.local](.env.migration.local)，不要改当前运行的 `.env`。已按用户要求创建空凭据配置，并确认被Git忽略；无密钥示例为 [.env.migration.example](.env.migration.example)。填写PostgreSQL的host／port／独立测试库／schema／username／password／TLS，以及Redis的host／port／可选ACL用户名／password／TLS／测试命名空间。含特殊字符的密码按dotenv格式加引号，不把密码发到聊天或提交仓库。
