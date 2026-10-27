@@ -40,4 +40,3 @@ export const sections: { id: string; title: Copy; paragraphs: Copy[] }[] = [
     ['对使用范围、费用或数据处理的实质性变更，应在变更生效前以清晰方式说明；依法需要另行同意的事项，应另行征得同意。存在争议时可先协商，也可依法向主管部门投诉或向有管辖权的人民法院寻求解决；本页不限制依法享有的救济渠道。', 'Material changes to scope, charges, or data processing should be clearly explained before taking effect. Separate consent must be obtained where required by law. Disputes may be discussed first, or raised with competent authorities or courts with jurisdiction as permitted by law. These terms do not restrict statutory remedies.'],
   ] },
 ];
-
