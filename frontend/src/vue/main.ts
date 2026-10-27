@@ -6,12 +6,14 @@ import PrivacyPage from './pages/PrivacyPage.vue';
 import HelpPage from './pages/HelpPage.vue';
 import FeedbackPage from './pages/FeedbackPage.vue';
 import PricingPage from './pages/PricingPage.vue';
+import HomePage from './pages/HomePage.vue';
 import NotFound from './pages/NotFound.vue';
 import '../app/globals.css';
 
 const router = createRouter({
   history: createWebHistory(),
   routes: [
+    { path: '/', component: HomePage, meta: { title: '映想 — 让想象，在眼前发生。', fullTitle: true } },
     { path: '/terms', component: TermsPage, meta: { title: '用户协议' } },
     { path: '/privacy', component: PrivacyPage, meta: { title: '隐私与使用说明' } },
     { path: '/help', component: HelpPage, meta: { title: '帮助中心' } },

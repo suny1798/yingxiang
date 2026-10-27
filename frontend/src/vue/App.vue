@@ -9,7 +9,7 @@ watchEffect(() => {
   document.documentElement.lang = preferences.locale.value === 'en' ? 'en' : 'zh-CN';
   document.documentElement.dataset.theme = preferences.theme.value;
   const title = preferences.locale.value==='en' && route.meta.englishTitle ? route.meta.englishTitle : route.meta.title;
-  document.title = `${t(String(title ?? '映想'))} · ${t('映想')}`;
+  document.title = route.meta.fullTitle?t(String(title)): `${t(String(title ?? '映想'))} · ${t('映想')}`;
 });
 onUnmounted(preferences.stop);
 const links = [['/', '首页'], ['/pricing', '价格方案'], ['/help', '帮助中心'], ['/privacy', '隐私与使用说明'], ['/terms', '用户协议']];
