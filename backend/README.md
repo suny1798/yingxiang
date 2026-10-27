@@ -121,3 +121,12 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 `GET /api/works`新增标题关键词`q`、`favorite=true`与`sort=newest|oldest|title`，所有过滤/排序在本人完整作品集合执行后再分页；搜索按字面值转义通配符，排序使用固定白名单和稳定ID次序。`POST /api/works/{id}`接受`{favorite:boolean}`，收藏按账号保存在works索引，不改updatedAt或保存队列时间。0006仅以SQLite原生ADD COLUMN增加`favorite`（默认0、CHECK 0/1）并建立user/favorite/created_at索引，不重建作品表或媒体目录。
 
 本机升级前在服务未运行状态备份至`backups/pre-work-favorites-20261027.sqlite3`，执行`ops init`和`ops check`；revision 0005→0006，作品/账号计数、旧字段、外键和完整性检查通过，原有作品全部默认为未收藏。回退需使用数据库备份并同时核对`data/users`；不能仅降级代码，因为旧revision不会被当前readiness接受。
+
+## 当前合同对照（M01）
+
+```powershell
+# backend/；临时合成库、供应商替身，常规检查不改fixture
+.venv/Scripts/python.exe -m scripts.migration_contracts
+```
+
+当前冻结合同见 [contracts/migration-v2](contracts/migration-v2/README.md)；覆盖70个代表交互及100项方法／路径，原29条Node合同继续保留。没有触发真实模型或支付。

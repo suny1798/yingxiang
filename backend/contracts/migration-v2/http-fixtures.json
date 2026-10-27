@@ -1,0 +1,2440 @@
+{
+  "format": "yingxiang-http-contract-v2",
+  "sampleKind": "synthetic-asgi-and-provider-substitutes",
+  "sourceRevision": "0006",
+  "openapiSha256": "d1d04266ff877c72f608e9319da162b7ce4fda92afa3e4aadd19b4c094376648",
+  "operations": [
+    "GET /api/account/me",
+    "GET /api/account/{action}",
+    "GET /api/admin/audit",
+    "GET /api/admin/overview",
+    "GET /api/admin/records/{kind}",
+    "GET /api/admin/settings",
+    "GET /api/admin/users",
+    "GET /api/payments/orders",
+    "GET /api/payments/status",
+    "GET /api/payments/{action}",
+    "GET /api/prompt/status",
+    "GET /api/site/announcement",
+    "GET /api/studio/status",
+    "GET /api/v1/config",
+    "GET /api/v1/health",
+    "GET /api/video/history",
+    "GET /api/video/jobs",
+    "GET /api/video/jobs/{ident}",
+    "GET /api/video/jobs/{ident}/content",
+    "GET /api/works",
+    "GET /api/works/{ident}",
+    "GET /api/works/{ident}/content",
+    "GET /api/works/{ident}/prompts",
+    "GET /api/works/{ident}/references/{ref_id}",
+    "HEAD /api/account/me",
+    "HEAD /api/account/{action}",
+    "HEAD /api/payments/orders",
+    "HEAD /api/payments/status",
+    "HEAD /api/payments/{action}",
+    "HEAD /api/prompt/status",
+    "HEAD /api/site/announcement",
+    "HEAD /api/studio/status",
+    "HEAD /api/v1/config",
+    "HEAD /api/v1/health",
+    "HEAD /api/video/history",
+    "HEAD /api/video/jobs",
+    "HEAD /api/video/jobs/{ident}",
+    "HEAD /api/video/jobs/{ident}/content",
+    "HEAD /api/works",
+    "HEAD /api/works/{ident}",
+    "HEAD /api/works/{ident}/content",
+    "HEAD /api/works/{ident}/prompts",
+    "HEAD /api/works/{ident}/references/{ref_id}",
+    "OPTIONS /api/account/{action}",
+    "OPTIONS /api/payments/{action}",
+    "OPTIONS /api/prompt/status",
+    "OPTIONS /api/prompt/token",
+    "OPTIONS /api/site/announcement",
+    "OPTIONS /api/studio/observation",
+    "OPTIONS /api/studio/status",
+    "OPTIONS /api/studio/token",
+    "OPTIONS /api/v1/access/redeem",
+    "OPTIONS /api/v1/config",
+    "OPTIONS /api/v1/health",
+    "OPTIONS /api/v1/sessions",
+    "OPTIONS /api/v1/sessions/{ident}/end",
+    "OPTIONS /api/v1/sessions/{ident}/heartbeat",
+    "OPTIONS /api/v1/sessions/{ident}/token",
+    "OPTIONS /api/video/history",
+    "OPTIONS /api/video/jobs",
+    "OPTIONS /api/video/jobs/{ident}",
+    "OPTIONS /api/video/jobs/{ident}/content",
+    "OPTIONS /api/video/jobs/{ident}/history",
+    "OPTIONS /api/video/prepare",
+    "OPTIONS /api/works",
+    "OPTIONS /api/works/{ident}",
+    "OPTIONS /api/works/{ident}/chunks/{index}",
+    "OPTIONS /api/works/{ident}/complete",
+    "OPTIONS /api/works/{ident}/content",
+    "OPTIONS /api/works/{ident}/prompts",
+    "OPTIONS /api/works/{ident}/prompts/{index}",
+    "OPTIONS /api/works/{ident}/references/{ref_id}",
+    "POST /api/account/login",
+    "POST /api/account/logout",
+    "POST /api/account/register",
+    "POST /api/account/{action}",
+    "POST /api/admin/settings/{key}",
+    "POST /api/admin/users/{ident}",
+    "POST /api/admin/users/{ident}/quota",
+    "POST /api/payments/checkout",
+    "POST /api/payments/reconcile",
+    "POST /api/payments/webhook",
+    "POST /api/payments/{action}",
+    "POST /api/prompt/token",
+    "POST /api/studio/observation",
+    "POST /api/studio/token",
+    "POST /api/v1/access/redeem",
+    "POST /api/v1/sessions",
+    "POST /api/v1/sessions/{ident}/end",
+    "POST /api/v1/sessions/{ident}/heartbeat",
+    "POST /api/v1/sessions/{ident}/token",
+    "POST /api/video/jobs",
+    "POST /api/video/jobs/{ident}/history",
+    "POST /api/video/prepare",
+    "POST /api/works",
+    "POST /api/works/{ident}",
+    "POST /api/works/{ident}/chunks/{index}",
+    "POST /api/works/{ident}/complete",
+    "POST /api/works/{ident}/prompts/{index}",
+    "POST /api/works/{ident}/references/{ref_id}"
+  ],
+  "providerCalls": {
+    "model": 1,
+    "checkout": 1
+  },
+  "cases": [
+    {
+      "name": "legacy_config",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/config",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "apiVersion": "v1",
+          "mode": "real",
+          "scene": "clothing",
+          "maxDurationSec": 60,
+          "defaultDurationSec": 15,
+          "durationOptions": [
+            15,
+            30,
+            60
+          ],
+          "consentVersion": "2026-10-23-preview-cloud-v2",
+          "image": {
+            "maxBytes": 10485760,
+            "maxPixels": 20000000,
+            "maxEdge": 1024,
+            "mimeTypes": [
+              "image/jpeg",
+              "image/png",
+              "image/webp"
+            ]
+          },
+          "features": {
+            "camera": true,
+            "realtime": true,
+            "invitations": false,
+            "promptEditing": false
+          }
+        }
+      }
+    },
+    {
+      "name": "legacy_health",
+      "request": {
+        "method": "GET",
+        "path": "/api/v1/health",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "status": "ok",
+          "application": "yingxiang",
+          "mode": "real",
+          "providerReady": false,
+          "storageReady": false
+        }
+      }
+    },
+    {
+      "name": "anonymous_me",
+      "request": {
+        "method": "GET",
+        "path": "/api/account/me",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "user": null,
+          "trial": null,
+          "trialLimit": 0,
+          "trialRemaining": 0,
+          "durations": [
+            {
+              "seconds": 15,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 30,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 60,
+              "limit": 0,
+              "remaining": 0
+            }
+          ],
+          "history": []
+        }
+      }
+    },
+    {
+      "name": "payments_status",
+      "request": {
+        "method": "GET",
+        "path": "/api/payments/status",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "testEnabled": true,
+          "liveEnabled": false
+        }
+      }
+    },
+    {
+      "name": "anonymous_works",
+      "request": {
+        "method": "GET",
+        "path": "/api/works",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "LOGIN_REQUIRED",
+            "message": "请先登录后继续。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "anonymous_admin",
+      "request": {
+        "method": "GET",
+        "path": "/api/admin/overview",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 401,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "LOGIN_REQUIRED",
+            "message": "请先登录后继续。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "legacy_disabled_0",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/access/redeem",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {}
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "SERVICE_DISABLED",
+            "message": "账号与会话服务尚未启用。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "legacy_disabled_1",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/sessions",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {}
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "SERVICE_DISABLED",
+            "message": "账号与会话服务尚未启用。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "legacy_disabled_2",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/sessions/fixture/token",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {}
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "SERVICE_DISABLED",
+            "message": "账号与会话服务尚未启用。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "legacy_disabled_3",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/sessions/fixture/heartbeat",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {}
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "SERVICE_DISABLED",
+            "message": "账号与会话服务尚未启用。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "legacy_disabled_4",
+      "request": {
+        "method": "POST",
+        "path": "/api/v1/sessions/fixture/end",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {}
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "SERVICE_DISABLED",
+            "message": "账号与会话服务尚未启用。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "wrong_origin",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/login",
+        "authenticated": false,
+        "headers": {
+          "origin": "https://other.invalid",
+          "content-type": "application/json"
+        },
+        "json": {}
+      },
+      "response": {
+        "status": 403,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "ORIGIN_REJECTED",
+            "message": "页面来源不符，请从本机验证入口重新打开。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "bad_json",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/login",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "bodyBytes": 1,
+        "bodySha256": "021fb596db81e6d02bf3d2586ee3981fe519f275c0ac9ca76bbcf2ebb4097d96"
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "INVALID_REQUEST",
+            "message": "请求内容无法读取。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "wrong_content_type",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/login",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "text/plain"
+        },
+        "bodyBytes": 2,
+        "bodySha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+      },
+      "response": {
+        "status": 415,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "INVALID_REQUEST",
+            "message": "请使用JSON请求。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "register_owner",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/register",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "username": "contract_owner",
+          "password": "<synthetic-password>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "cookieFlags": [
+          "HttpOnly",
+          "SameSite=Lax",
+          "Path=/",
+          "Max-Age=604800"
+        ],
+        "json": {
+          "user": {
+            "id": "<uuid-1>",
+            "username": "contract_owner",
+            "createdAt": "<timestamp-utc-milliseconds>",
+            "role": "user"
+          },
+          "trial": "ready",
+          "trialLimit": 1,
+          "trialRemaining": 1,
+          "durations": [
+            {
+              "seconds": 15,
+              "limit": 1,
+              "remaining": 1
+            },
+            {
+              "seconds": 30,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 60,
+              "limit": 0,
+              "remaining": 0
+            }
+          ],
+          "history": []
+        }
+      }
+    },
+    {
+      "name": "owner_me",
+      "request": {
+        "method": "GET",
+        "path": "/api/account/me",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "user": {
+            "id": "<uuid-1>",
+            "username": "contract_owner",
+            "createdAt": "<timestamp-utc-milliseconds>",
+            "role": "user"
+          },
+          "trial": "ready",
+          "trialLimit": 1,
+          "trialRemaining": 1,
+          "durations": [
+            {
+              "seconds": 15,
+              "limit": 1,
+              "remaining": 1
+            },
+            {
+              "seconds": 30,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 60,
+              "limit": 0,
+              "remaining": 0
+            }
+          ],
+          "history": []
+        }
+      }
+    },
+    {
+      "name": "head_me",
+      "request": {
+        "method": "HEAD",
+        "path": "/api/account/me",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "content-length": "329"
+        },
+        "bodyBytes": 0,
+        "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "options_me",
+      "request": {
+        "method": "OPTIONS",
+        "path": "/api/account/me",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 204,
+        "headers": {
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "allow": "GET, HEAD, OPTIONS, POST"
+        },
+        "bodyBytes": 0,
+        "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "non_admin",
+      "request": {
+        "method": "GET",
+        "path": "/api/admin/overview",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 403,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "ADMIN_REQUIRED",
+            "message": "需要管理员权限。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "missing_work",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-2>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_FOUND",
+            "message": "找不到这件作品。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "studio_status",
+      "request": {
+        "method": "GET",
+        "path": "/api/studio/status",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "enabled": true,
+          "keyConfigured": true,
+          "available": true,
+          "policy": {
+            "batchId": "studio-manual-v1",
+            "model": "lucy-vton-3.6",
+            "sdk": "0.2.12",
+            "consentVersion": "2026-10-26-preview-cloud-save-v1",
+            "approvedBudgetUsd": 5,
+            "tokenTtlSec": 10,
+            "connectionCapSec": 15,
+            "clientWindowSec": 15,
+            "durationOptions": [
+              15,
+              30,
+              60
+            ],
+            "standardUsdPerSec": 0.02,
+            "prompt": "Replace only the current upper-body clothing with the garment in the reference image. Preserve the person, face, body, pose, background and lighting."
+          },
+          "state": "ready",
+          "access": "<redacted-opaque-credential>"
+        }
+      }
+    },
+    {
+      "name": "unknown_issue",
+      "request": {
+        "method": "POST",
+        "path": "/api/studio/token",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "attemptId": "<uuid-3>",
+          "consentVersion": "2026-10-26-preview-cloud-save-v1",
+          "durationSec": 15
+        }
+      },
+      "response": {
+        "status": 503,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "TOKEN_RESULT_UNKNOWN",
+            "message": "令牌未能安全取得。请检查模型权限、余额和网络并核对用量；本轮不自动重试。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "unknown_issue_not_repeated",
+      "request": {
+        "method": "POST",
+        "path": "/api/studio/token",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "attemptId": "<uuid-3>",
+          "consentVersion": "2026-10-26-preview-cloud-save-v1",
+          "durationSec": 15
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "ATTEMPT_SPENT",
+            "message": "这次连接已申请，不能重复发送。请结束当前体验后手动再次开启。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "unknown_preserves_occupancy",
+      "request": {
+        "method": "GET",
+        "path": "/api/account/me",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "user": {
+            "id": "<uuid-1>",
+            "username": "contract_owner",
+            "createdAt": "<timestamp-utc-milliseconds>",
+            "role": "user"
+          },
+          "trial": "review",
+          "trialLimit": 1,
+          "trialRemaining": 0,
+          "durations": [
+            {
+              "seconds": 15,
+              "limit": 1,
+              "remaining": 0
+            },
+            {
+              "seconds": 30,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 60,
+              "limit": 0,
+              "remaining": 0
+            }
+          ],
+          "history": [
+            {
+              "id": "<uuid-3>",
+              "createdAt": "<timestamp-utc-milliseconds>",
+              "durationSec": 15,
+              "state": "review"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "sandbox_checkout",
+      "request": {
+        "method": "POST",
+        "path": "/api/payments/checkout",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "sku": "credits-v1-light",
+          "requestId": "<request-id>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "orderId": "<uuid-4>",
+          "url": "https://checkout.stripe.com/c/pay/synthetic-contract"
+        }
+      }
+    },
+    {
+      "name": "sandbox_checkout_idempotent",
+      "request": {
+        "method": "POST",
+        "path": "/api/payments/checkout",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "sku": "credits-v1-light",
+          "requestId": "<request-id>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "orderId": "<uuid-4>",
+          "paid": true
+        }
+      }
+    },
+    {
+      "name": "sandbox_reconcile",
+      "request": {
+        "method": "POST",
+        "path": "/api/payments/reconcile",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "orderId": "<uuid-4>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "sandboxCreditPacks": [
+            {
+              "orderId": "<uuid-4>",
+              "planId": "light",
+              "credits": 120,
+              "scenes": [
+                "tryon",
+                "video"
+              ],
+              "createdAt": "<timestamp-utc-milliseconds>"
+            }
+          ],
+          "sandboxPointBalance": 120,
+          "orders": [
+            {
+              "id": "<uuid-4>",
+              "sku": "credits-v1-light",
+              "planId": "light",
+              "credits": 120,
+              "seconds": null,
+              "count": null,
+              "amount": 3900,
+              "currency": "cny",
+              "createdAt": "<timestamp-utc-milliseconds>",
+              "state": "paid",
+              "fulfilledAt": "<timestamp-utc-milliseconds>"
+            }
+          ],
+          "sandboxCredits": {}
+        }
+      }
+    },
+    {
+      "name": "sandbox_reconcile_idempotent",
+      "request": {
+        "method": "POST",
+        "path": "/api/payments/reconcile",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "orderId": "<uuid-4>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "sandboxCreditPacks": [
+            {
+              "orderId": "<uuid-4>",
+              "planId": "light",
+              "credits": 120,
+              "scenes": [
+                "tryon",
+                "video"
+              ],
+              "createdAt": "<timestamp-utc-milliseconds>"
+            }
+          ],
+          "sandboxPointBalance": 120,
+          "orders": [
+            {
+              "id": "<uuid-4>",
+              "sku": "credits-v1-light",
+              "planId": "light",
+              "credits": 120,
+              "seconds": null,
+              "count": null,
+              "amount": 3900,
+              "currency": "cny",
+              "createdAt": "<timestamp-utc-milliseconds>",
+              "state": "paid",
+              "fulfilledAt": "<timestamp-utc-milliseconds>"
+            }
+          ],
+          "sandboxCredits": {}
+        }
+      }
+    },
+    {
+      "name": "sandbox_orders",
+      "request": {
+        "method": "GET",
+        "path": "/api/payments/orders",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "sandboxCreditPacks": [
+            {
+              "orderId": "<uuid-4>",
+              "planId": "light",
+              "credits": 120,
+              "scenes": [
+                "tryon",
+                "video"
+              ],
+              "createdAt": "<timestamp-utc-milliseconds>"
+            }
+          ],
+          "sandboxPointBalance": 120,
+          "orders": [
+            {
+              "id": "<uuid-4>",
+              "sku": "credits-v1-light",
+              "planId": "light",
+              "credits": 120,
+              "seconds": null,
+              "count": null,
+              "amount": 3900,
+              "currency": "cny",
+              "createdAt": "<timestamp-utc-milliseconds>",
+              "state": "paid",
+              "fulfilledAt": "<timestamp-utc-milliseconds>"
+            }
+          ],
+          "sandboxCredits": {}
+        }
+      }
+    },
+    {
+      "name": "sandbox_did_not_unlock_real_usage",
+      "request": {
+        "method": "GET",
+        "path": "/api/account/me",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "user": {
+            "id": "<uuid-1>",
+            "username": "contract_owner",
+            "createdAt": "<timestamp-utc-milliseconds>",
+            "role": "user"
+          },
+          "trial": "review",
+          "trialLimit": 1,
+          "trialRemaining": 0,
+          "durations": [
+            {
+              "seconds": 15,
+              "limit": 1,
+              "remaining": 0
+            },
+            {
+              "seconds": 30,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 60,
+              "limit": 0,
+              "remaining": 0
+            }
+          ],
+          "history": [
+            {
+              "id": "<uuid-3>",
+              "createdAt": "<timestamp-utc-milliseconds>",
+              "durationSec": 15,
+              "state": "review"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "unsigned_webhook",
+      "request": {
+        "method": "POST",
+        "path": "/api/payments/webhook",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {}
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "INVALID_SIGNATURE",
+            "message": "付款通知验签失败。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "create_edit_work",
+      "request": {
+        "method": "POST",
+        "path": "/api/works",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>",
+          "content-type": "application/json"
+        },
+        "json": {
+          "id": "<uuid-5>",
+          "ownerId": "<uuid-1>",
+          "kind": "edit",
+          "mime": "video/webm",
+          "seconds": 15
+        }
+      },
+      "response": {
+        "status": 201,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "id": "<uuid-5>",
+          "kind": "edit",
+          "title": "实时编辑",
+          "state": "capturing",
+          "createdAt": "<timestamp-utc-milliseconds>",
+          "updatedAt": "<timestamp-utc-milliseconds>",
+          "bytes": 0,
+          "seconds": 15.0,
+          "extension": "webm",
+          "message": null,
+          "canRetry": false,
+          "favorite": false,
+          "contentUrl": null,
+          "references": []
+        }
+      }
+    },
+    {
+      "name": "chunk_order",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/chunks/1",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>"
+        },
+        "bodyBytes": 100,
+        "bodySha256": "cda8fd0d375340b43288b5bafc4cc40d73b97991c4e81c46f2e71202f06a1550"
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "CHUNK_ORDER",
+            "message": "录像片段顺序无效。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "chunk_first",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/chunks/0",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>"
+        },
+        "bodyBytes": 100,
+        "bodySha256": "cda8fd0d375340b43288b5bafc4cc40d73b97991c4e81c46f2e71202f06a1550"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "chunk_repeated",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/chunks/0",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>"
+        },
+        "bodyBytes": 100,
+        "bodySha256": "cda8fd0d375340b43288b5bafc4cc40d73b97991c4e81c46f2e71202f06a1550"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "chunk_conflict",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/chunks/0",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>"
+        },
+        "bodyBytes": 8,
+        "bodySha256": "fa9e1d22205ad852b0dc9509ec4e31644e88742c4dfce93c08f011fee1cd8a1a"
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "CHUNK_CONFLICT",
+            "message": "录像片段与已保存内容不一致。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "reference",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/references/<uuid-6>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>",
+          "content-type": "image/png"
+        },
+        "bodyBytes": 68,
+        "bodySha256": "038d78c5f8f9c18b8699bfc5121550c05083c4c799ec99ee33d90c40ee7ddebf"
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "prompt_first",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/prompts/0",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>",
+          "content-type": "application/json"
+        },
+        "json": {
+          "atMs": 0,
+          "instructions": [
+            "合成合同样本，替换服装颜色。"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "prompt_same",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/prompts/0",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>",
+          "content-type": "application/json"
+        },
+        "json": {
+          "atMs": 0,
+          "instructions": [
+            "合成合同样本，替换服装颜色。"
+          ]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "prompt_conflict",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/prompts/0",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>",
+          "content-type": "application/json"
+        },
+        "json": {
+          "atMs": 0,
+          "instructions": [
+            "冲突样本"
+          ]
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_PROMPTS_CONFLICT",
+            "message": "提示词记录与已保存内容不一致。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "prompts",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/prompts",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "states": [
+            {
+              "atMs": 0,
+              "instructions": [
+                "合成合同样本，替换服装颜色。"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "content_before_ready",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_READY",
+            "message": "作品尚未保存完成。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "complete",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/complete",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>",
+          "content-type": "application/json"
+        },
+        "json": {
+          "durationMs": 1500
+        }
+      },
+      "response": {
+        "status": 202,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "work_ready",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "id": "<uuid-5>",
+          "kind": "edit",
+          "title": "实时编辑",
+          "state": "ready",
+          "createdAt": "<timestamp-utc-milliseconds>",
+          "updatedAt": "<timestamp-utc-milliseconds>",
+          "bytes": 100,
+          "seconds": 1.5,
+          "extension": "webm",
+          "message": null,
+          "canRetry": false,
+          "favorite": false,
+          "contentUrl": "/api/works/<uuid-5>/content",
+          "references": [
+            {
+              "id": "<uuid-6>",
+              "url": "/api/works/<uuid-5>/references/<uuid-6>",
+              "bytes": 68
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "content",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "video/webm",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "accept-ranges": "bytes",
+          "content-disposition": "inline; filename*=utf-8''%E5%AE%9E%E6%97%B6%E7%BC%96%E8%BE%91.webm",
+          "etag": "<etag>",
+          "last-modified": "<http-date>",
+          "content-length": "100"
+        },
+        "bodyBytes": 100,
+        "bodySha256": "cda8fd0d375340b43288b5bafc4cc40d73b97991c4e81c46f2e71202f06a1550"
+      }
+    },
+    {
+      "name": "content_head",
+      "request": {
+        "method": "HEAD",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "video/webm",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "accept-ranges": "bytes",
+          "content-disposition": "inline; filename*=utf-8''%E5%AE%9E%E6%97%B6%E7%BC%96%E8%BE%91.webm",
+          "etag": "<etag>",
+          "last-modified": "<http-date>",
+          "content-length": "100"
+        },
+        "bodyBytes": 0,
+        "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "content_range",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "range": "bytes=4-11"
+        }
+      },
+      "response": {
+        "status": 206,
+        "headers": {
+          "content-type": "video/webm",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "accept-ranges": "bytes",
+          "content-range": "bytes 4-11/100",
+          "content-disposition": "inline; filename*=utf-8''%E5%AE%9E%E6%97%B6%E7%BC%96%E8%BE%91.webm",
+          "etag": "<etag>",
+          "last-modified": "<http-date>",
+          "content-length": "8"
+        },
+        "bodyBytes": 8,
+        "bodySha256": "65c3bb15cd47fb62e4a29d549d7ccb7969c4bc80eb0ac42b7368914e8ec55061"
+      }
+    },
+    {
+      "name": "content_matching_if_range",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "range": "bytes=4-11",
+          "if-range": "<matching-etag>"
+        }
+      },
+      "response": {
+        "status": 206,
+        "headers": {
+          "content-type": "video/webm",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "accept-ranges": "bytes",
+          "content-range": "bytes 4-11/100",
+          "content-disposition": "inline; filename*=utf-8''%E5%AE%9E%E6%97%B6%E7%BC%96%E8%BE%91.webm",
+          "etag": "<etag>",
+          "last-modified": "<http-date>",
+          "content-length": "8"
+        },
+        "bodyBytes": 8,
+        "bodySha256": "65c3bb15cd47fb62e4a29d549d7ccb7969c4bc80eb0ac42b7368914e8ec55061"
+      }
+    },
+    {
+      "name": "content_stale_if_range",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "range": "bytes=4-11",
+          "if-range": "\"synthetic-stale-etag\""
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "video/webm",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "accept-ranges": "bytes",
+          "content-disposition": "inline; filename*=utf-8''%E5%AE%9E%E6%97%B6%E7%BC%96%E8%BE%91.webm",
+          "etag": "<etag>",
+          "last-modified": "<http-date>",
+          "content-length": "100"
+        },
+        "bodyBytes": 100,
+        "bodySha256": "cda8fd0d375340b43288b5bafc4cc40d73b97991c4e81c46f2e71202f06a1550"
+      }
+    },
+    {
+      "name": "content_bad_range",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "range": "bytes=99999-100000"
+        }
+      },
+      "response": {
+        "status": 416,
+        "headers": {
+          "content-type": "text/plain; charset=utf-8",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "content-range": "bytes */100",
+          "content-length": "0"
+        },
+        "bodyBytes": 0,
+        "bodySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    {
+      "name": "content_download",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content?download=1",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "video/webm",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "accept-ranges": "bytes",
+          "content-disposition": "attachment; filename*=utf-8''%E5%AE%9E%E6%97%B6%E7%BC%96%E8%BE%91.webm",
+          "etag": "<etag>",
+          "last-modified": "<http-date>",
+          "content-length": "100"
+        },
+        "bodyBytes": 100,
+        "bodySha256": "cda8fd0d375340b43288b5bafc4cc40d73b97991c4e81c46f2e71202f06a1550"
+      }
+    },
+    {
+      "name": "reference_content",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/references/<uuid-6>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "image/png",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff",
+          "accept-ranges": "bytes",
+          "etag": "<etag>",
+          "last-modified": "<http-date>",
+          "content-length": "68"
+        },
+        "bodyBytes": 68,
+        "bodySha256": "038d78c5f8f9c18b8699bfc5121550c05083c4c799ec99ee33d90c40ee7ddebf"
+      }
+    },
+    {
+      "name": "rename",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "title": "100% 合成作品_合同"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "id": "<uuid-5>",
+          "kind": "edit",
+          "title": "100% 合成作品_合同",
+          "state": "ready",
+          "createdAt": "<timestamp-utc-milliseconds>",
+          "updatedAt": "<timestamp-utc-milliseconds>",
+          "bytes": 100,
+          "seconds": 1.5,
+          "extension": "webm",
+          "message": null,
+          "canRetry": false,
+          "favorite": false,
+          "contentUrl": "/api/works/<uuid-5>/content",
+          "references": [
+            {
+              "id": "<uuid-6>",
+              "url": "/api/works/<uuid-5>/references/<uuid-6>",
+              "bytes": 68
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "favorite",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "favorite": true
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "id": "<uuid-5>",
+          "kind": "edit",
+          "title": "100% 合成作品_合同",
+          "state": "ready",
+          "createdAt": "<timestamp-utc-milliseconds>",
+          "updatedAt": "<timestamp-utc-milliseconds>",
+          "bytes": 100,
+          "seconds": 1.5,
+          "extension": "webm",
+          "message": null,
+          "canRetry": false,
+          "favorite": true,
+          "contentUrl": "/api/works/<uuid-5>/content",
+          "references": [
+            {
+              "id": "<uuid-6>",
+              "url": "/api/works/<uuid-5>/references/<uuid-6>",
+              "bytes": 68
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "literal_search",
+      "request": {
+        "method": "GET",
+        "path": "/api/works?q=%25&favorite=true&sort=title",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "items": [
+            {
+              "id": "<uuid-5>",
+              "kind": "edit",
+              "title": "100% 合成作品_合同",
+              "state": "ready",
+              "createdAt": "<timestamp-utc-milliseconds>",
+              "updatedAt": "<timestamp-utc-milliseconds>",
+              "bytes": 100,
+              "seconds": 1.5,
+              "extension": "webm",
+              "message": null,
+              "canRetry": false,
+              "favorite": true,
+              "contentUrl": "/api/works/<uuid-5>/content",
+              "references": [
+                {
+                  "id": "<uuid-6>",
+                  "url": "/api/works/<uuid-5>/references/<uuid-6>",
+                  "bytes": 68
+                }
+              ]
+            }
+          ],
+          "page": 1,
+          "pages": 1,
+          "pageSize": 9,
+          "total": 1
+        }
+      }
+    },
+    {
+      "name": "invalid_sort",
+      "request": {
+        "method": "GET",
+        "path": "/api/works?sort=arbitrary",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 400,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "INVALID_WORK_SORT",
+            "message": "作品排序方式无效。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "logout_owner",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/logout",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "cookieFlags": [
+          "HttpOnly",
+          "SameSite=Lax",
+          "Path=/",
+          "Max-Age=0"
+        ],
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "register_other",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/register",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "username": "contract_other",
+          "password": "<synthetic-password>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "cookieFlags": [
+          "HttpOnly",
+          "SameSite=Lax",
+          "Path=/",
+          "Max-Age=604800"
+        ],
+        "json": {
+          "user": {
+            "id": "<uuid-7>",
+            "username": "contract_other",
+            "createdAt": "<timestamp-utc-milliseconds>",
+            "role": "user"
+          },
+          "trial": "ready",
+          "trialLimit": 1,
+          "trialRemaining": 1,
+          "durations": [
+            {
+              "seconds": 15,
+              "limit": 1,
+              "remaining": 1
+            },
+            {
+              "seconds": 30,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 60,
+              "limit": 0,
+              "remaining": 0
+            }
+          ],
+          "history": []
+        }
+      }
+    },
+    {
+      "name": "other_work_hidden",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_FOUND",
+            "message": "找不到这件作品。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "other_prompts_hidden",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/prompts",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_FOUND",
+            "message": "找不到这件作品。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "other_content_hidden",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/content",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_FOUND",
+            "message": "找不到这件作品。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "other_change_rejected",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "favorite": true
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_FOUND",
+            "message": "找不到这件作品。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "stale_upload_owner",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>/chunks/1",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "x-work-owner": "<uuid-1>"
+        },
+        "bodyBytes": 100,
+        "bodySha256": "cda8fd0d375340b43288b5bafc4cc40d73b97991c4e81c46f2e71202f06a1550"
+      },
+      "response": {
+        "status": 409,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_OWNER_CHANGED",
+            "message": "账号已变更，已停止原账号的上传。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "other_works_empty",
+      "request": {
+        "method": "GET",
+        "path": "/api/works",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "items": [],
+          "page": 1,
+          "pages": 1,
+          "pageSize": 9,
+          "total": 0
+        }
+      }
+    },
+    {
+      "name": "logout_other",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/logout",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "cookieFlags": [
+          "HttpOnly",
+          "SameSite=Lax",
+          "Path=/",
+          "Max-Age=0"
+        ],
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "login_owner",
+      "request": {
+        "method": "POST",
+        "path": "/api/account/login",
+        "authenticated": false,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "username": "contract_owner",
+          "password": "<synthetic-password>"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "cookieFlags": [
+          "HttpOnly",
+          "SameSite=Lax",
+          "Path=/",
+          "Max-Age=604800"
+        ],
+        "json": {
+          "user": {
+            "id": "<uuid-1>",
+            "username": "contract_owner",
+            "createdAt": "<timestamp-utc-milliseconds>",
+            "role": "user"
+          },
+          "trial": "review",
+          "trialLimit": 1,
+          "trialRemaining": 0,
+          "durations": [
+            {
+              "seconds": 15,
+              "limit": 1,
+              "remaining": 0
+            },
+            {
+              "seconds": 30,
+              "limit": 0,
+              "remaining": 0
+            },
+            {
+              "seconds": 60,
+              "limit": 0,
+              "remaining": 0
+            }
+          ],
+          "history": [
+            {
+              "id": "<uuid-3>",
+              "createdAt": "<timestamp-utc-milliseconds>",
+              "durationSec": 15,
+              "state": "review"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "delete_work",
+      "request": {
+        "method": "POST",
+        "path": "/api/works/<uuid-5>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787",
+          "content-type": "application/json"
+        },
+        "json": {
+          "action": "delete"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "accepted": true
+        }
+      }
+    },
+    {
+      "name": "deleted_work_hidden",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_FOUND",
+            "message": "找不到这件作品。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "deleted_prompts_hidden",
+      "request": {
+        "method": "GET",
+        "path": "/api/works/<uuid-5>/prompts",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "error": {
+            "code": "WORK_NOT_FOUND",
+            "message": "找不到这件作品。",
+            "retryable": false
+          },
+          "requestId": "<request-id>"
+        }
+      }
+    },
+    {
+      "name": "owner_works_empty",
+      "request": {
+        "method": "GET",
+        "path": "/api/works",
+        "authenticated": true,
+        "headers": {
+          "origin": "http://127.0.0.1:8787"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json",
+          "cache-control": "no-store",
+          "x-content-type-options": "nosniff"
+        },
+        "json": {
+          "items": [],
+          "page": 1,
+          "pages": 1,
+          "pageSize": 9,
+          "total": 0
+        }
+      }
+    }
+  ]
+}
