@@ -4,7 +4,9 @@
 .slide[data-active=true] { opacity:1; }
 /* 每帧只显示一张完整扩图，避免原图与扩图景物错位后产生双影。 */
 .slide img { display:block; position:absolute; inset:0; width:100%; max-width:none; height:100%; object-fit:cover; object-position:right center; }
-.frame:after { content:''; position:absolute; inset:0; pointer-events:none; background:linear-gradient(90deg,light-dark(#f8f7f4e8, color-mix(in srgb, var(--surface) 91%, transparent)) 0%,light-dark(#f8f7f4c4, color-mix(in srgb, var(--surface) 77%, transparent)) 18%,light-dark(#f8f7f473, color-mix(in srgb, var(--surface) 45%, transparent)) 26%,light-dark(#f8f7f41f, color-mix(in srgb, var(--surface) 12%, transparent)) 35%,transparent 43%); }
+/* 浅色文字区加重柔焦与雾白，渐退至中部，右侧人物保持清晰。 */
+:global(html:not([data-theme=dark])) .frame:before { content:''; position:absolute; z-index:1; inset:0 44% 0 0; pointer-events:none; backdrop-filter:blur(10px); mask-image:linear-gradient(90deg,#000 0%,#000 52%,transparent 100%); }
+.frame:after { content:''; position:absolute; z-index:2; inset:0; pointer-events:none; background:linear-gradient(90deg,light-dark(#f8f7f4f5, color-mix(in srgb, var(--surface) 91%, transparent)) 0%,light-dark(#f8f7f4ed, color-mix(in srgb, var(--surface) 77%, transparent)) 18%,light-dark(#f8f7f4d9, color-mix(in srgb, var(--surface) 45%, transparent)) 30%,light-dark(#f8f7f4a3, color-mix(in srgb, var(--surface) 12%, transparent)) 39%,#f8f7f442 48%,transparent 56%); }
 :global(html[data-theme=dark]) .frame:after { background:linear-gradient(90deg,var(--paper) 0%,color-mix(in srgb,var(--paper) 97%,transparent) 30%,color-mix(in srgb,var(--paper) 90%,transparent) 40%,transparent 65%); }
 .arrows { position:absolute; z-index:2; right:max(48px,calc((100% - 1200px)/2)); bottom:30px; display:flex; gap:14px; }
 .arrows button { display:grid; place-items:center; width:43px; height:40px; border:1px solid light-dark(#ffffff90, color-mix(in srgb, var(--line) 56%, transparent)); background:light-dark(#fffefa9c, color-mix(in srgb, var(--surface) 61%, transparent)); backdrop-filter:blur(10px); color:light-dark(#66554b, var(--muted)); cursor:pointer; border-radius:50%; transition:color .2s,background-color .2s; }

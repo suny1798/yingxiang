@@ -1,8 +1,8 @@
 /** 旧版实时换装沙盒商品：仅为历史订单/既有SKU保留，不用于新的三档方案。 */
 export const PRICING = [
-  { seconds: 15, name: '灵感一试', description: '看一件服装的第一眼感觉', prices: { 1: 690, 5: 2990, 10: 5690 } },
-  { seconds: 30, name: '从容看看', description: '给搭配多一点观察时间', prices: { 1: 1290, 5: 5690, 10: 10900 } },
-  { seconds: 60, name: '多面探索', description: '留出转身与换图的空间', prices: { 1: 2390, 5: 10900, 10: 20900 } },
+  { seconds: 15, name: '15秒单次包', description: '15秒实时换装体验', prices: { 1: 690, 5: 2990, 10: 5690 } },
+  { seconds: 30, name: '30秒单次包', description: '30秒实时换装体验', prices: { 1: 1290, 5: 5690, 10: 10900 } },
+  { seconds: 60, name: '60秒单次包', description: '60秒实时换装体验', prices: { 1: 2390, 5: 10900, 10: 20900 } },
 ] as const;
 export type Duration = typeof PRICING[number]['seconds'];
 export type PackCount = 1 | 5 | 10;

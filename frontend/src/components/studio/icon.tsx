@@ -1,8 +1,14 @@
 import styles from './studio.module.css';
 
-export type IconName = 'download' | 'arrow' | 'upload' | 'camera' | 'lock' | 'hanger' | 'check' | 'close' | 'info' | 'sun' | 'switch' | 'mirror' | 'history';
+export type IconName = 'download' | 'arrow' | 'upload' | 'camera' | 'lock' | 'hanger' | 'check' | 'close' | 'info' | 'sun' | 'switch' | 'mirror' | 'history' | 'fullscreen' | 'fullscreenExit' | 'snapshot' | 'search' | 'sort' | 'star';
 const paths: Record<IconName, React.ReactNode> = {
   download: <path d="M12 3v12m-4-4 4 4 4-4M5 17v4h14v-4" />,
+  fullscreen: <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />,
+  fullscreenExit: <path d="M3 8h5V3m13 5h-5V3M8 21v-5H3m13 5v-5h5" />,
+  snapshot: <><path d="M4 7h4l1.5-2h5L16 7h4v12H4z" /><circle cx="12" cy="13" r="3.5" /><path d="M18 10h.01" /></>,
+  search: <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></>,
+  sort: <path d="M8 5v14m-4-4 4 4 4-4M16 19V5m-4 4 4-4 4 4" />,
+  star: <path d="m12 3 2.75 5.57 6.15.9-4.45 4.33 1.05 6.12L12 17.03l-5.5 2.89 1.05-6.12L3.1 9.47l6.15-.9z" />,
   history: <><path d="M3 5v5h5M3.5 10a9 9 0 1 1 1.7 8M12 7v5l3 2" /></>,
   mirror: <><path d="M12 3v3m0 3v3m0 3v3m0 3v-1M3 7l5 3v7l-5 3zm18 0-5 3v7l5 3z" /></>,
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,

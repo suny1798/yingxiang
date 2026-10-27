@@ -6,16 +6,21 @@
 .heroInner h1 { margin:18px 0; font-size:clamp(48px,5vw,72px); line-height:1.25; }
 .sceneLinks { display:flex; align-items:center; gap:0; margin-top:36px; font-size:max(var(--font-min),calc(12px * var(--font-scale))); }
 .sceneLinks a { display:flex; align-items:center; gap:6px; padding:2px 17px; border-right:1px solid var(--line); color:var(--muted); }.sceneLinks a:first-child { padding-left:0; }.sceneLinks a:last-child { border:0; }.sceneLinks a:hover { color:var(--accent); }.sceneLinks span { padding:2px 5px; font-size:max(var(--font-min),calc(9px * var(--font-scale))); border-radius:4px; background:var(--accent-soft); color:var(--accent); }
-.scenes { padding-block:76px 70px; scroll-margin-top:28px; }
-.sceneGrid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:26px; }
-.sceneCard { display:flex; flex-direction:column; min-width:0; }
-.sceneArt { height:230px; overflow:hidden; border:1px solid var(--line); border-radius:14px; background:light-dark(#eee9e0, var(--surface)); }
-.sceneArt img { display:block; width:100%; height:100%; object-fit:cover; object-position:right center; transition:transform .5s ease; }.sceneCard:hover .sceneArt img { transform:scale(1.035); }
-.sceneHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:24px 0 13px; }.sceneHeading h3 { font-size:max(var(--font-min),calc(20px * var(--font-scale))); font-weight:500; }.sceneHeading>span { color:var(--muted); font-size:max(var(--font-min),calc(11px * var(--font-scale))); }
-.sceneCard h4 { font-size:max(var(--font-min),calc(14px * var(--font-scale))); font-weight:400; margin:0 0 12px; }.sceneCard>p { color:var(--muted); font-size:max(var(--font-min),calc(12px * var(--font-scale))); line-height:1.95; margin:0 0 22px; }
-.cardEnd { margin-top:auto; }.cardEnd>span { display:block; color:var(--muted); font-size:max(var(--font-min),calc(10px * var(--font-scale))); margin-bottom:17px; }.cardEnd a { border-top:1px solid var(--line); padding:15px 0 0; color:var(--accent); display:flex; justify-content:space-between; font-size:max(var(--font-min),calc(13px * var(--font-scale))); }.cardEnd a:hover { color:var(--ink); }
+.scenes { width:min(1320px,calc(100% - 128px)); padding-block:112px 136px; scroll-margin-top:110px; }
+.scenesIntro { margin-bottom:88px; }
+.scenesIntro h2 { font-size:max(var(--font-min),calc(clamp(36px,3vw,46px) * var(--font-scale))); line-height:1.5; }
+.sceneList { display:grid; grid-template-columns:minmax(0,1fr); row-gap:144px; }
+.sceneFeature { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(0,.9fr); align-items:center; column-gap:clamp(48px,6vw,96px); min-width:0; }
+.sceneFeature:nth-child(even) { grid-template-columns:minmax(0,.9fr) minmax(0,1.4fr); }
+.sceneFeature:nth-child(even) .sceneArt { order:2; }
+.sceneArt { aspect-ratio:16/10; min-width:0; overflow:hidden; border:1px solid var(--line); border-radius:18px; background:light-dark(#eee9e0, var(--surface)); }
+.sceneArt img { display:block; width:100%; height:100%; object-fit:cover; object-position:right center; transition:transform .6s ease; }.sceneFeature:hover .sceneArt img { transform:scale(1.02); }
+.sceneCopy { min-width:0; padding-block:24px; }
+.sceneHeading { display:flex; align-items:center; flex-wrap:wrap; gap:12px 20px; margin:0 0 26px; }.sceneHeading h3 { color:var(--accent); font-size:max(var(--font-min),calc(14px * var(--font-scale))); font-weight:500; letter-spacing:1px; }.sceneHeading>span { color:var(--muted); font-size:max(var(--font-min),calc(11px * var(--font-scale))); }
+.sceneCopy h4 { font-family:'Songti SC','SimSun',serif; font-size:max(var(--font-min),calc(clamp(29px,2.4vw,38px) * var(--font-scale))); font-weight:400; line-height:1.65; margin:0 0 24px; text-wrap:balance; }.sceneCopy>p { color:var(--muted); font-size:max(var(--font-min),calc(14px * var(--font-scale))); line-height:2.15; margin:0; max-width:420px; }
+.cardEnd { margin-top:34px; }.cardEnd>span { display:block; color:var(--muted); font-size:max(var(--font-min),calc(11px * var(--font-scale))); line-height:1.8; margin-bottom:20px; }.cardEnd a { border-top:1px solid var(--line); padding:18px 0 0; color:var(--accent); display:flex; align-items:center; justify-content:space-between; gap:20px; font-size:max(var(--font-min),calc(14px * var(--font-scale))); }.cardEnd a:hover { color:var(--ink); }.cardEnd a:focus-visible { outline:2px solid var(--accent); outline-offset:6px; }
 .how { padding-block:10px 76px; }
 .ownership { padding-block:45px 55px; border-block:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; gap:70px; }
 .ownership h2 { margin:16px 0 0; font:400 max(var(--font-min),calc(32px * var(--font-scale)))/1.6 'Songti SC','SimSun',serif; }.ownership h2 span { display:block; color:var(--accent); }
 .principles p { display:flex; gap:20px; padding:15px 0; border-bottom:1px solid var(--line); }.principles strong { flex-shrink:0; font-size:max(var(--font-min),calc(12px * var(--font-scale))); font-weight:500; }.principles p span { font-size:max(var(--font-min),calc(12px * var(--font-scale))); line-height:1.8; color:var(--muted); }.principles>a { display:inline-flex; gap:25px; margin-top:20px; color:var(--accent); font-size:max(var(--font-min),calc(12px * var(--font-scale))); }
-@media(prefers-reduced-motion:reduce) { .sceneArt img { transition:none; }.sceneCard:hover .sceneArt img { transform:none; } }
+@media(prefers-reduced-motion:reduce) { .sceneArt img { transition:none; }.sceneFeature:hover .sceneArt img { transform:none; } }

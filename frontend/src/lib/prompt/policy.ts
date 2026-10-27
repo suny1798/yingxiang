@@ -1,6 +1,6 @@
 export const PROMPT_POLICY = {
-  model: 'lucy-2.5', sdk: '0.2.12', consentVersion: '2026-10-23-prompt-v1',
-  durationSec: 15, tokenTtlSec: 10, usdPerSecond: 0.02, maxPromptLength: 500,
+  model: 'lucy-2.5', sdk: '0.2.12', consentVersion: '2026-10-26-prompt-history-v1',
+  durationSec: 15, connectionTimeoutMs: 30_000, tokenTtlSec: 10, usdPerSecond: 0.02, maxPromptLength: 500, maxStateLength: 6500,
 } as const;
 export const PROMPT_EXAMPLES = [
   { label: '换个穿搭', text: '把人物的服装改成米白色针织开衫，保留人物的面部、姿态和背景。' },

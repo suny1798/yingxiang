@@ -75,3 +75,12 @@ test('源视频自然结束时保留已录制片段；新一轮替换时释放�
   assert.deepEqual(s.revoked, ['blob:recording-1']);
   s.recorder.clear(); await settle(); assert.equal(s.recorder.getSnapshot().phase, 'idle');
 });
+
+test('默认保存的录像站内离开后继续提交最后分片，不恢复页面URL或停止原流', async () => {
+  const s = setup(), chunks: Blob[] = []; let completed = 0;
+  await s.recorder.start(s.source, 15, { start(mime) { assert.equal(mime, 'video/webm'); }, chunk(blob) { chunks.push(blob); }, complete() { completed++; }, fail() { assert.fail('unexpected recording failure'); } });
+  s.recorders[0].ondataavailable?.({ data: new Blob(['earlier-chunk']) });
+  s.recorder.finishInBackground(); s.recorder.clear(); await settle();
+  assert.equal(chunks.length, 2); assert.equal(await chunks[1].text(), 'final-chunk'); assert.equal(completed, 1);
+  assert.equal(s.blobs.length, 0); assert.equal(s.recorder.getSnapshot().url, null); assert.equal(s.input.stops, 0);
+});

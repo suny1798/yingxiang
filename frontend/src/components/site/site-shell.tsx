@@ -24,7 +24,7 @@ export function SiteShell({ active, children }: { active: SitePage; children: Re
   return <Context.Provider value={{ ...state, openLogin: () => setOpen(true), logout }}><div className={s.site}>
     <SiteHeader active={active} account={state.account} onLogin={() => setOpen(true)} onLogout={logout} />
     {children}
-    <footer className={s.footer}><div><Link href="/" className={s.footerBrand}>{t("映想 ")}<span>✳</span></Link><p>{t("让想象，在眼前发生。")}</p></div><nav aria-label={t("页脚导航")}><Link href="/pricing">{t("价格方案")}</Link><Link href="/studio" prefetch={false}>{t("创作空间")}</Link><Link href="/account" prefetch={false}>{t("个人中心")}</Link><Link href="/help">{t("帮助中心")}</Link><Link href="/help/feedback">{t("问题反馈")}</Link><Link href="/privacy">{t("隐私与使用说明")}</Link><Link href="/terms">{t("用户协议")}</Link></nav><p className={s.footerNote}>{t("从实时换装开始。")}<br />{t("不采集音频，不默认录制。")}</p></footer>
+    <footer className={s.footer}><div><Link href="/" className={s.footerBrand}>{t("映想 ")}<span>✳</span></Link><p>{t("让想象，在眼前发生。")}</p></div><nav aria-label={t("页脚导航")}><Link href="/pricing">{t("价格方案")}</Link><Link href="/studio" prefetch={false}>{t("创作空间")}</Link><Link href="/account" prefetch={false}>{t("个人中心")}</Link><Link href="/help">{t("帮助中心")}</Link><Link href="/help/feedback">{t("问题反馈")}</Link><Link href="/privacy">{t("隐私与使用说明")}</Link><Link href="/terms">{t("用户协议")}</Link></nav><p className={s.footerNote}>{t("实时换装 · 视频换装 · 实时编辑")}<br />{t("不采集音频；生成内容自动保存，可随时下载。")}</p></footer>
     {open && <div className={studioStyles.studio} style={{ minHeight: 0, paddingBottom: 0 }}><AccountDialog account={state.account} onClose={() => setOpen(false)} onChanged={async () => { await state.refresh(); setOpen(false); }} onLogout={logout} /></div>}
   </div></Context.Provider>;
 }

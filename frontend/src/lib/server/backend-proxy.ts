@@ -4,8 +4,8 @@ import { request as httpRequest } from 'node:http';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
-const allowedRequestHeaders = ['host', 'origin', 'cookie', 'content-type', 'stripe-signature', 'x-studio-access', 'x-video-attempt', 'sec-fetch-site'];
-const allowedResponseHeaders = ['content-type', 'cache-control', 'x-content-type-options', 'set-cookie', 'content-disposition', 'cross-origin-resource-policy', 'allow'];
+const allowedRequestHeaders = ['host', 'origin', 'cookie', 'content-type', 'stripe-signature', 'x-studio-access', 'x-video-attempt', 'sec-fetch-site', 'x-work-owner', 'range', 'if-range'];
+const allowedResponseHeaders = ['content-type', 'cache-control', 'x-content-type-options', 'set-cookie', 'content-disposition', 'cross-origin-resource-policy', 'allow', 'accept-ranges', 'content-range', 'content-length', 'etag', 'last-modified'];
 const maxBodyBytes = 35 * 1024 * 1024 + 4096;
 
 function unavailable(code = 'SERVICE_UNAVAILABLE', message = '服务暂不可用，请刷新状态核查，不要重复提交。', status = 503) {

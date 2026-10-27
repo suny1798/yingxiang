@@ -12,8 +12,8 @@ export function PlaceholderPage({ title, active, feedback = false, description =
     <header><h1>{t(title)}</h1>{feedback && <Link href="/help/feedback" prefetch={false}>{t("问题反馈 ↗")}</Link>}</header>
     <section className={s.empty} aria-label={t(`${title}占位`)}>
       <span className={`${s.star} star-hover-spin`} aria-hidden="true">✳</span>
-      <h2>{t("这一页，还在准备。")}</h2>
-      <p>{t(description)}<br />{t("在此之前，可以先进入创作空间，或查看价格与使用说明。")}</p>
+      <h2>{t("页面内容尚未就绪")}</h2>
+      <p>{t(description)}<br />{t("可先进入创作空间，或查看价格与使用说明。")}</p>
       <div className={s.actions}>
         <Link href="/studio" prefetch={false} className={s.primary}>{t("进入创作空间 ")}<span aria-hidden="true">↗</span></Link>
         <Link href="/pricing">{t("价格方案")}</Link>

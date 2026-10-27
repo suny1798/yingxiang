@@ -1,4 +1,5 @@
-.host { position:fixed; inset:auto 20px 20px auto; transform:none; margin:0; padding:0; width:min(380px,calc(100vw - 32px)); max-width:none; border:0; background:transparent; color:var(--ink); overflow:visible; z-index:2147483647; pointer-events:none; display:none; }
+/* 顶部导航高88px，通知在其下方留出16px间隔。所有通知类型共用此位置。 */
+.host { position:fixed; inset:104px 20px auto auto; transform:none; margin:0; padding:0; width:min(380px,calc(100vw - 32px)); max-width:none; border:0; background:transparent; color:var(--ink); overflow:visible; z-index:2147483647; pointer-events:none; display:none; }
 .host[data-visible=true] { display:grid; gap:8px; }
 .notice { pointer-events:auto; display:flex; align-items:flex-start; gap:9px; padding:11px 10px 11px 12px; background:light-dark(#fffefa, var(--surface)); border:1px solid light-dark(#dbd1cc, var(--line)); border-left:3px solid var(--accent); border-radius:10px; box-shadow:0 6px 24px #2926221c; animation:arrive .18s ease-out; }
 .symbol { flex:none; width:21px; height:21px; display:grid; place-items:center; border-radius:50%; color:var(--accent); background:var(--accent-soft); font-size:max(var(--font-min), calc(14px * var(--font-scale))); font-weight:600; }
@@ -14,6 +15,6 @@
 .close:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
 .content progress { display:block; width:100%; height:6px; margin-top:8px; accent-color:var(--accent); }
 .progressLabel { display:block; font-size:max(var(--font-min), calc(11px * var(--font-scale))); color:var(--muted); margin-top:3px; }
-@keyframes arrive { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
-@media(max-width:620px) { .host { right:12px; bottom:calc(12px + env(safe-area-inset-bottom,0px)); width:calc(100vw - 24px); } }
+@keyframes arrive { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+@media(max-width:620px) { .host { right:12px; width:calc(100vw - 24px); } }
 @media(prefers-reduced-motion:reduce) { .notice { animation:none; } }

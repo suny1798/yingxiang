@@ -1,6 +1,6 @@
 export const VIDEO_POLICY = {
   model: 'lucy-vton-3.6',
-  consentVersion: '2026-10-23-video-v1',
+  consentVersion: '2026-10-26-video-save-v1',
   maxBytes: 25 * 1024 * 1024,
   maxSeconds: 15,
   resultWindowMs: 24 * 60 * 60 * 1000,

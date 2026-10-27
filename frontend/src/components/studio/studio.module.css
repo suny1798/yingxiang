@@ -55,6 +55,7 @@
 .camera-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: light-dark(#292623, var(--muted)); }
 .camera-video[data-mirrored=true] { transform: scaleX(-1); }
 .camera-hidden { opacity: 0; pointer-events: none; }
+.preview-frame:fullscreen .demo-prompt,.preview-frame:fullscreen .floating-card { display:none; }
 .mirror-stage:has(.camera-video:not(.camera-hidden)) .stage-label,
 .mirror-stage:has(.camera-video:not(.camera-hidden)) .stage-bottomline { background: light-dark(#fffefaf2, color-mix(in srgb, var(--surface) 95%, transparent)); border-radius: 10px; padding: 6px 9px; }
 .mirror-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; height: 58px; padding: 0 12px; }

@@ -8,7 +8,7 @@ import { LOCALE_COOKIE, THEME_COOKIE, validLocale, validTheme } from '@/lib/i18n
 
 export async function generateMetadata(): Promise<Metadata> { return localizedMetadata({
   title: '映想 — 让想象，在眼前发生。',
-  description: '映想实时画面创作。上传服装参考图，开启实时换装。',
+  description: '映想提供实时换装、视频换装与提示词实时编辑，生成内容自动保存。',
   icons: { icon: '/assets/mark.svg' },
 }); }
 

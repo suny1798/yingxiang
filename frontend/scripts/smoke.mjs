@@ -13,19 +13,23 @@ const html = await home.text();
 assert.ok(html.includes('映想') && html.includes('让想象，') && html.includes('在眼前发生。'));
 assert.ok(html.includes('实时换装') && html.includes('免费体验一次') && !html.includes('AI换装尚未接入'));
 assert.equal(home.headers.get('x-powered-by'), null);
-assert.doesNotMatch(html, /仅模拟流程|本地预览|预览体验状态/);
+assert.doesNotMatch(html, /仅模拟流程|预览体验状态/);
 console.log('PASS 宣传首页、品牌与免费体验跳转');
 
 const pages = { '/': html };
-for (const route of ['/pricing', '/studio', '/studio/video', '/studio/edit', '/account']) {
+for (const route of ['/pricing', '/studio', '/studio/video', '/studio/edit', '/account', '/works']) {
   const response = await fetchLocal(route); assert.equal(response.status, 200);
   pages[route] = await response.text();
   assert.equal(response.headers.get('location'), null);
 }
-assert.ok(pages['/pricing'].includes('拟定价格') && pages['/pricing'].includes('购买暂未开放') && pages['/pricing'].includes('56.90'));
+assert.ok(['轻享包', '创作包', '进阶包', '沙盒测试', '沙盒积分不解锁真实生成'].every(text => pages['/pricing'].includes(text)));
 assert.ok(pages['/studio'].includes('打开相机') && pages['/studio'].includes('映想画面') && pages['/studio'].includes('服装参考图'));
-assert.ok(pages['/studio'].includes('/studio/video') && pages['/studio/video'].includes('人物视频') && pages['/studio/video'].includes('我的视频任务'));
-assert.ok(pages['/studio'].includes('/studio/edit') && pages['/studio/edit'].includes('画面修改提示词') && pages['/studio/edit'].includes('纯文字创作'));
+assert.ok(pages['/studio'].includes('/studio/video') && pages['/studio/video'].includes('人物视频') && pages['/studio/video'].includes('我的作品') && pages['/studio/video'].includes('href="/works"'));
+assert.ok(!pages['/studio/video'].includes('关闭历史记录'));
+assert.ok(pages['/studio'].includes('/studio/edit') && pages['/studio/edit'].includes('我的提示词') && pages['/studio/edit'].includes('实时编辑 · 测试开放'));
+assert.ok(pages['/works'].includes('我的作品') && pages['/works'].includes('生成视频与服装参考图自动保存') && !pages['/works'].includes('这一页，还在准备。'));
+assert.equal((await fetchLocal('/api/works')).status, 401);
+assert.equal((await fetchLocal('/api/works/00000000-0000-4000-8000-000000000000/content')).status, 401);
 assert.ok(html.includes('href="/studio"') && html.includes('href="/pricing"'));
 const assets = new Set(Object.values(pages).flatMap((markup) => [...markup.matchAll(/(?:src|href)="(\/(?:_next\/static\/|assets\/)[^"]+)"/g)].map((match) => match[1])));
 assert.ok(assets.size > 0);

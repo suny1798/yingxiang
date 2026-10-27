@@ -8,7 +8,7 @@ export const STUDIO_POLICY = {
   batchId: 'studio-manual-v1',
   model: 'lucy-vton-3.6',
   sdk: '0.2.12',
-  consentVersion: '2026-10-23-preview-cloud-v2',
+  consentVersion: '2026-10-26-preview-cloud-save-v1',
   approvedBudgetUsd: 5,
   tokenTtlSec: 10,
   connectionCapSec: 15,

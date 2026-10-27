@@ -6,9 +6,9 @@ export const CREATION_SCENES = {
 } as const;
 export type CreationScene = keyof typeof CREATION_SCENES;
 export const CREATION_PLANS = [
-  { id: 'light', name: '轻享包', description: '日常试穿，轻松尝试。', priceFen: 3900, credits: 120, validityDays: null, scenes: ['tryon', 'video'], note: '适合偶尔试穿', featured: false },
-  { id: 'creator', name: '创作包', description: '三种功能，完整的创作体验。', priceFen: 12900, credits: 450, validityDays: null, scenes: ['tryon', 'video', 'edit'], note: '完整的三功能方案', featured: true },
-  { id: 'plus', name: '进阶包', description: '更多积分，留给更多想法。', priceFen: 32900, credits: 1200, validityDays: null, scenes: ['tryon', 'video', 'edit'], note: '更低的积分单价', featured: false },
+  { id: 'light', name: '轻享包', description: '包含实时换装和视频换装，适合低频使用。', priceFen: 3900, credits: 120, validityDays: null, scenes: ['tryon', 'video'], note: '适合低频使用', featured: false },
+  { id: 'creator', name: '创作包', description: '包含三种创作模式，适合常规创作。', priceFen: 12900, credits: 450, validityDays: null, scenes: ['tryon', 'video', 'edit'], note: '包含三种创作模式', featured: true },
+  { id: 'plus', name: '进阶包', description: '包含三种创作模式，积分单价更低。', priceFen: 32900, credits: 1200, validityDays: null, scenes: ['tryon', 'video', 'edit'], note: '积分单价更低', featured: false },
 ] as const;
 export type CreationPlanId = typeof CREATION_PLANS[number]['id'];
 export const money = (fen: number) => (fen / 100).toFixed(2);

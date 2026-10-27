@@ -9,7 +9,7 @@ import { DecartPromptAdapter, preparePromptSdk } from '@/lib/prompt/adapter';
 import { PromptSession, promptActive } from '@/lib/prompt/session';
 import type { PromptStatus } from '@/lib/prompt/policy';
 
-export function usePromptSession() {
+export function usePromptSession(userId: string | null) {
   const [camera] = useState(() => new LocalCamera());
   const [preview] = useState(() => new CameraPreviewSession(camera));
   const [remote] = useState(() => new RemotePreview());
@@ -36,7 +36,7 @@ export function usePromptSession() {
     const update = () => { if (!document.hidden) void refresh(controller.signal); };
     update(); const timer = setInterval(update, 10_000);
     return () => { controller.abort(); clearInterval(timer); };
-  }, [active, refresh]);
+  }, [active, refresh, userId]);
   useEffect(() => {
     let current = true;
     void preparePromptSdk(async () => { throw new Error('unauthorized: readiness cannot dial'); }).then(() => { if (current) setSdkReady(true); }).catch((error: unknown) => { if (current) setSdkError(`编辑组件未就绪（${safeSdkDiagnostic(error)}），请刷新页面。`); });

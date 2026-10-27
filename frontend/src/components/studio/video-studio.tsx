@@ -4,13 +4,13 @@ import { useI18n } from '@/components/preferences';
 import { MirrorButton } from './mirror-button';
 
 import { PreviewSurface } from './preview-surface';
+import { MediaTools } from './media-tools';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { SiteHeader } from '../site/site-header';
 import { StudioModes } from './studio-modes';
 import { Icon } from './icon';
-import { VideoHistory } from './video-history';
 import { refreshVideoSelection } from '@/lib/video/history-selection';
 import { AccountDialog } from './account-dialog';
 import { useAccount } from '@/hooks/use-account';
@@ -54,7 +54,8 @@ export function VideoStudio() {
   const [resultFailed, setResultFailed] = useState(false);
   const [resultRevision, setResultRevision] = useState(0);
   const [showResult, setShowResult] = useState(false);
-  const [mirrored, setMirrored] = useState(false);
+  const [mirrored, setMirrored] = useState(false), [mediaReady, setMediaReady] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null), mediaRef = useRef<HTMLVideoElement>(null);
   const videoInput = useRef<HTMLInputElement>(null), imageInput = useRef<HTMLInputElement>(null);
   const videoUrl = useRef<string | null>(null), validation = useRef(0), generation = useRef(0), busy = useRef(false);
   const alive = useRef(true), submitAbort = useRef<AbortController | null>(null);
@@ -165,7 +166,7 @@ export function VideoStudio() {
       try { job = await json<VideoJobView>(await fetch('/api/video/jobs', { method: 'POST', headers: { 'X-Video-Attempt': id }, body: form, signal: controller.signal })); }
       catch { throw new Error('提交结果尚未确认，请刷新任务核查，不要再次生成。'); }
       if (!alive.current || revision !== generation.current) return;
-      setSelected(job); setShowResult(job.state === 'completed'); notify('视频已提交处理，可在“历史视频”查看进度。', 'success'); await load();
+      setSelected(job); setShowResult(job.state === 'completed'); notify('视频已提交处理，可在“我的作品”查看进度和保存结果。', 'success'); await load();
     } catch (cause) { if (alive.current && revision === generation.current) setError(cause instanceof Error ? cause.message : '操作未完成，请刷新任务核查。'); }
     finally { busy.current = false; if (alive.current) setSubmitting(false); }
   };
@@ -181,6 +182,8 @@ export function VideoStudio() {
   const needsLogin = account !== null && !account.user;
   const canSubmit = Boolean(video && garment?.blob && consent && !validating && !images.processing && !submitting && (needsLogin || service?.available));
   const resultUrl = selected && !selected.expired && selected.state === 'completed' ? `/api/video/jobs/${selected.id}/content?v=${resultRevision}` : null;
+  const resultVisible = Boolean(showResult && resultUrl && !resultFailed), localVisible = !validating && !(showResult && resultUrl) && Boolean(video);
+  useEffect(() => { setMediaReady(false); }, [resultUrl, video?.url, showResult, validating]);
   const orientedDownload = useOrientedDownload(resultUrl, selected?.title?.replace(/[<>:"/\\|?*]/g, '_') || '映想-视频换装', account?.user?.id ?? null);
   const logout = async () => { const response = await fetch('/api/account/logout', { method: 'POST' }); if (!response.ok) throw new Error(); await refresh(); };
   return <div className={base.studio} data-mode="video">
@@ -206,19 +209,20 @@ export function VideoStudio() {
         <PreviewSurface><section data-workspace-preview className={s.output} aria-labelledby="video-preview-title">
           <div data-preview-heading className={s.outputHeading}><h2 id="video-preview-title">{t(showResult && resultUrl ? '换装结果' : '视频预览')}</h2><span>{t(selected ? selected.expired ? '访问已过期' : VIDEO_STATE_LABEL[selected.state] : video ? '本地预览' : '等待素材')}</span>{selected && <button type="button" className={s.returnCreate} onClick={() => { setSelected(null); setShowResult(false); }}>{t("返回创作")}</button>}</div>
           <div data-preview-toolbar className={base['frame-toolbar']}><span>{t("MP4 · 最长 ")}{VIDEO_POLICY.maxSeconds} {t(" 秒 · 自动移除音轨")}</span><span>{t(video ? `本地预览 · ${video.seconds.toFixed(1)} 秒` : '生成后可预览与下载')}</span></div>
-          <div data-preview-viewport className={base['preview-viewport']}><div data-preview-stage className={s.stage}>
-            {validating ? <div className={s.empty}><h3>{t("正在准备你的视频")}</h3><p>{t("音轨会自动移除，完成后即可预览。")}</p></div> : showResult && resultUrl ? resultFailed ? <div className={s.empty}><p>{t("暂时无法播放结果")}</p><button type="button" onClick={() => { setResultFailed(false); setResultRevision((value) => value + 1); }}>{t("重新加载")}</button></div> : <video data-mirrored={mirrored} key={resultUrl} src={resultUrl} controls playsInline preload="metadata" onError={() => setResultFailed(true)} aria-label={t("生成的换装视频")} /> : video ? <video data-mirrored={mirrored} key={video.url} src={video.url} controls muted playsInline preload="metadata" aria-label={t("本地人物视频预览")} /> : <div className={s.empty}><span aria-hidden="true" className={s.filmFrame}>▷</span><h3>{t("把新的穿搭，带进这段画面。")}</h3><p>{t("选一段人物视频，再放入喜欢的服装。")}</p><button type="button" data-stage-start className={base['stage-start']} onClick={() => videoInput.current?.click()}><Icon name="upload" />{t("选择人物视频")}</button></div>}
+          <div data-preview-viewport className={base['preview-viewport']}><div ref={stageRef} data-preview-stage className={s.stage}>
+            {validating ? <div className={s.empty}><h3>{t("正在准备你的视频")}</h3><p>{t("音轨会自动移除，完成后即可预览。")}</p></div> : showResult && resultUrl ? resultFailed ? <div className={s.empty}><p>{t("暂时无法播放结果")}</p><button type="button" onClick={() => { setResultFailed(false); setResultRevision((value) => value + 1); }}>{t("重新加载")}</button></div> : <video ref={mediaRef} data-mirrored={mirrored} key={resultUrl} src={resultUrl} controls playsInline preload="metadata" onLoadedData={() => setMediaReady(true)} onError={() => { setMediaReady(false); setResultFailed(true); }} aria-label={t("生成的换装视频")} /> : video ? <video ref={mediaRef} data-mirrored={mirrored} key={video.url} src={video.url} controls muted playsInline preload="metadata" onLoadedData={() => setMediaReady(true)} onError={() => setMediaReady(false)} aria-label={t("本地人物视频预览")} /> : <div className={s.empty}><span aria-hidden="true" className={s.filmFrame}>▷</span><h3>{t("选择人物视频和服装参考图")}</h3><p>{t("支持1—15秒 MP4，含音轨时自动移除。")}</p><button type="button" data-stage-start className={base['stage-start']} onClick={() => videoInput.current?.click()}><Icon name="upload" />{t("选择人物视频")}</button></div>}
+            <MediaTools targetRef={stageRef} getVideo={() => mediaRef.current} mirrored={mirrored} fileStem={resultVisible ? selected?.title || '映想-视频换装' : '映想-本地人物视频'} disabled={!mediaReady || (!resultVisible && !localVisible)} />
             {selected && inProgress(selected) && <div role="status" className={s.processing}><span className={s.spinner} aria-hidden="true" />{t(VIDEO_STATE_LABEL[selected.state])}<small>{t("可离开页面，稍后回来查看")}</small></div>}
           </div></div>
           <div data-preview-controls className={s.previewActions}><div className={s.switch}><button type="button" aria-pressed={!showResult} disabled={!video} onClick={() => setShowResult(false)}>{t("原视频")}</button><button type="button" aria-pressed={showResult} disabled={!resultUrl} onClick={() => setShowResult(true)}>{t("换装结果")}</button></div><div className={s.videoActions}><MirrorButton mirrored={mirrored} disabled={orientedDownload.busy} onToggle={() => setMirrored((value) => !value)} />{resultUrl ? <button type="button" data-preview-action className={action.button} onClick={() => orientedDownload.busy ? orientedDownload.cancel() : void orientedDownload.download(mirrored)}><Icon name="download" />{t(orientedDownload.busy ? '取消导出' : '下载视频')}</button> : <button type="button" data-preview-action className={action.button} disabled title={t("生成完成后可下载MP4")}><Icon name="download" />{t("下载视频")}</button>}</div></div>
           <div data-preview-details className={s.submitArea}>
-            <label className={s.consent}><input type="checkbox" checked={consent} disabled={submitting} onChange={(event) => setConsent(event.target.checked)} /><span>{t("同意云端处理 · ")}<Link href="/privacy#video" target="_blank" rel="noopener noreferrer">{t("隐私说明 ↗")}</Link></span></label>
-            <div className={s.submitRow}><p className={service && !service.available ? undefined : s.submitHint}>{t(service && !service.available ? service.message : '生成后可回放、下载 · 素材仅用于本次处理')}</p><button type="button" className={s.generate} disabled={!canSubmit} onClick={() => void submit()}>{t(submitting ? '正在提交…' : needsLogin ? '登录后生成' : '生成换装视频')}<span aria-hidden="true">↗</span></button></div>
+            <label className={s.consent}><input type="checkbox" checked={consent} disabled={submitting} onChange={(event) => setConsent(event.target.checked)} /><span>{t("同意云端处理 · ")}<Link href="/privacy#video" target="_blank" rel="noopener noreferrer">{t("隐私说明 ↗")}</Link><span> · </span><Link href="/works" prefetch={false}>{t('自动保存 · 我的作品 ↗')}</Link></span></label>
+            <div className={s.submitRow}><p className={service && !service.available ? undefined : s.submitHint}>{t(service && !service.available ? service.message : '生成视频与服装参考图自动保存')}</p><button type="button" className={s.generate} disabled={!canSubmit} onClick={() => void submit()}>{t(submitting ? '正在提交…' : needsLogin ? '登录后生成' : '生成换装视频')}<span aria-hidden="true">↗</span></button></div>
             {(error || accountError) && <p role="alert" className={s.error}>{t(error ?? accountError)}</p>}
           </div>
         </section></PreviewSurface>
       </div>
-      <footer className={base['creation-footer']}><Link href="/privacy#video" target="_blank" rel="noopener noreferrer">{t("隐私与使用说明 ↗")}</Link><VideoHistory owner={account?.user?.id ?? null} onSelect={(item) => { setSelected(item); setShowResult(item.state === 'completed' && !item.expired); setResultFailed(false); }} onChanged={async (item) => { setSelected((current) => current?.id === item.id ? item.archived ? null : { ...current, ...item } : current); await load(); }} /></footer>
+      <footer className={base['creation-footer']}><Link href="/privacy#video" target="_blank" rel="noopener noreferrer">{t("隐私与使用说明 ↗")}</Link><Link href="/works" prefetch={false}>{t("我的作品")} ↗</Link></footer>
     </main>
     {login && <AccountDialog purpose="video" account={account} onClose={() => setLogin(false)} onChanged={async () => { await refresh(); setLogin(false); }} onLogout={logout} />}
   </div>;
