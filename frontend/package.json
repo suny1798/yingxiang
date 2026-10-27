@@ -8,25 +8,34 @@
   },
   "scripts": {
     "api:types": "node scripts/generate-api-types.mjs",
-    "dev": "next dev --hostname 127.0.0.1 --port 8787",
-    "build": "next build --webpack",
-    "start": "next start --hostname 127.0.0.1 --port 8787",
-    "typecheck": "next typegen && tsc --noEmit",
-    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/decart-adapter.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/prompt.test.ts tests/generated-recording.test.ts tests/works-upload.test.ts tests/notices.test.ts tests/video-prepare.test.ts tests/oriented-video.test.ts tests/video-frame.test.ts tests/video-history-selection.test.ts tests/account-session.test.ts tests/i18n.test.ts",
-    "smoke": "node scripts/smoke.mjs",
-    "check": "npm run api:types -- --check && npm run typecheck && npm test && npm run build"
+    "dev": "vite --host 127.0.0.1 --port 8791 --strictPort",
+    "build": "vite build",
+    "start": "vite preview --host 127.0.0.1 --port 8791 --strictPort",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.vue.json",
+    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/decart-adapter.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/prompt.test.ts tests/generated-recording.test.ts tests/works-upload.test.ts tests/notices.test.ts tests/video-prepare.test.ts tests/oriented-video.test.ts tests/video-frame.test.ts tests/video-history-selection.test.ts tests/account-session.test.ts tests/i18n.test.ts tests/vue-preferences.test.ts",
+    "smoke": "node scripts/vue-smoke.mjs",
+    "check": "npm run api:types -- --check && npm run typecheck && npm test && npm run build",
+    "legacy:dev": "next dev --hostname 127.0.0.1 --port 8787",
+    "legacy:build": "next build --webpack",
+    "legacy:typecheck": "next typegen && tsc --noEmit",
+    "legacy:smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@decartai/sdk": "0.2.12",
     "next": "16.4.2",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "vue": "3.5.44",
+    "vue-router": "4.6.4"
   },
   "devDependencies": {
     "@types/node": "22.19.0",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "tsx": "4.23.15",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vite": "8.3.5",
+    "@vitejs/plugin-vue": "6.0.10",
+    "vue-tsc": "3.3.13"
   }
 }

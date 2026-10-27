@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="映想：让想象，在眼前发生。" />
+    <link rel="icon" href="/assets/mark.svg" />
+    <title>映想 — 让想象，在眼前发生。</title>
+    <script>
+      // 在首屏样式应用前读取旧Cookie偏好，不读取账号或其他私有数据。
+      try {
+        const read = key => decodeURIComponent(document.cookie.split(';').map(v => v.trim()).find(v => v.startsWith(key + '='))?.slice(key.length + 1) ?? '');
+        document.documentElement.dataset.theme = read('yingxiang-theme') === 'dark' ? 'dark' : 'light';
+        document.documentElement.lang = read('yingxiang-locale') === 'en' ? 'en' : 'zh-CN';
+      } catch {}
+    </script>
+  </head>
+  <body><div id="app"></div><script type="module" src="/src/vue/main.ts"></script></body>
+</html>
