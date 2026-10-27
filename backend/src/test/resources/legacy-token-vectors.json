@@ -1,0 +1,1052 @@
+{
+  "receivedAt": 1800000000000,
+  "model": "synthetic-model",
+  "origin": "http://127.0.0.1:8791",
+  "permanentKey": "synthetic-permanent-key",
+  "vectors": [
+    {
+      "name": "valid-15",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    },
+    {
+      "name": "valid-30",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 30
+          }
+        }
+      },
+      "seconds": 30,
+      "expected": "OK"
+    },
+    {
+      "name": "valid-60",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 60
+          }
+        }
+      },
+      "seconds": 60,
+      "expected": "OK"
+    },
+    {
+      "name": "missing-key",
+      "token": {
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_KEY"
+    },
+    {
+      "name": "key-null",
+      "token": {
+        "apiKey": null,
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_KEY"
+    },
+    {
+      "name": "key-number",
+      "token": {
+        "apiKey": 1234567890,
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_KEY"
+    },
+    {
+      "name": "key-short",
+      "token": {
+        "apiKey": "xxxxxxxxx",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_KEY"
+    },
+    {
+      "name": "key-permanent",
+      "token": {
+        "apiKey": "synthetic-permanent-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_KEY"
+    },
+    {
+      "name": "key-five-emoji",
+      "token": {
+        "apiKey": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_KEY"
+    },
+    {
+      "name": "key-ten-emoji",
+      "token": {
+        "apiKey": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    },
+    {
+      "name": "key-ten-ascii",
+      "token": {
+        "apiKey": "xxxxxxxxxx",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    },
+    {
+      "name": "missing-expiry",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_EXPIRY"
+    },
+    {
+      "name": "expiry-null",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": null,
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_EXPIRY"
+    },
+    {
+      "name": "expiry-number",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": 1800000000000,
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_EXPIRY"
+    },
+    {
+      "name": "expiry-broken",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "not-a-time",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_EXPIRY"
+    },
+    {
+      "name": "expiry-impossible",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2026-02-30T00:00:00Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_EXPIRY"
+    },
+    {
+      "name": "expiry-zero",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:00.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_EXPIRED"
+    },
+    {
+      "name": "expiry-past",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T07:59:59.999Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_EXPIRED"
+    },
+    {
+      "name": "expiry-one-ms",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:00.001Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    },
+    {
+      "name": "expiry-ttl-edge",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:15.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    },
+    {
+      "name": "expiry-ttl-long",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:15.001Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_TTL"
+    },
+    {
+      "name": "expiry-far-future",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "9999-12-31T23:59:59Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "INVALID_TOKEN_TTL"
+    },
+    {
+      "name": "expiry-offset",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000+00:00",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    },
+    {
+      "name": "expiry-precision",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000999Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    },
+    {
+      "name": "models-missing",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "models-null",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": null,
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "models-empty",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "models-string",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": "synthetic-model",
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "models-wrong",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "wrong"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "models-extra",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model",
+            "extra"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "origins-missing",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_ORIGIN_MISMATCH"
+    },
+    {
+      "name": "origins-null",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": null
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_ORIGIN_MISMATCH"
+    },
+    {
+      "name": "origins-empty",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": []
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_ORIGIN_MISMATCH"
+    },
+    {
+      "name": "origins-string",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": "http://127.0.0.1:8791"
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_ORIGIN_MISMATCH"
+    },
+    {
+      "name": "origins-wrong",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "wrong"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_ORIGIN_MISMATCH"
+    },
+    {
+      "name": "origins-extra",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791",
+            "extra"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_ORIGIN_MISMATCH"
+    },
+    {
+      "name": "permissions-null",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": null,
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "permissions-array",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": [],
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "permissions-string",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": "invalid",
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_MODEL_MISMATCH"
+    },
+    {
+      "name": "constraints-missing",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "constraints-null",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": null
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "realtime-missing",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {}
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "realtime-null",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": null
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "duration-missing",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {}
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "duration-null",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": null
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "duration-string",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": "15"
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "duration-boolean",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": true
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "duration-fraction",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15.1
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "duration-wrong",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 30
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "TOKEN_DURATION_MISMATCH"
+    },
+    {
+      "name": "duration-float",
+      "token": {
+        "apiKey": "synthetic-client-key",
+        "expiresAt": "2027-01-15T08:00:10.000Z",
+        "permissions": {
+          "models": [
+            "synthetic-model"
+          ],
+          "origins": [
+            "http://127.0.0.1:8791"
+          ]
+        },
+        "constraints": {
+          "realtime": {
+            "maxSessionDuration": 15.0
+          }
+        }
+      },
+      "seconds": 15,
+      "expected": "OK"
+    }
+  ]
+}

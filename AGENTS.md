@@ -24,3 +24,5 @@
 - 工作流技能使用本地Markdown任务入口，读取 [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md)；需求／任务／状态分别引用主文档、16与05，不自动发布外部Issue。
 - 领域词汇、ADR及最小上下文读取规则见 [docs/agents/domain.md](docs/agents/domain.md)。已确认决策不重复询问；未知条件只阻塞相关切片。
 - 新安装的 to-spec、to-tickets、code-review、handoff 按上述项目配置使用。外部技能的默认提交、发布、路径或验证建议不能覆盖用户及本项目约定；提交按上述用户已授权的功能批次执行，独立Review与同Agent自检必须区分。
+
+- 用户于2026-10-27明确要求持续推进整个迁移计划：每个功能完成验证并提交后主动接下一项，不等待逐次“下一步”。只有必须由用户提供的输入、真实API预算／费用、公开发布或其他明确授权边界才暂停相关步骤，继续可独立推进的工作。
