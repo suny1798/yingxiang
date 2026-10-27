@@ -32,9 +32,11 @@ public final class OfflineBoundary extends OncePerRequestFilter {
     private final Set<String> allowedAuthorities;
     private final Set<String> allowedOrigins;
     private final List<Route> routes;
+    private final boolean accountReadEnabled;
 
     public OfflineBoundary(Environment env, JsonMapper json) throws IOException {
         this.json = json;
+        accountReadEnabled = env.getProperty("migration.account-read-enabled", Boolean.class, false);
         Set<String> profiles = Set.copyOf(Arrays.asList(env.getActiveProfiles().length == 0
                 ? env.getDefaultProfiles() : env.getActiveProfiles()));
         if (!(profiles.equals(Set.of("offline")) || profiles.equals(Set.of("local")))
@@ -89,11 +91,18 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         String method = request.getMethod();
         boolean safe = Set.of("GET", "HEAD", "OPTIONS").contains(method);
         // 当前无启用的写能力。精确 Host/Origin 是本阶段跨站边界，不创建会话或接受转发头。
-        if (!allowedAuthorities.contains(request.getHeader("Host"))
-                || "cross-site".equals(request.getHeader("Sec-Fetch-Site"))
-                || (request.getHeader("Origin") != null && !allowedOrigins.contains(request.getHeader("Origin")))
-                || (!safe && !allowedOrigins.contains(request.getHeader("Origin")))) {
-            error(request, response, 403, "ORIGIN_FORBIDDEN", "请求来源不被允许", requestId);
+        boolean accountPath = request.getRequestURI().equals("/api/account/me");
+        boolean wrongHost = !allowedAuthorities.contains(request.getHeader("Host"))
+                || "cross-site".equals(request.getHeader("Sec-Fetch-Site"));
+        boolean wrongOrigin = (request.getHeader("Origin") != null && !allowedOrigins.contains(request.getHeader("Origin")))
+                || (!safe && !allowedOrigins.contains(request.getHeader("Origin")));
+        if (accountPath && request.getHeader("Origin") != null && !wrongOrigin) {
+            wrongOrigin |= !URI.create(request.getHeader("Origin")).getRawAuthority().equals(request.getHeader("Host"));
+        }
+        if (wrongHost || wrongOrigin) {
+            String code = accountPath ? wrongHost ? "LOCAL_ONLY" : "ORIGIN_REJECTED" : "ORIGIN_FORBIDDEN";
+            String message = accountPath ? wrongHost ? "此验证入口仅允许本机页面访问。" : "页面来源不符，请从本机验证入口重新打开。" : "请求来源不被允许";
+            error(request, response, 403, code, message, requestId);
             return;
         }
         String path = request.getRequestURI();
@@ -123,6 +132,8 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         } else if (method.equals("OPTIONS")) {
             response.setHeader("Allow", String.join(", ", allowed));
             response.setStatus(204);
+        } else if (accountReadEnabled && path.equals("/api/account/me") && Set.of("GET", "HEAD").contains(method)) {
+            chain.doFilter(request, response);
         } else {
             error(request, response, 503, "SERVICE_DISABLED", "Java业务迁移尚未完成", requestId);
         }
@@ -139,7 +150,6 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         byte[] bytes = json.writeValueAsString(body).getBytes(StandardCharsets.UTF_8);
         response.setStatus(status);
         response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
         response.setContentLength(bytes.length);
         if (!request.getMethod().equals("HEAD")) response.getOutputStream().write(bytes);
     }

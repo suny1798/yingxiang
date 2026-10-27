@@ -8,6 +8,8 @@ spring:
   sql:
     init:
       mode: never
+  flyway:
+    enabled: false
 server:
   address: 127.0.0.1
   port: ${MIGRATION_API_PORT:8792}
@@ -24,6 +26,7 @@ logging:
   level:
     root: WARN
 migration:
+  account-read-enabled: false
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}

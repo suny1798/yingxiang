@@ -25,13 +25,30 @@ curl.exe http://localhost:8792/api/internal/live
 .\mvnw.cmd -B -ntp verify
 ```
 
-已有 `/api/works` 等外部路径保持原样，不叠加前缀。local允许精确的本机localhost／127.0.0.1和配置的同源入口；不信任伪造转发头。live200只说明进程存活，ready503及业务API关闭状态会保留到业务迁移完成。
+已有 `/api/works` 等外部路径保持原样，不叠加前缀。local允许精确的本机localhost／127.0.0.1和配置的同源入口；不信任伪造转发头。live200只说明进程存活，ready仍503表示其余业务未完成；local下仅GET／HEAD /api/account/me已迁移，其余业务继续关闭。
 
 Redis沿用参考项目的host／port／password与未启用TLS的实际设置；Boot版本差异仅将 `spring.redis` 映射到 `spring.data.redis`。PG的sslmode从私有YAML读取，本机目前为disable，不再被检查工具硬编码覆盖。没有接入picture业务库、分库分表、COS密钥或其认证／Session实现，也没有切换现有FastAPI。MySQL5.7仍是用户允许的备选，当前主库为PG。
 
-本机Hikari暂设最大3连接、minimum-idle0、只读及延迟初始化；SQL自动初始化关闭，不会在启动时执行DDL或Flyway。后续有写入能力时由对应迁移片调整只读角色。最新连接专项结果：PG（库名／用户名yingxiang）认证与只读查询通过，服务端18.0；Redis认证／PING通过。计划中的yingxiang_migration schema尚不存在，因此检查命令目前退出1，表示迁移前置条件未满足，不是账号密码错误。未读取业务表、未操作Redis业务键。
+本机Hikari暂设最大3连接、minimum-idle0、只读及延迟初始化；SQL自动初始化关闭，不会在启动时执行DDL或Flyway。后续有写入能力时由对应迁移片调整只读角色。最新状态：PG（库名／用户名yingxiang）认证与只读查询通过，服务端18.0；Redis认证／PING通过；yingxiang_migration已由Flyway V1显式创建，19张业务表就绪，未导入真实账号。未读取业务表、未操作Redis业务键。
 
 Java连接以 `config/application-local.yml` 为准，旧dotenv只供历史Python迁移工具使用，不做双向同步。验收与版本适配说明见[配置修正报告](../docs/reports/2026-10-27-M10-c-参考现成Java配置修正.md)。
+
+## Flyway与本人读取（M10-b）
+
+```powershell
+# backend/；默认只预检，显式migrate才修改目标schema
+.venv/Scripts/python.exe -m scripts.java_schema preflight
+.venv/Scripts/python.exe -m scripts.java_schema migrate
+.venv/Scripts/python.exe -m scripts.java_schema validate
+# 创建随机标记的临时schema，使用合成账号与旧FastAPI对照，最后清理自建schema
+.venv/Scripts/python.exe -m scripts.java_account_contracts
+```
+
+Flyway不会在API启动时自动执行，clean禁用，不会baseline未知非空目标。已应用的 `src/main/resources/db/migration/V1__current_schema.sql` 必须保持不变，后续追加V2。V1保留当前SQLite0006的19张表／字段／约束，无默认用户或自动赠送。
+
+默认local服务的 `/api/account/me` 读取指定PG schema：兼容旧yingxiang_session摘要、首个Cookie、不解码、过期／停用／角色、本人真实权益与最近历史；匿名返回空视图。Spring Security保持无状态，不生成登录Cookie，登录／注册仍503。数据库缺表或不可用返回受控503；整体ready503继续保留。目标schema不初始化测试账号，真实账号导入另行执行。
+
+当前开发迁移与运行仍使用用户提供的同一登录，生产运行／迁移凭据尚未分离；本机Hikari只读不是权限隔离的替代。本轮15组JUnit、23项真实PG／Jar与FastAPI对照通过；Vue同源入口及M10整体未完成。详见[M10-b报告](../docs/reports/2026-10-27-M10-b-Flyway与本人读取.md)。
 
 ## 迁移环境配置（M02）
 

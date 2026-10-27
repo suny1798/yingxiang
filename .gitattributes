@@ -9,5 +9,8 @@
 *.css text eol=lf
 *.html text eol=lf
 *.svg text eol=lf
+*.sql text eol=lf
+# V1已应用：保留生成器的原始行尾空格，避免改写Flyway校验；新SQL仍按默认规则检查。
+backend/src/main/resources/db/migration/V1__current_schema.sql whitespace=-blank-at-eol
 .gitignore text eol=lf
 .gitattributes text eol=lf
