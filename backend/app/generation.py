@@ -2,6 +2,7 @@ import json
 import math
 import secrets
 import asyncio
+import httpx
 from pathlib import Path
 from uuid import uuid4
 
@@ -19,10 +20,44 @@ PROMPT = POLICIES["prompt"]
 VIDEO = POLICIES["video"]
 TOKEN_URL = "https://api.decart.ai/v1/client/tokens"
 JOB_URL = "https://api.decart.ai/v1/jobs"
+# 签发最长10秒 + token TTL10秒 + 生成约束15秒 + 裕量，取60秒。
+# 超过窗口只解除并发等待，unknown及US$0.30风险预留始终计入累计预算和次数。
+PROMPT_UNKNOWN_WAIT_MS = 60_000
 
 
 def number(value):
     return type(value) in (int, float) and math.isfinite(value)
+
+
+class TokenValidationError(ValueError):
+    def __init__(self, code):
+        self.code = code
+        super().__init__(code)
+
+
+def validate_client_token(token, model, origin, seconds, permanent_key, received_at):
+    key = token.get('apiKey')
+    if not isinstance(key, str) or len(key) < 10 or key == permanent_key:
+        raise TokenValidationError('INVALID_TOKEN_KEY')
+    try:
+        expiry = millis(token['expiresAt'])
+    except (KeyError, TypeError, ValueError, AttributeError, OverflowError):
+        raise TokenValidationError('INVALID_TOKEN_EXPIRY') from None
+    if expiry <= received_at:
+        raise TokenValidationError('TOKEN_EXPIRED')
+    # TTL从供应商签发时起算，不能以本站发送请求的时刻为上界。
+    # 收到响应时仍须在请求的10秒TTL+既有5秒时钟裕量内；不放行长时凭据。
+    if expiry > received_at + 15_000:
+        raise TokenValidationError('INVALID_TOKEN_TTL')
+    permissions = token.get('permissions')
+    if not isinstance(permissions, dict) or permissions.get('models') != [model]:
+        raise TokenValidationError('TOKEN_MODEL_MISMATCH')
+    if permissions.get('origins') != [origin]:
+        raise TokenValidationError('TOKEN_ORIGIN_MISMATCH')
+    constraints = token.get('constraints')
+    realtime = constraints.get('realtime') if isinstance(constraints, dict) else None
+    if not isinstance(realtime, dict) or realtime.get('maxSessionDuration') != seconds:
+        raise TokenValidationError('TOKEN_DURATION_MISMATCH')
 
 
 class Generation:
@@ -54,14 +89,23 @@ class Generation:
             maximum = float(e.get(f"YINGXIANG_{scene.upper()}_MAX_" + ("SESSIONS" if scene == "prompt" else "JOBS"), "0"))
         except ValueError:
             budget = maximum = 0
-        enabled = e.get(f"YINGXIANG_{scene.upper()}_ENABLED") == "true" and (0.3 if scene == "prompt" else 0) <= budget <= 5 and budget > 0 and maximum.is_integer() and 0 < maximum <= 20
-        return {"enabled": enabled and bool(self.key()), "budget": round(budget * 1_000_000) if math.isfinite(budget) else 0, "max": int(maximum) if math.isfinite(maximum) else 0}
+        unlimited = scene == 'prompt' and bool(e.get('YINGXIANG_PROMPT_UNLIMITED_USERNAMES', '').strip())
+        bounded = (0.3 if scene == "prompt" else 0) <= budget <= 5 and budget > 0 and maximum.is_integer() and 0 < maximum <= 20
+        enabled = e.get(f"YINGXIANG_{scene.upper()}_ENABLED") == "true" and (bounded or unlimited)
+        return {"enabled": enabled and bool(self.key()), "budget": round(budget * 1_000_000) if math.isfinite(budget) else 0, "max": int(maximum) if math.isfinite(maximum) else 0, "unlimited": unlimited}
 
     def scene_allowed(self, session, scene, user_id):
         names = {name.strip() for name in self.settings.env.get(f"YINGXIANG_{scene.upper()}_ALLOWED_USERNAMES", "").split(",") if name.strip()}
         if not names:
             return True
         username = session.execute(select(users.c.username).where(users.c.id == user_id)).scalar_one_or_none() if user_id else None
+        return username in names
+
+    def prompt_unlimited(self, session, user_id):
+        names = {name.strip() for name in self.settings.env.get('YINGXIANG_PROMPT_UNLIMITED_USERNAMES', '').split(',') if name.strip()}
+        if not names or not user_id:
+            return False
+        username = session.execute(select(users.c.username).where(users.c.id == user_id)).scalar_one_or_none()
         return username in names
 
     def prompt_ready(self, session, user_id=None):
@@ -72,13 +116,22 @@ class Generation:
             return {"available": False, "message": "实时编辑待开放，可先准备提示词与相机预览。"}
         if not self.scene_allowed(session, "prompt", user_id):
             return {"available": False, "message": "实时编辑目前仅向指定测试账号开放。"}
-        if any(row["state"] == "unknown" for row in rows):
-            return {"available": False, "message": "上次连接申请待核查，请联系开发者，勿重复尝试。"}
+        if self.prompt_unlimited(session, user_id):
+            return {"available": True, "message": "实时编辑已就绪，可手动开始。"}
+        unknown = [row for row in rows if row["state"] == "unknown"]
+        by_id = {row["id"]: row for row in reserved}
+        for row in unknown:
+            risk = by_id.get(row["id"])
+            if not risk or risk["micro_usd"] < 300_000:
+                return {"available": False, "message": "上次申请的预算预留无法核对，请联系维护者处理。"}
+            wait_until = max(row["created_at"] + PROMPT_UNKNOWN_WAIT_MS, (row["updated_at"] or row["created_at"]) + PROMPT_UNKNOWN_WAIT_MS, risk["lease_until"])
+            if now_ms() < wait_until:
+                return {"available": False, "message": f"上次令牌申请未确认，已保留预算占用；请等待约{math.ceil((wait_until - now_ms()) / 1000)}秒后再手动开始，不会自动重试。"}
         if any(row["lease_until"] > now_ms() for row in reserved):
             return {"available": False, "message": "连接窗口尚未结束，请稍后刷新状态。"}
         if len(rows) >= config["max"] or sum(row["micro_usd"] for row in reserved) + 300_000 > config["budget"]:
             return {"available": False, "message": "本轮实时编辑额度已用完。"}
-        return {"available": True, "message": "实时编辑已就绪，每次最多15秒。"}
+        return {"available": True, "message": "上次未确认申请仍保留次数和预算占用，等待窗口已结束；可手动开始新一轮。" if unknown else "实时编辑已就绪，每次最多15秒。"}
 
     def prompt_status(self, user_id):
         with self.db.transaction() as session:
@@ -118,7 +171,7 @@ class Generation:
                 if not one(session, campaigns, campaigns.c.scene == scene):
                     session.execute(insert(campaigns).values(scene=scene, created_at=now_ms()))
                 session.execute(insert(attempts).values(id=ident, user_id=user["id"], scene=scene, seconds=15, state="unknown", created_at=now_ms()))
-                session.execute(insert(reservations).values(id=ident, scene=scene, user_id=user["id"], micro_usd=300_000, lease_until=now_ms() + 30_000, created_at=now_ms()))
+                session.execute(insert(reservations).values(id=ident, scene=scene, user_id=user["id"], micro_usd=300_000, lease_until=now_ms() + 45_000, created_at=now_ms()))
             else:
                 self.accounts.reserve(session, hashed, ident, seconds)
         return ident, int(seconds)
@@ -140,21 +193,34 @@ class Generation:
     async def issue(self, scene, hashed, body, origin):
         prompt = scene == "prompt"
         ident, seconds = await run_in_threadpool(self.reserve_token, scene, hashed, body)
-        start, model = now_ms(), (PROMPT if prompt else STUDIO)["model"]
+        model = (PROMPT if prompt else STUDIO)["model"]
+        token_stage, http_status = "request", None
         try:
             async with asyncio.timeout(10):
                 async with self.client.stream("POST", TOKEN_URL, headers={"X-API-KEY": self.key()}, json={"expiresIn": 10, "allowedModels": [model], "allowedOrigins": [origin], "constraints": {"realtime": {"maxSessionDuration": seconds}}}, timeout=10) as response:
+                    token_stage, http_status = "response", response.status_code
                     token = await self.small_json(response)
-            expiry = millis(token["expiresAt"])
-            if not isinstance(token.get("apiKey"), str) or len(token["apiKey"]) < 10 or token["apiKey"] == self.key() or not now_ms() < expiry <= start + 15_000 or token.get("permissions", {}).get("models") != [model] or token.get("permissions", {}).get("origins") != [origin] or token.get("constraints", {}).get("realtime", {}).get("maxSessionDuration") != seconds:
-                raise ValueError("上游权限未确认")
+            token_stage = "validation"
+            validate_client_token(token, model, origin, seconds, self.key(), now_ms())
+            token_stage = "persistence"
             if prompt:
                 await run_in_threadpool(self.mark_prompt_issued, ident)
             else:
                 await run_in_threadpool(self.accounts.issued, ident)
             return {"apiKey": token["apiKey"], "expiresAt": token["expiresAt"], "durationSec": seconds}
-        except Exception:
-            raise BusinessError("PROMPT_TOKEN_UNKNOWN" if prompt else "TOKEN_RESULT_UNKNOWN", "连接凭据未能安全取得，请核对供应商用量并联系开发者；不会自动重试。" if prompt else "令牌未能安全取得。请检查模型权限、余额和网络并核对用量；本轮不自动重试。", 503) from None
+        except Exception as error:
+            if prompt:
+                code = error.code if isinstance(error, TokenValidationError) else "UPSTREAM_TIMEOUT" if isinstance(error, (TimeoutError, httpx.TimeoutException)) else "UPSTREAM_REJECTED" if http_status is not None and not 200 <= http_status < 300 else {"request": "UPSTREAM_CONNECTION", "response": "INVALID_RESPONSE", "validation": "INVALID_TOKEN_RESPONSE", "persistence": "PERSISTENCE_FAILED"}[token_stage]
+                try:
+                    await run_in_threadpool(self.mark_prompt_unknown_diagnostic, ident, code, http_status)
+                except Exception:
+                    pass  # 原unknown与预算继续保留；记录失败不能返回凭据或重试。
+                raise BusinessError("PROMPT_TOKEN_UNKNOWN", f"短期令牌未能确认（{code}），本轮未取得可用连接凭据，已停止。不会自动重试，可用状态以页面为准。", 503) from None
+            raise BusinessError("TOKEN_RESULT_UNKNOWN", "令牌未能安全取得。请检查模型权限、余额和网络并核对用量；本轮不自动重试。", 503) from None
+
+    def mark_prompt_unknown_diagnostic(self, ident, code, http_status):
+        with self.db.transaction(True) as session:
+            session.execute(update(attempts).where(attempts.c.id == ident, attempts.c.scene == "prompt", attempts.c.state == "unknown", attempts.c.observation.is_(None)).values(observation=json.dumps({"tokenFailure": code, "httpStatus": http_status}), updated_at=now_ms()))
 
     def mark_prompt_issued(self, ident):
         with self.db.transaction(True) as session:
@@ -237,6 +303,13 @@ class Generation:
         row, fresh = await run_in_threadpool(self.reserve_job, user_id, ident, seconds)
         if not fresh:
             return self.job_view(row)
+        if hasattr(self, 'works'):
+            try:
+                await run_in_threadpool(self.works.video_reference, row, image, mime)
+            except Exception:
+                # 保存失败不得重复提交生成；作品页独立呈现保存结果。
+                work = await run_in_threadpool(self.works.ensure_video, row)
+                await run_in_threadpool(self.works.change_state, work['id'], 'waiting', 'REFERENCE_SAVE_FAILED')
         provider = None
         try:
             async with asyncio.timeout(60):

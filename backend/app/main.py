@@ -21,6 +21,7 @@ from .generation import Generation, POLICIES
 from .media import multipart_parts
 from .video_prepare import prepare_video
 from .video_history import VideoHistory
+from .works import Works, install_works
 from .schemas import VideoHistoryItem, VideoHistoryPage
 
 
@@ -34,8 +35,19 @@ def create_app(settings=None, *, transport=None, stripe_client=None):
         async with httpx.AsyncClient(transport=transport, timeout=15, follow_redirects=False, limits=httpx.Limits(max_connections=8, max_keepalive_connections=4)) as client:
             app.state.generation = Generation(db, accounts, settings, client)
             app.state.video_history = VideoHistory(db, app.state.generation)
+            app.state.works = Works(db, app.state.generation, settings)
+            app.state.generation.works = app.state.works
             app.state.upload_busy = False
-            yield
+            saver = asyncio.create_task(app.state.works.run())
+            try:
+                yield
+            finally:
+                app.state.works.stopping.set()
+                saver.cancel()
+                try:
+                    await saver
+                except asyncio.CancelledError:
+                    pass
         db.close()
 
     app = FastAPI(title="映想 API", version="0.1.0", redirect_slashes=False, lifespan=lifespan, docs_url=None, redoc_url=None)
@@ -43,6 +55,7 @@ def create_app(settings=None, *, transport=None, stripe_client=None):
     app.state.db, app.state.accounts, app.state.payments, app.state.settings = db, accounts, payments, settings
     from .admin import install_admin
     install_admin(app, db, accounts, settings, payments)
+    install_works(app, accounts, settings)
 
     @app.middleware("http")
     async def guard(request, call_next):

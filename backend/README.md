@@ -79,7 +79,7 @@ Copy-Item .env.example .env
 
 ## 视频历史管理与0002升级
 
-当前schema revision为0002。新增video_history只保存标题/归档，旧任务通过左连接直接出现在历史中，不回填或重置额度。历史GET/POST需登录和同源且校验所有者；归档不删除任务、不释放预算，活动/未知任务不可归档。媒体仍不由后端保存。
+当前schema revision为0006。0002新增video_history只保存标题/归档，旧任务通过左连接直接出现在历史中，不回填或重置额度。历史GET/POST需登录和同源且校验所有者；归档不删除任务、不释放预算，活动/未知任务不可归档；作品媒体保存后来由0005增加。
 
 旧0001升级：先停后端写入，运行`python -m scripts.ops backup --destination backups/指定新备份.sqlite3`，再`python -m alembic upgrade head`和`python -m scripts.ops check`，成功后重启。不能改已部署0001或通过downgrade删除业务数据。本机本轮备份pre-video-history-20261024.sqlite3；13张原表行数和内容指纹均保持一致。
 
@@ -88,3 +88,36 @@ Copy-Item .env.example .env
 0003增加独立sandbox_credit_packs及积分订单字段；升级在事务中保存/重建payment_events依赖并恢复全部事件，保留旧订单字段和请求快照。不更改0001/0002。先停写、备份，再upgrade head和ops check，成功后重启；本轮备份backups/pre-credit-packages-20261025.sqlite3，14张原业务表逐字段比对一致，完整性与外键检查通过。
 
 credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和原子幂等积分发放。积分不设到期；测试包保存在独立表，真实模型额度不读它。Checkout链接超时仍保留。/api/payments/orders与reconcile新增sandboxPointBalance、sandboxCreditPacks；旧sandboxCredits仍表示旧次数包。客户端只提交SKU，不能自报价格。正式支付仍关闭。
+
+
+## 提示词未知签发恢复（2026-10-25）
+
+提示词unknown不再永久锁住整个场景：保留原申请、US$0.30风险占用和次数，等待max(创建+60秒、最后更新+60秒、lease_until)后，可由用户手动新开。旧UUID永远不能再签发，预算/次数/白名单/暂停及活动lease仍约束；预留缺失或不足继续失败关闭。此规则只适用于固定10秒TTL/15秒会话的prompt，不适用于视频任务。等待结束不代表实际零收费或核对完成。无需删库、清记录、补额度或人工改issued。
+
+今后签发失败会在当前申请observation保存固定tokenFailure类别与HTTP状态，不保存原响应、密钥、提示词、媒体或完整异常。历史unknown没有该诊断时不能推断失败原因。
+
+
+## 当前账号不限次实时编辑（用户明确要求，2026-10-25）
+
+本机YINGXIANG_PROMPT_UNLIMITED_USERNAMES=suny。该账号登录并通过原场景名单后，可连续手动新开，不检查累计预算/次数、unknown等待或旧lease冷却。不是将上限改成巨大数字；不需要清除账本。预算预留与申请继续保留用于追踪，管理页上限为null。普通未配置账号及视频保持原门禁，服务开关/主动暂停仍生效；不自动测试或生成。该配置覆盖上文针对suny实时编辑的US$5/20次/60秒等待说明。
+
+
+## 令牌时限校验（2026-10-25修复）
+
+令牌请求TTL保持10秒；本站在响应接收后校验尚未过期且剩余不超过15秒（含既有5秒时钟裕量），避免旧requestStart+15秒误拦。长期密钥、模型/来源和会话时长检查保留；错误代码细分到具体字段。受限账号lease为45秒覆盖签发/有效期/会话，suny不限次配置继续跳过等待。不得用取消校验来处理INVALID_PERMISSIONS，历史错误无法在没有返回字段时精确回溯。
+
+
+## 作品文件与后台保存（0005，2026-10-26）
+
+用户已授权默认保存生成结果及实际使用的服装参考图，覆盖旧仅内存媒体规则。文件单独存放在`DATA_DIR/users/<userUUID>/works/<workUUID>/`；不把用户名、文件名或URL用作目录。`works`与`work_references`只存索引，不在SQLite写入媒体。不能将此路径挂到静态服务；浏览器通过本人`/api/works`接口访问，视频支持Range。文件原子发布后才标记ready，临时分片/下载文件不提供读取。实时流分片总上限32MiB、参考图单张10MiB/每作品24张、供应商结果200MiB，仅技术文件上限，不改变测试次数/预算。
+
+单worker生命周期内启动后台保存任务；只查询既有provider_id与GET结果，不新建模型任务。视频排队/保存状态在SQLite，重启继续；下载最多3次后failed，用户可主动重试保存。实时录制离开页面仍提交最后片段；断开超过120秒后合并已确认片段并提示中断，不保证未上传数据可恢复。参考图按实际使用顺序关联作品，保存失败明确提示，不伪造为已保存。原人物视频、相机原画和提示词不持久保存。
+
+维护时先停止后端写入，再备份SQLite与整个`data/users`目录，两者需同一静止时点；`scripts.ops backup`仍只备份数据库，不能当作媒体备份。恢复两者后运行完整性检查，并抽查ready作品及所有参考文件存在。本机升级前备份`data/backups/pre-works-0005-20261026.sqlite3`，17张旧业务表原字段逐行一致。删除作品清除其视频/参考文件，索引保留最少tombstone去重，避免后台重新创建；不删除模型任务/预算流水。
+
+
+## 作品收藏与检索（0006，2026-10-27）
+
+`GET /api/works`新增标题关键词`q`、`favorite=true`与`sort=newest|oldest|title`，所有过滤/排序在本人完整作品集合执行后再分页；搜索按字面值转义通配符，排序使用固定白名单和稳定ID次序。`POST /api/works/{id}`接受`{favorite:boolean}`，收藏按账号保存在works索引，不改updatedAt或保存队列时间。0006仅以SQLite原生ADD COLUMN增加`favorite`（默认0、CHECK 0/1）并建立user/favorite/created_at索引，不重建作品表或媒体目录。
+
+本机升级前在服务未运行状态备份至`backups/pre-work-favorites-20261027.sqlite3`，执行`ops init`和`ops check`；revision 0005→0006，作品/账号计数、旧字段、外键和完整性检查通过，原有作品全部默认为未收藏。回退需使用数据库备份并同时核对`data/users`；不能仅降级代码，因为旧revision不会被当前readiness接受。

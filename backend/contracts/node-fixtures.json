@@ -32,7 +32,7 @@
     "batchId": "studio-manual-v1",
     "model": "lucy-vton-3.6",
     "sdk": "0.2.12",
-    "consentVersion": "2026-10-23-preview-cloud-v2",
+    "consentVersion": "2026-10-26-preview-cloud-save-v1",
     "approvedBudgetUsd": 5,
     "tokenTtlSec": 10,
     "connectionCapSec": 15,
@@ -48,7 +48,7 @@
   "prompt": {
     "model": "lucy-2.5",
     "sdk": "0.2.12",
-    "consentVersion": "2026-10-23-prompt-v1",
+    "consentVersion": "2026-10-26-prompt-history-v1",
     "durationSec": 15,
     "tokenTtlSec": 10,
     "usdPerSecond": 0.02,
@@ -56,7 +56,7 @@
   },
   "video": {
     "model": "lucy-vton-3.6",
-    "consentVersion": "2026-10-23-video-v1",
+    "consentVersion": "2026-10-26-video-save-v1",
     "maxBytes": 26214400,
     "maxSeconds": 15,
     "resultWindowMs": 86400000,

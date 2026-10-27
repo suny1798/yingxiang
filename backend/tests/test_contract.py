@@ -45,6 +45,10 @@ def test_29_node_route_contract_fixtures(client):
             # 新积分字段为增量扩展，旧 Node 合同仍逐项保留。
             assert actual.pop("sandboxCreditPacks") == []
             assert actual.pop("sandboxPointBalance") == 0
+        if scenario['path'] == '/api/studio/status' and 'policy' in actual:
+            # FR46明确改变留存，必须使用新确认版本；其余迁移前合同仍逐字段核对。
+            assert actual['policy']['consentVersion'] == '2026-10-26-preview-cloud-save-v1'
+            actual['policy']['consentVersion'] = fixture['body']['policy']['consentVersion']
         assert normalize(actual) == fixture["body"], label
         for key, value in fixture["headers"].items():
             assert response.headers.get(key) == value

@@ -98,6 +98,67 @@ class VideoHistoryPage(DTO):
     total: int
 
 
+class WorkReference(DTO):
+    id: str
+    url: str
+    bytes: int
+
+
+class WorkCreate(DTO):
+    id: str
+    ownerId: str
+    kind: Literal['realtime', 'edit']
+    mime: Literal['video/mp4', 'video/webm']
+    seconds: Literal[15, 30, 60]
+
+
+class WorkComplete(DTO):
+    durationMs: int | None = None
+    referenceFailed: bool = False
+    promptsFailed: bool = False
+    interrupted: bool = False
+
+
+class WorkChange(DTO):
+    title: str | None = None
+    action: Literal['retry', 'delete'] | None = None
+    favorite: bool | None = None
+
+
+class WorkPromptState(DTO):
+    atMs: StrictInt
+    instructions: list[StrictStr]
+
+
+class WorkPromptHistory(DTO):
+    states: list[WorkPromptState]
+
+
+class WorkItem(DTO):
+    id: str
+    kind: Literal['realtime', 'video', 'edit']
+    title: str
+    state: Literal['capturing', 'waiting', 'saving', 'ready', 'failed']
+    createdAt: str
+    updatedAt: str
+    bytes: int
+    seconds: float
+    extension: Literal['mp4', 'webm']
+    message: str | None
+    canRetry: bool
+    favorite: bool
+    contentUrl: str | None
+    references: list[WorkReference]
+
+
+class WorkPage(DTO):
+    items: list[WorkItem]
+    page: int
+    pageSize: int
+    pages: int
+    total: int
+
+
 class PaymentOrderView(DTO):
     id: str
     sku: str
@@ -133,11 +194,13 @@ def extend_openapi(app):
             return app.openapi_schema
         schema = get_openapi(title=app.title, version=app.version, routes=app.routes)
         components = schema.setdefault("components", {}).setdefault("schemas", {})
-        for model in (AuthRequest, TokenRequest, PromptTokenRequest, CheckoutRequest, ReconcileRequest, ObservationRequest, AccountView, ApiError, PaymentsView):
+        for model in (AuthRequest, TokenRequest, PromptTokenRequest, CheckoutRequest, ReconcileRequest, ObservationRequest, AccountView, ApiError, PaymentsView, WorkCreate, WorkComplete, WorkChange, WorkPromptState):
             value = model.model_json_schema(ref_template="#/components/schemas/{model}")
             components.update(value.pop("$defs", {}))
             components[model.__name__] = value
         requests = {"/api/account/register": AuthRequest, "/api/account/login": AuthRequest, "/api/studio/token": TokenRequest, "/api/prompt/token": PromptTokenRequest, "/api/studio/observation": ObservationRequest, "/api/payments/checkout": CheckoutRequest, "/api/payments/reconcile": ReconcileRequest}
+        requests.update({'/api/works': WorkCreate, '/api/works/{ident}/complete': WorkComplete, '/api/works/{ident}': WorkChange})
+        requests['/api/works/{ident}/prompts/{index}'] = WorkPromptState
         from .admin import UserChange, QuotaChange, SettingsChange
         for path, model in {'/api/admin/users/{ident}': UserChange, '/api/admin/users/{ident}/quota': QuotaChange, '/api/admin/settings/{key}': SettingsChange}.items():
             value = model.model_json_schema(ref_template="#/components/schemas/{model}")
@@ -158,6 +221,21 @@ def extend_openapi(app):
         schema["paths"]["/api/video/jobs"]["post"]["requestBody"] = {"required": True, "content": {"multipart/form-data": {"schema": {"type": "object", "additionalProperties": False, "required": ["data", "reference_image", "consentVersion"], "properties": {"data": {"type": "string", "format": "binary"}, "reference_image": {"type": "string", "format": "binary"}, "consentVersion": {"type": "string"}}}}}}
         schema["paths"]["/api/video/prepare"]["post"]["requestBody"] = {"required": True, "content": {"video/mp4": {"schema": {"type": "string", "format": "binary"}}}}
         schema["paths"]["/api/video/jobs/{ident}/history"]["post"]["requestBody"] = {"required": True, "content": {"application/json": {"schema": {"type": "object", "additionalProperties": False, "minProperties": 1, "properties": {"title": {"type": "string", "minLength": 1, "maxLength": 60}, "archived": {"type": "boolean"}}}}}}
+        for path, formats in {
+            '/api/works/{ident}/chunks/{index}': ('application/octet-stream',),
+            '/api/works/{ident}/references/{ref_id}': ('image/png', 'image/jpeg', 'image/webp'),
+        }.items():
+            schema['paths'][path]['post']['requestBody'] = {'required': True, 'content': {mime: {'schema': {'type': 'string', 'format': 'binary'}} for mime in formats}}
+        for path in ('/api/works', '/api/works/{ident}/complete', '/api/works/{ident}/chunks/{index}', '/api/works/{ident}/references/{ref_id}', '/api/works/{ident}/prompts/{index}'):
+            schema['paths'][path]['post'].setdefault('parameters', []).append({'name': 'X-Work-Owner', 'in': 'header', 'required': True, 'schema': {'type': 'string'}})
+        for path, formats in {
+            '/api/works/{ident}/content': ('video/mp4', 'video/webm'),
+            '/api/works/{ident}/references/{ref_id}': ('image/png', 'image/jpeg', 'image/webp'),
+        }.items():
+            response = {'description': '本人作品文件；私有、不缓存。视频支持Range。', 'content': {mime: {'schema': {'type': 'string', 'format': 'binary'}} for mime in formats}}
+            schema['paths'][path]['get']['responses']['200'] = response
+            if path.endswith('/content'):
+                schema['paths'][path]['get']['responses']['206'] = response
         for path, method in (("/api/payments/orders", "get"), ("/api/payments/reconcile", "post")):
             schema["paths"][path][method]["responses"]["200"] = {"description": "沙盒订单与长期有效测试积分，独立于真实模型额度。", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/PaymentsView"}}}}
         app.openapi_schema = schema

@@ -129,7 +129,7 @@ def test_generation_removes_audio_even_when_client_skips_prepare(settings):
     with TestClient(create_app(settings, transport=httpx.MockTransport(upstream)), base_url=settings.public_origin) as client:
         client.headers["origin"] = settings.public_origin
         signup(client)
-        result = client.post("/api/video/jobs", files={"data": ("synthetic.mp4", with_audio(SOURCE.read_bytes()), "video/mp4"), "reference_image": ("synthetic.png", PNG, "image/png")}, data={"consentVersion": "2026-10-23-video-v1"}, headers={"x-video-attempt": str(uuid4())})
+        result = client.post("/api/video/jobs", files={"data": ("synthetic.mp4", with_audio(SOURCE.read_bytes()), "video/mp4"), "reference_image": ("synthetic.png", PNG, "image/png")}, data={"consentVersion": "2026-10-26-video-save-v1"}, headers={"x-video-attempt": str(uuid4())})
         assert result.status_code == 200, result.text
         assert result.json()["state"] == "unknown"
         assert len(calls) == 1

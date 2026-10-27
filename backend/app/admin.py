@@ -303,7 +303,7 @@ class Administration:
             for scene in ('studio', 'video', 'prompt'):
                 config = generation.config(scene) if scene != 'studio' else None
                 configured = config['enabled'] if config else generation.settings.env.get('YINGXIANG_STUDIO_ENABLED') == 'true' and bool(generation.key())
-                services.append({'scene': scene, 'configured': configured, 'paused': paused(session, scene), 'budgetUsd': config['budget'] / 1e6 if config else None, 'maxRequests': config['max'] if config else None, 'reservedUsd': (session.execute(select(func.coalesce(func.sum(reservations.c.micro_usd), 0)).where(reservations.c.scene == scene)).scalar_one()) / 1e6, 'requests': count(jobs) if scene == 'video' else count(attempts, attempts.c.scene == scene)})
+                services.append({'scene': scene, 'configured': configured, 'paused': paused(session, scene), 'budgetUsd': config['budget'] / 1e6 if config and not config.get('unlimited') else None, 'maxRequests': config['max'] if config and not config.get('unlimited') else None, 'reservedUsd': (session.execute(select(func.coalesce(func.sum(reservations.c.micro_usd), 0)).where(reservations.c.scene == scene)).scalar_one()) / 1e6, 'requests': count(jobs) if scene == 'video' else count(attempts, attempts.c.scene == scene)})
             return {'users': count(users), 'admins': count(users, users.c.role == 'admin', users.c.disabled == 0), 'disabledUsers': count(users, users.c.disabled == 1), 'videoJobs': count(jobs), 'usageAttempts': count(attempts), 'sandboxOrders': count(orders), 'unknownResults': count(jobs, jobs.c.state == 'unknown') + count(attempts, attempts.c.state == 'unknown'), 'sandboxEnabled': payments.enabled(), 'livePaymentsEnabled': False, 'services': services}
 
 

@@ -178,7 +178,7 @@ def test_video_memory_upload_unknown_idempotency_and_isolation(settings, tmp_pat
         monkeypatch.setattr(tempfile, "SpooledTemporaryFile", forbidden)
         ident = str(uuid4())
         files = {"data": ("private-name.mp4", VIDEO.read_bytes(), "video/mp4"), "reference_image": ("private-name.png", PNG, "image/png")}
-        response = client.post("/api/video/jobs", files=files, data={"consentVersion": "2026-10-23-video-v1"}, headers={"x-video-attempt": ident})
+        response = client.post("/api/video/jobs", files=files, data={"consentVersion": "2026-10-26-video-save-v1"}, headers={"x-video-attempt": ident})
         assert response.status_code == 200, response.text
         assert response.json()["state"] == "unknown"
         assert response.json()["estimateUsd"] == 0.36

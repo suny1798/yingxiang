@@ -1,5 +1,5 @@
 """数据库约束是最终防线；公开响应由服务层单独构建。"""
-from sqlalchemy import MetaData, Table, Column, String, Integer, BigInteger, Text, ForeignKey, CheckConstraint, UniqueConstraint
+from sqlalchemy import MetaData, Table, Column, String, Integer, BigInteger, Text, ForeignKey, CheckConstraint, UniqueConstraint, Index
 
 metadata = MetaData(naming_convention={"ix": "ix_%(table_name)s_%(column_0_name)s", "uq": "uq_%(table_name)s_%(column_0_name)s", "ck": "ck_%(table_name)s_%(constraint_name)s", "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s", "pk": "pk_%(table_name)s"})
 
@@ -77,3 +77,23 @@ admin_audit = Table("admin_audit", metadata,
 admin_settings = Table("admin_settings", metadata,
     Column("key", String, primary_key=True), Column("value", Text, nullable=False),
     Column("version", Integer, nullable=False, server_default="0"))
+
+# 媒体不进数据库；文件位于私有的 users/<UUID>/works/<UUID>/。
+works = Table("works", metadata,
+    Column("id", String, primary_key=True), Column("user_id", ForeignKey("users.id"), nullable=False, index=True),
+    Column("kind", String, nullable=False), Column("source_id", String), Column("title", String(60), nullable=False),
+    Column("state", String, nullable=False), Column("mime", String, nullable=False), Column("extension", String, nullable=False),
+    Column("bytes", BigInteger, nullable=False, server_default="0"), Column("chunks", Integer, nullable=False, server_default="0"),
+    Column("duration_ms", Integer, nullable=False, server_default="0"), Column("created_at", BigInteger, nullable=False),
+    Column("updated_at", BigInteger, nullable=False), Column("error_code", String), Column("retries", Integer, nullable=False, server_default="0"),
+    Column("favorite", Integer, nullable=False, server_default="0"),
+    UniqueConstraint("kind", "source_id"),
+    CheckConstraint("kind IN ('realtime','video','edit')", name="kind"),
+    CheckConstraint("state IN ('capturing','waiting','saving','ready','failed','deleted')", name="state"),
+    CheckConstraint("extension IN ('mp4','webm') AND bytes >= 0 AND chunks >= 0", name="media"),
+    CheckConstraint("favorite IN (0,1)", name="favorite"))
+Index("ix_works_user_favorite_created", works.c.user_id, works.c.favorite, works.c.created_at)
+work_references = Table("work_references", metadata,
+    Column("id", String, primary_key=True), Column("work_id", ForeignKey("works.id"), nullable=False, index=True),
+    Column("mime", String, nullable=False), Column("extension", String, nullable=False), Column("bytes", BigInteger, nullable=False),
+    Column("created_at", BigInteger, nullable=False))
