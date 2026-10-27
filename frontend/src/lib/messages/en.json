@@ -1416,5 +1416,6 @@
   "60秒单次包": "60-second single pack",
   "60秒实时换装体验": "One 60-second live try-on",
   "测试开放": "Test access",
-  " 秒 · ": " s · "
+  " 秒 · ": " s · ",
+  "实时生成期间会分片后台上传，正常结束或站内离开后继续保存已收到的片段；强制关闭浏览器或断网可能丢失未上传数据。视频任务由后端继续保存。请确认作品显示“已保存”；重要文件也可下载到自己的设备。生成结果用于视觉参考，不保证尺码或合身效果。": "During live generation, segments upload in the background. Segments already received continue to save after a normal stop or in-app navigation; forcing the browser closed or losing the network may lose data that has not uploaded. The backend continues saving video tasks. Check that a creation shows “Saved”, and download important files to your own device. Generated results are visual references and do not guarantee size or fit."
 }
