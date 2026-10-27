@@ -1,5 +1,40 @@
 # 映想后端
 
+## 迁移环境配置（M02）
+
+请在本机填写 [backend/.env.migration.local](.env.migration.local)，不要改当前运行的 `.env`。已按用户要求创建空凭据配置，并确认被Git忽略；无密钥示例为 [.env.migration.example](.env.migration.example)。填写PostgreSQL的host／port／独立测试库／schema／username／password／TLS，以及Redis的host／port／可选ACL用户名／password／TLS／测试命名空间。含特殊字符的密码按dotenv格式加引号，不把密码发到聊天或提交仓库。
+
+```powershell
+# backend/；只离线检查，尚未连接数据库／Redis
+.venv/Scripts/python.exe -m scripts.migration_env
+```
+
+未填写时退出码2并只报告缺少字段；格式通过时退出0，但不等于连通性／权限／迁移已通过。此文件尚未接入Java运行时，M10会按明确映射加载；现有FastAPI不读取该文件。不要解除维护或开启外部供应商／生成／正式支付。公网PG默认verify-full，Redis默认TLS；仅显式回环测试可关TLS。隔离库／schema／Redis前缀要求带migration标记，但命名不能替代真实的独立账号／ACL／权限隔离。
+
+## 当前合同对照（M01）
+
+```powershell
+# backend/；临时合成库、供应商替身，常规检查不改fixture
+.venv/Scripts/python.exe -m scripts.migration_contracts
+```
+
+当前冻结合同见 [contracts/migration-v2](contracts/migration-v2/README.md)；覆盖70个代表交互及100项方法／路径，原29条Node合同继续保留。没有触发真实模型或支付。
+
+## 数据库与私有文件联合快照（M02）
+
+新增独立命令，不改变原ops backup仅备份数据库的语义。**先停止所有API、Worker和媒体写入**，再对明确的数据根执行；`--offline`是操作者确认，命令不会替你停止服务。以下均为占位路径，不要原样执行；目标必须不存在且不能与源嵌套。
+
+```powershell
+# backend/；替换为实际已停写的数据根和全新目标
+.venv/Scripts/python.exe -m scripts.joint_snapshot snapshot --source <已停写数据根> --destination <全新联合快照目录> --offline
+.venv/Scripts/python.exe -m scripts.joint_snapshot verify --source <联合快照目录>
+.venv/Scripts/python.exe -m scripts.joint_snapshot restore --source <联合快照目录> --destination <全新恢复数据根> --offline
+```
+
+联合快照包含SQLite和整个users子树（生成视频、参考图、prompts.json及已确认片段），不含.env、其他备份或源目录外文件。数据库完整性／外键／revision／逐表逻辑摘要及媒体SHA256一起核对；拒绝链接、覆盖、嵌套、源变化和篡改。失败目标保留INCOMPLETE，不能作为可用恢复点；不自动删除失败目录，不自动切DATA_DIR。
+
+工具已在临时合成数据中完成恢复与故障验证，**尚未备份／恢复正式用户数据，也未验证云主库或对象存储恢复**。快照为明文，存储和异机加密／权限需由实际部署落实。磁盘故障／大容量及生产RPO／RTO不在本轮达标结论内。
+
 ## 管理权限（0004）
 
 `/admin`复用普通账号会话，以数据库role区分user/admin；管理员导航不是鉴权边界。新建账号默认user，用户名suny本身不会自动获得权限。管理修改记录审计，不提供任意SQL/密钥编辑、媒体读取、订单改价或风险账本删除。
@@ -121,12 +156,3 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 `GET /api/works`新增标题关键词`q`、`favorite=true`与`sort=newest|oldest|title`，所有过滤/排序在本人完整作品集合执行后再分页；搜索按字面值转义通配符，排序使用固定白名单和稳定ID次序。`POST /api/works/{id}`接受`{favorite:boolean}`，收藏按账号保存在works索引，不改updatedAt或保存队列时间。0006仅以SQLite原生ADD COLUMN增加`favorite`（默认0、CHECK 0/1）并建立user/favorite/created_at索引，不重建作品表或媒体目录。
 
 本机升级前在服务未运行状态备份至`backups/pre-work-favorites-20261027.sqlite3`，执行`ops init`和`ops check`；revision 0005→0006，作品/账号计数、旧字段、外键和完整性检查通过，原有作品全部默认为未收藏。回退需使用数据库备份并同时核对`data/users`；不能仅降级代码，因为旧revision不会被当前readiness接受。
-
-## 当前合同对照（M01）
-
-```powershell
-# backend/；临时合成库、供应商替身，常规检查不改fixture
-.venv/Scripts/python.exe -m scripts.migration_contracts
-```
-
-当前冻结合同见 [contracts/migration-v2](contracts/migration-v2/README.md)；覆盖70个代表交互及100项方法／路径，原29条Node合同继续保留。没有触发真实模型或支付。
