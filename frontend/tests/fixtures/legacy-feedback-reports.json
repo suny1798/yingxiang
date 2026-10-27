@@ -1,0 +1,94 @@
+{
+  "baseline": "730fa2d",
+  "sourceSha256": "6a96bfae89ce06a07b146f6812d8ce305ab6489237d7ead9704fc2e40e5ea38c",
+  "fixtures": [
+    {
+      "name": "complete-zh",
+      "locale": "zh",
+      "category": "connection",
+      "fields": {
+        "scene": "Live try-on / 实时换装",
+        "summary": "  synthetic issue  ",
+        "details": "first step\nsecond step",
+        "reference": "synthetic-123",
+        "environment": "Chrome, Windows",
+        "expected": "Expected preview"
+      },
+      "report": "映想 · 问题反馈报告\n\n本报告由用户在本机整理，尚未发送。\n\n整理时间\n2026-10-28T00:00:00.000Z\n\n问题分类\n相机与连接\n\n所在功能\nLive try-on / 实时换装\n\n问题标题\nsynthetic issue\n\n具体情况与复现步骤\nfirst step\nsecond step\n\n发生时间 / 任务或订单编号\nsynthetic-123\n\n浏览器与系统\nChrome, Windows\n\n期望的结果\nExpected preview"
+    },
+    {
+      "name": "optional-empty-zh",
+      "locale": "zh",
+      "category": "rights",
+      "fields": {
+        "summary": "synthetic privacy question",
+        "details": "Only synthetic content"
+      },
+      "report": "映想 · 问题反馈报告\n\n本报告由用户在本机整理，尚未发送。\n\n整理时间\n2026-10-28T00:00:00.000Z\n\n问题分类\n隐私与权益\n\n所在功能\n未填写\n\n问题标题\nsynthetic privacy question\n\n具体情况与复现步骤\nOnly synthetic content\n\n发生时间 / 任务或订单编号\n未填写\n\n浏览器与系统\n未填写\n\n期望的结果\n未填写"
+    },
+    {
+      "name": "plain-text-zh",
+      "locale": "zh",
+      "category": "idea",
+      "fields": {
+        "summary": "<b>synthetic</b>",
+        "details": "<script>synthetic only</script>\nline 2"
+      },
+      "report": "映想 · 问题反馈报告\n\n本报告由用户在本机整理，尚未发送。\n\n整理时间\n2026-10-28T00:00:00.000Z\n\n问题分类\n功能建议\n\n所在功能\n未填写\n\n问题标题\n<b>synthetic</b>\n\n具体情况与复现步骤\n<script>synthetic only</script>\nline 2\n\n发生时间 / 任务或订单编号\n未填写\n\n浏览器与系统\n未填写\n\n期望的结果\n未填写"
+    },
+    {
+      "name": "blank-required-zh",
+      "locale": "zh",
+      "category": "video",
+      "fields": {
+        "summary": "   ",
+        "details": "synthetic detail"
+      },
+      "report": null
+    },
+    {
+      "name": "complete-en",
+      "locale": "en",
+      "category": "connection",
+      "fields": {
+        "scene": "Live try-on / 实时换装",
+        "summary": "  synthetic issue  ",
+        "details": "first step\nsecond step",
+        "reference": "synthetic-123",
+        "environment": "Chrome, Windows",
+        "expected": "Expected preview"
+      },
+      "report": "Yingxiang · Feedback report\n\nPrepared locally by the user. Not sent.\n\nPrepared at\n2026-10-28T00:00:00.000Z\n\nCategory\nCamera & connection\n\nFeature\nLive try-on / 实时换装\n\nTitle\nsynthetic issue\n\nWhat happened & steps to reproduce\nfirst step\nsecond step\n\nTime / task or order reference\nsynthetic-123\n\nBrowser & operating system\nChrome, Windows\n\nExpected outcome\nExpected preview"
+    },
+    {
+      "name": "optional-empty-en",
+      "locale": "en",
+      "category": "rights",
+      "fields": {
+        "summary": "synthetic privacy question",
+        "details": "Only synthetic content"
+      },
+      "report": "Yingxiang · Feedback report\n\nPrepared locally by the user. Not sent.\n\nPrepared at\n2026-10-28T00:00:00.000Z\n\nCategory\nPrivacy & rights\n\nFeature\nNot provided\n\nTitle\nsynthetic privacy question\n\nWhat happened & steps to reproduce\nOnly synthetic content\n\nTime / task or order reference\nNot provided\n\nBrowser & operating system\nNot provided\n\nExpected outcome\nNot provided"
+    },
+    {
+      "name": "plain-text-en",
+      "locale": "en",
+      "category": "idea",
+      "fields": {
+        "summary": "<b>synthetic</b>",
+        "details": "<script>synthetic only</script>\nline 2"
+      },
+      "report": "Yingxiang · Feedback report\n\nPrepared locally by the user. Not sent.\n\nPrepared at\n2026-10-28T00:00:00.000Z\n\nCategory\nFeature suggestions\n\nFeature\nNot provided\n\nTitle\n<b>synthetic</b>\n\nWhat happened & steps to reproduce\n<script>synthetic only</script>\nline 2\n\nTime / task or order reference\nNot provided\n\nBrowser & operating system\nNot provided\n\nExpected outcome\nNot provided"
+    },
+    {
+      "name": "blank-required-en",
+      "locale": "en",
+      "category": "video",
+      "fields": {
+        "summary": "   ",
+        "details": "synthetic detail"
+      },
+      "report": null
+    }
+  ]
+}

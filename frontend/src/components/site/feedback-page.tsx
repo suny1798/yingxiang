@@ -7,14 +7,7 @@ import { notify } from '@/lib/notices';
 import { SiteShell } from './site-shell';
 import s from './support.module.css';
 
-const categories = [
-  ['connection', '相机与连接', 'Camera & connection'],
-  ['video', '上传与生成', 'Upload & generation'],
-  ['download', '下载与镜像', 'Downloads & mirroring'],
-  ['credits', '账号、积分与订单', 'Account, credits & orders'],
-  ['idea', '功能建议', 'Feature suggestions'],
-  ['rights', '隐私与权益', 'Privacy & rights'],
-] as const;
+import { feedbackCategories as categories, buildFeedbackReport } from '@/lib/public-feedback';
 
 export function FeedbackPage() {
   const { locale, t } = useI18n();
@@ -26,26 +19,12 @@ export function FeedbackPage() {
 
   function prepare(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    const get = (key: string) => String(data.get(key) ?? '').trim();
-    if (!get('summary') || !get('details')) {
+    const output = buildFeedbackReport(category, Object.fromEntries(new FormData(event.currentTarget)), locale);
+    if (output === null) {
       notify(say('请填写问题标题和具体情况。', 'Please enter a title and describe what happened.'), 'error');
       return;
     }
-    const selected = categories.find(item => item[0] === category)!;
-    const label = (zh: string, en: string, value: string) => `${say(zh, en)}\n${value || say('未填写', 'Not provided')}`;
-    setReport([
-      say('映想 · 问题反馈报告', 'Yingxiang · Feedback report'),
-      say('本报告由用户在本机整理，尚未发送。', 'Prepared locally by the user. Not sent.'),
-      label('整理时间', 'Prepared at', new Date().toISOString()),
-      label('问题分类', 'Category', locale === 'en' ? selected[2] : selected[1]),
-      label('所在功能', 'Feature', get('scene')),
-      label('问题标题', 'Title', get('summary')),
-      label('具体情况与复现步骤', 'What happened & steps to reproduce', get('details')),
-      label('发生时间 / 任务或订单编号', 'Time / task or order reference', get('reference')),
-      label('浏览器与系统', 'Browser & operating system', get('environment')),
-      label('期望的结果', 'Expected outcome', get('expected')),
-    ].join('\n\n'));
+    setReport(output);
     requestAnimationFrame(() => preview.current?.focus());
   }
 

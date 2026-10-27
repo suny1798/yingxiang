@@ -22,13 +22,13 @@ try {
     assert.equal(child.exitCode,null,'Preview process exited'); assert.ok(Date.now()<end,'Preview start timed out');
     await new Promise(resolve=>setTimeout(resolve,100));
   }
-  for (const path of ['/terms','/terms#scope','/privacy','/privacy#records','/help','/not-a-real-page']) {
+  for (const path of ['/terms','/terms#scope','/privacy','/privacy#records','/help','/help/feedback','/not-a-real-page']) {
     const response=await fetch(`http://127.0.0.1:${port}${path}`); const html=await response.text();
     assert.equal(response.status,200); assert.ok(html.includes('id="app"')); assert.ok(html.includes('type="module"'));
     for (const [,asset] of html.matchAll(/(?:src|href)="(\/assets\/[^"?#]+\.(?:js|css))"/g))
       assert.equal((await fetch(`http://127.0.0.1:${port}${asset}`)).status,200);
   }
-  console.log(JSON.stringify({status:'OK',staticRoutes:6,sdkBundleNonEmpty:true,previewOnly:true}));
+  console.log(JSON.stringify({status:'OK',staticRoutes:7,sdkBundleNonEmpty:true,previewOnly:true}));
 } finally {
   if (child.exitCode===null) { child.kill(); await once(child,'exit'); }
 }
