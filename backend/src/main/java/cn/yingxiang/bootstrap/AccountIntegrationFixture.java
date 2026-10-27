@@ -66,6 +66,36 @@ public final class AccountIntegrationFixture {
                     }
                     if (action.equals("cleanup")) {
                         try (var statement = connection.createStatement()) { statement.execute("DROP SCHEMA \"" + target + "\" CASCADE"); }
+                    } else if (action.equals("stats")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String username = String.valueOf(body.getOrDefault("username", ""));
+                        try (var query = connection.prepareStatement("SELECT (SELECT count(*) FROM users WHERE username=lower(?)), "
+                                + "(SELECT count(*) FROM entitlement_grants g JOIN users u ON u.id=g.user_id WHERE u.username=lower(?) AND g.source='free'), "
+                                + "(SELECT count(*) FROM entitlement_entries e JOIN entitlement_grants g ON e.grant_id=g.id JOIN users u ON u.id=g.user_id WHERE u.username=lower(?)), "
+                                + "(SELECT count(*) FROM auth_sessions s JOIN users u ON s.user_id=u.id WHERE u.username=lower(?)), "
+                                + "coalesce((SELECT count FROM auth_rate_limits WHERE key='auth:global'),0), "
+                                + "coalesce((SELECT count FROM auth_rate_limits WHERE key=?),0)")) {
+                            for (int i = 1; i <= 4; i++) query.setString(i, username);
+                            query.setString(5, "auth:" + username.toLowerCase(java.util.Locale.ROOT));
+                            try (var rows = query.executeQuery()) {
+                                rows.next();
+                                for (int i = 0; i < 6; i++) report.put(List.of("users", "freeGrants", "entries", "sessions", "globalCount", "userCount").get(i), rows.getLong(i + 1));
+                            }
+                        }
+                    } else if (action.equals("expire-limit")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        try (var query = connection.prepareStatement("UPDATE auth_rate_limits SET until=0 WHERE key=?")) {
+                            query.setString(1, "auth:" + String.valueOf(body.get("username")).toLowerCase(java.util.Locale.ROOT)); query.executeUpdate();
+                        }
+                    } else if (action.equals("fail-free-grant")) {
+                        try (var statement = connection.createStatement()) {
+                            statement.execute("CREATE FUNCTION reject_test_grant() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic rollback'; END; $$");
+                            statement.execute("CREATE TRIGGER reject_test_grant BEFORE INSERT ON entitlement_entries FOR EACH ROW EXECUTE FUNCTION reject_test_grant()");
+                        }
+                    } else if (action.equals("restore-free-grant")) {
+                        try (var statement = connection.createStatement()) {
+                            statement.execute("DROP TRIGGER reject_test_grant ON entitlement_entries"); statement.execute("DROP FUNCTION reject_test_grant()");
+                        }
                     } else if (Set.of("disable", "promote", "expire", "revoke", "drop-sessions-table").contains(action)) {
                         Map<String, Object> body = json.readValue(System.in, Map.class);
                         String userId = (String) body.get("userId");

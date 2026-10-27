@@ -12,7 +12,9 @@
 
 已新增 [Java离线启动底座M10-a](docs/reports/2026-10-27-M10-a-Java启动底座.md)：工程位于原 `backend/`，Spring Boot4.1.2／JDK21／Maven Wrapper3.9.11，单独使用回环8792。它仅验证启动与HTTP边界，业务接口保持关闭，未切换当前应用；运行方式见[后端说明](backend/README.md)。Java已按picture现成工程接入JDBC／Redis Starter，默认local，接口统一 `/api`；PG（数据库名／用户名yingxiang）登录与只读查询、Redis认证／PING均通过；迁移schema已由Flyway V1创建，Java本人读取已通过合成PG对照，见[M10-b报告](docs/reports/2026-10-27-M10-b-Flyway与本人读取.md)及[配置修正记录](docs/reports/2026-10-27-M10-c-参考现成Java配置修正.md)。
 
-迁移方案现为 **2.0六阶段执行版**：按Brainstorm／Design／Plan／Execute／Verify／Ship组织每次迭代，以M00—M25行为切片推进；原22个技术工作包仅作覆盖映射。正式项目保留当前位置和同一Git仓库，运行隔离需要时使用临时worktree。2026-10-27已完成[M00基线核查](docs/reports/2026-10-27-M00-迁移基线核查.md)，在原目录建立 `codex/architecture-migration` 分支；源码／旧构建已归档，前端119项及构建通过。[M01](docs/reports/2026-10-27-M01-当前HTTP合同冻结.md)已冻结70个代表HTTP交互，[M02](docs/reports/2026-10-27-M02-联合恢复与环境准备.md)本地联合恢复／配置准备通过，最终后端完整130项通过。Java连接参数现维护在 `backend/config/application-local.yml`，M03本地前端条件就绪。尚未切换应用／数据库，未创建Git提交；状态以05为准。
+Java账号写入已完成[M11合成验证](docs/reports/2026-10-27-M11-Java登录注册与首次赠送.md)：登录／注册／退出及一次赠送，17组JUnit、53项认证HTTP检查和23项本人读取回归通过。当前默认仍维护、账号写入关闭，真实账号未导入，前端及入口未切换；开发开启方法见backend/README。
+
+迁移方案现为 **2.0六阶段执行版**：按Brainstorm／Design／Plan／Execute／Verify／Ship组织每次迭代，以M00—M25行为切片推进；原22个技术工作包仅作覆盖映射。正式项目保留当前位置和同一Git仓库，运行隔离需要时使用临时worktree。2026-10-27已完成[M00基线核查](docs/reports/2026-10-27-M00-迁移基线核查.md)，在原目录建立 `codex/architecture-migration` 分支；源码／旧构建已归档，前端119项及构建通过。[M01](docs/reports/2026-10-27-M01-当前HTTP合同冻结.md)已冻结70个代表HTTP交互，[M02](docs/reports/2026-10-27-M02-联合恢复与环境准备.md)本地联合恢复／配置准备通过，最终后端完整130项通过。Java连接参数现维护在 `backend/config/application-local.yml`，M03本地前端条件就绪。尚未切换应用入口；已按功能分批创建本地提交，后续完成验证即提交，状态以05为准。
 
 实时编辑新版组合界面已接入既有Lucy2.5会话：相机本地预览、提示词增删/分页、明确云端确认后主动开始、生成流显示及同连接完整组合更新。删除全部提示词会结束生成并显示相机原画。生成画面实际播放后开始最多15秒倒计时（连接等待另设30秒超时），仍仅suny测试账号；该账号可手动不限次测试，无累计预算或申请冷却拦截；替身验证不代表真实出画或增删效果已通过，详见FR31/T32及[组合接入报告](docs/reports/2026-10-25-实时编辑组合接入.md)。
 

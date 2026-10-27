@@ -46,9 +46,26 @@ Java连接以 `config/application-local.yml` 为准，旧dotenv只供历史Pytho
 
 Flyway不会在API启动时自动执行，clean禁用，不会baseline未知非空目标。已应用的 `src/main/resources/db/migration/V1__current_schema.sql` 必须保持不变，后续追加V2。V1保留当前SQLite0006的19张表／字段／约束，无默认用户或自动赠送。
 
-默认local服务的 `/api/account/me` 读取指定PG schema：兼容旧yingxiang_session摘要、首个Cookie、不解码、过期／停用／角色、本人真实权益与最近历史；匿名返回空视图。Spring Security保持无状态，不生成登录Cookie，登录／注册仍503。数据库缺表或不可用返回受控503；整体ready503继续保留。目标schema不初始化测试账号，真实账号导入另行执行。
+默认local服务的 `/api/account/me` 读取指定PG schema：兼容旧yingxiang_session摘要、首个Cookie、不解码、过期／停用／角色、本人真实权益与最近历史；匿名返回空视图。Spring Security保持无状态，不生成登录Cookie，登录／注册默认仍503，M11已提供显式开启的开发路径。数据库缺表或不可用返回受控503；整体ready503继续保留。目标schema不初始化测试账号，真实账号导入另行执行。
 
 当前开发迁移与运行仍使用用户提供的同一登录，生产运行／迁移凭据尚未分离；本机Hikari只读不是权限隔离的替代。本轮15组JUnit、23项真实PG／Jar与FastAPI对照通过；Vue同源入口及M10整体未完成。详见[M10-b报告](../docs/reports/2026-10-27-M10-b-Flyway与本人读取.md)。
+
+## Java账号写入（M11，默认关闭）
+
+已实现POST `/api/account/register`、`login`、`logout`：兼容旧scrypt摘要、用户名／密码规则、7天Cookie、一次免费赠送、注销与持久限流。BC1.86使用固定旧参数，scrypt在事务外执行。注册的用户、grant、流水和会话原子提交；失败计数用独立事务保存。
+
+默认 `migration.auth-enabled=false`、维护true、Hikari只读，目标库不会自动注册测试账号。测试与手动开启方式：
+
+```powershell
+# backend/；53项合同与故障检查，自动使用随机临时schema，结束清理
+.venv/Scripts/python.exe -m scripts.java_auth_contracts
+# 显式开发开启：指向当前本机YAML的目标schema，会允许真实账号写入
+java -jar target/yingxiang-backend-0.1.0.jar --migration.auth-enabled=true --migration.maintenance=false --spring.datasource.hikari.read-only=false
+```
+
+账号写入需要local、显式auth开关、关闭维护与可写数据源；维护开启时仍返回503 MAINTENANCE，其他业务写接口继续关闭。仅三条账号POST沿用严格Host／Origin／跨站检查，无须新增CSRF token；其余Spring Security保护保留。
+
+限流按原全局60／15分、账号10／15分、注册20／小时规则保存PG窗口，Redis仅做可用性门禁；不可用时注册／登录503，本人读取仍可用。Redis脚本／ACL／窗口迁移归后续M19。正式账号导入、Vue入口及生产权限隔离未完成。证据见[M11报告](../docs/reports/2026-10-27-M11-Java登录注册与首次赠送.md)。
 
 ## 迁移环境配置（M02）
 

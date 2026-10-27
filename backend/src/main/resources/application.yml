@@ -26,6 +26,7 @@ logging:
   level:
     root: WARN
 migration:
+  auth-enabled: false
   account-read-enabled: false
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}

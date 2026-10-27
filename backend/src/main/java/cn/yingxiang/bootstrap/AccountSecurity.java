@@ -37,7 +37,9 @@ public class AccountSecurity {
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable).httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable).requestCache(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/account/me").permitAll().anyRequest().denyAll())
+                // 仅旧账号写接口复用前置过滤器的精确Host/Origin与跨站校验；不增加旧客户端必填token。
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/account/register", "/account/login", "/account/logout"))
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/account/me", "/account/register", "/account/login", "/account/logout").permitAll().anyRequest().denyAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, error) -> unavailable(request, response, json))
                         .accessDeniedHandler((request, response, error) -> unavailable(request, response, json)));
         AccountReader reader = readers.getIfAvailable();
