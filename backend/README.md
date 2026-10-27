@@ -1,5 +1,38 @@
 # 映想后端
 
+## Java项目配置与启动
+
+已按用户指定的picture可运行项目适配，使用当前JDK21／Spring Boot4.1.2。Maven引入 `spring-boot-starter-jdbc` 与 `spring-boot-starter-data-redis`，由Spring自动装配Hikari数据源、RedisConnectionFactory与StringRedisTemplate；PG驱动42.7.14与Lettuce7.5.2.RELEASE由Boot BOM管理。
+
+配置入口：
+
+- `src/main/resources/application.yml`：公共配置，默认local，回环端口8792，统一 `/api` 上下文。
+- `src/main/resources/application-local.yml`：本机覆盖导入入口，不在此填密码。
+- `config/application-local.yml`：本机真实连接参数，已适配参考项目Redis连接信息；PG库名与用户名均为用户指定的 `yingxiang`。Git忽略、不进入Jar。
+- `config/application-local.example.yml`：可提交的无密钥示例。
+- `src/main/resources/application-offline.yml`：显式offline时关闭数据源和Redis自动配置，供无本机配置的测试使用。
+
+```powershell
+# backend/，正常本机启动，默认读取local，无需额外profile参数
+.\mvnw.cmd spring-boot:run
+# 已构建时也可直接运行Jar
+java -jar target/yingxiang-backend-0.1.0.jar
+# 直接访问，不需要手动设置Host
+curl.exe http://localhost:8792/api/internal/live
+# 仅运行一次脱敏的只读连接检查
+.venv/Scripts/python.exe -m scripts.java_connections
+# 测试与打包；需要时用-s明确复用自己的Maven settings.xml
+.\mvnw.cmd -B -ntp verify
+```
+
+已有 `/api/works` 等外部路径保持原样，不叠加前缀。local允许精确的本机localhost／127.0.0.1和配置的同源入口；不信任伪造转发头。live200只说明进程存活，ready503及业务API关闭状态会保留到业务迁移完成。
+
+Redis沿用参考项目的host／port／password与未启用TLS的实际设置；Boot版本差异仅将 `spring.redis` 映射到 `spring.data.redis`。PG的sslmode从私有YAML读取，本机目前为disable，不再被检查工具硬编码覆盖。没有接入picture业务库、分库分表、COS密钥或其认证／Session实现，也没有切换现有FastAPI。MySQL5.7仍是用户允许的备选，当前主库为PG。
+
+本机Hikari暂设最大3连接、minimum-idle0、只读及延迟初始化；SQL自动初始化关闭，不会在启动时执行DDL或Flyway。后续有写入能力时由对应迁移片调整只读角色。最新连接专项结果：PG（库名／用户名yingxiang）认证与只读查询通过，服务端18.0；Redis认证／PING通过。计划中的yingxiang_migration schema尚不存在，因此检查命令目前退出1，表示迁移前置条件未满足，不是账号密码错误。未读取业务表、未操作Redis业务键。
+
+Java连接以 `config/application-local.yml` 为准，旧dotenv只供历史Python迁移工具使用，不做双向同步。验收与版本适配说明见[配置修正报告](../docs/reports/2026-10-27-M10-c-参考现成Java配置修正.md)。
+
 ## 迁移环境配置（M02）
 
 请在本机填写 [backend/.env.migration.local](.env.migration.local)，不要改当前运行的 `.env`。已按用户要求创建空凭据配置，并确认被Git忽略；无密钥示例为 [.env.migration.example](.env.migration.example)。填写PostgreSQL的host／port／独立测试库／schema／username／password／TLS，以及Redis的host／port／可选ACL用户名／password／TLS／测试命名空间。含特殊字符的密码按dotenv格式加引号，不把密码发到聊天或提交仓库。
@@ -9,7 +42,7 @@
 .venv/Scripts/python.exe -m scripts.migration_env
 ```
 
-未填写时退出码2并只报告缺少字段；格式通过时退出0，但不等于连通性／权限／迁移已通过。此文件尚未接入Java运行时，M10会按明确映射加载；现有FastAPI不读取该文件。不要解除维护或开启外部供应商／生成／正式支付。公网PG默认verify-full，Redis默认TLS；仅显式回环测试可关TLS。隔离库／schema／Redis前缀要求带migration标记，但命名不能替代真实的独立账号／ACL／权限隔离。
+未填写时退出码2并只报告缺少字段；格式通过时退出0，但不等于连通性／权限／迁移已通过。此文件为历史Python工具入口，Java已改为上方的config/application-local.yml；现有FastAPI不读取该文件。不要解除维护或开启外部供应商／生成／正式支付。此历史Python检查器仍按原TLS模板校验；当前Java本机协议以用户要求参考的可运行配置及私有YAML为准。隔离库／schema／Redis前缀要求带migration标记，但命名不能替代真实的独立账号／ACL／权限隔离。
 
 ## 当前合同对照（M01）
 
@@ -69,7 +102,7 @@ Copy-Item .env.example .env
 
 示例默认 `MAINTENANCE=true`，准备完毕后改为 false 并重启，才能接受业务写入。不存在库/错误 revision 不会自动建库，readiness 和业务写入失败关闭。初始运行库为 `data/yingxiang.sqlite3`，与当前目录无关；显式 `DATA_DIR` 相对本目录。数据库、快照、日志和配置都不得放在 `frontend/public/`。
 
-另一个终端在 `frontend/` 执行 `npm run dev` 或构建后 `npm start`；对外入口仍为 127.0.0.1:8787。后端单 worker；不要启用 reload 处理真实业务，不配置公开监听。前端故障/后端断开不会回退旧 JSON 写入。`/internal/live` 与 `/internal/ready` 只在后端直连，前端只转发 `/api/`。
+另一个终端在 `frontend/` 执行 `npm run dev` 或构建后 `npm start`；对外入口仍为 127.0.0.1:8787。后端单 worker；不要启用 reload 处理真实业务，不配置公开监听。前端故障/后端断开不会回退旧 JSON 写入。`/api/internal/live` 与 `/api/internal/ready` 只在后端直连，前端只转发 `/api/`。
 
 ## 数据与恢复
 

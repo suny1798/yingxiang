@@ -1,0 +1,273 @@
+{
+  "sourceSha256": "7bcc94bdb6afd77f8b175f22437b898730d5df0ad15c107acdb824498050fad5",
+  "routes": [
+    {
+      "path": "/api/admin/overview",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/admin/users",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/admin/users/{ident}",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/admin/users/{ident}/quota",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/admin/records/{kind}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/admin/audit",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/admin/settings",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/admin/settings/{key}",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/site/announcement",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/works",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/works/{ident}/chunks/{index}",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/works/{ident}/complete",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/works/{ident}",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/works/{ident}/prompts",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/works/{ident}/prompts/{index}",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/works/{ident}/references/{ref_id}",
+      "methods": [
+        "POST",
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/works/{ident}/content",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/account/me",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/account/register",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/account/login",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/account/logout",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/payments/status",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/payments/orders",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/payments/checkout",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/payments/reconcile",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/payments/webhook",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/studio/status",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/prompt/token",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/studio/token",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/studio/observation",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/prompt/status",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/video/jobs",
+      "methods": [
+        "GET",
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/video/history",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/video/jobs/{ident}/history",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/video/prepare",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/video/jobs/{ident}",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/video/jobs/{ident}/content",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/v1/config",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/v1/health",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/v1/access/redeem",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/v1/sessions",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/v1/sessions/{ident}/token",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/v1/sessions/{ident}/heartbeat",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/v1/sessions/{ident}/end",
+      "methods": [
+        "POST"
+      ]
+    }
+  ]
+}

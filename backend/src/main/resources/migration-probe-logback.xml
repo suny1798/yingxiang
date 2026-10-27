@@ -1,0 +1,4 @@
+<configuration>
+  <!-- 独立连接CLI不记录驱动原始异常、连接URI或配置。 -->
+  <root level="OFF"/>
+</configuration>

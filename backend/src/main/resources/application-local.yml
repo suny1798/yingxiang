@@ -1,0 +1,4 @@
+# 仅显式 local profile 使用。真实本机文件在资源目录外，避免进入Jar。
+spring:
+  config:
+    import: file:./config/application-local.yml

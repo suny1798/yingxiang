@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: yingxiang-migration
+  profiles:
+    default: local
+  main:
+    banner-mode: 'off'
+  sql:
+    init:
+      mode: never
+server:
+  address: 127.0.0.1
+  port: ${MIGRATION_API_PORT:8792}
+  servlet:
+    context-path: /api
+  forward-headers-strategy: none
+  error:
+    include-message: never
+    include-stacktrace: never
+  tomcat:
+    accesslog:
+      enabled: false
+logging:
+  level:
+    root: WARN
+migration:
+  public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
+  maintenance: ${MIGRATION_MAINTENANCE:true}
+  allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}
+  scenes-enabled: ${MIGRATION_SCENES_ENABLED:false}
+  stripe-live-enabled: ${MIGRATION_STRIPE_LIVE_ENABLED:false}
