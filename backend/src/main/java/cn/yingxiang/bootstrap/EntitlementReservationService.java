@@ -35,6 +35,9 @@ public class EntitlementReservationService {
         validate(attemptId, seconds);
         try {
             transaction.executeWithoutResult(status -> {
+                Boolean paused = jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM " + schema
+                        + "admin_settings WHERE key='services' AND (value::jsonb -> 'studio')='true'::jsonb)", Boolean.class);
+                if (Boolean.TRUE.equals(paused)) throw new BusinessFailure("SERVICE_PAUSED", "该功能已暂停新生成，请稍后再试。", 503);
                 var users = jdbc.queryForList("SELECT u.id,s.expires_at FROM " + schema + "users u JOIN " + schema
                         + "auth_sessions s ON s.user_id=u.id WHERE s.hash=? AND u.disabled=0 FOR UPDATE OF u,s", hashed == null ? "" : hashed);
                 // 等待行锁期间会话可能到期；取得锁后再按当前时间判断。
@@ -58,7 +61,10 @@ public class EntitlementReservationService {
             });
         } catch (DataIntegrityViolationException error) {
             // 同attempt跨账号并发由主键／唯一operation_key兜底，整个预留回滚。
-            throw spent();
+            for (Throwable cause = error; cause != null; cause = cause.getCause()) {
+                if (cause instanceof java.sql.SQLException sql && "23505".equals(sql.getSQLState())) throw spent();
+            }
+            throw BusinessFailure.unavailable();
         }
     }
 

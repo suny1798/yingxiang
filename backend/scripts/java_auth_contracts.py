@@ -28,8 +28,9 @@ SALT = '00112233445566778899aabbccddeeff'
 
 
 class LiveJava:
-    def __init__(self, schema, overrides=None):
+    def __init__(self, schema, overrides=None, jvm_options=None):
         self.schema, self.overrides = schema, overrides or {}
+        self.jvm_options = jvm_options or []
 
     def __enter__(self):
         with socket.socket() as sock:
@@ -38,7 +39,7 @@ class LiveJava:
                    'migration.auth-enabled': 'true', 'migration.maintenance': 'false',
                    'spring.datasource.hikari.read-only': 'false', **self.overrides}
         self.log = tempfile.TemporaryFile()
-        self.process = subprocess.Popen(['java', '-jar', 'target/yingxiang-backend-0.1.0.jar',
+        self.process = subprocess.Popen(['java', *self.jvm_options, '-jar', 'target/yingxiang-backend-0.1.0.jar',
             *[f'--{key}={value}' for key, value in options.items()]], cwd=BACKEND, stdout=self.log, stderr=self.log)
         deadline = time.monotonic() + 40
         try:

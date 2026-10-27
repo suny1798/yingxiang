@@ -35,12 +35,14 @@ public final class OfflineBoundary extends OncePerRequestFilter {
     private final boolean accountReadEnabled;
     private final boolean authEnabled;
     private final boolean maintenance;
+    private final boolean studioFixtureEnabled;
 
     public OfflineBoundary(Environment env, JsonMapper json) throws IOException {
         this.json = json;
         accountReadEnabled = env.getProperty("migration.account-read-enabled", Boolean.class, false);
         authEnabled = env.getProperty("migration.auth-enabled", Boolean.class, false);
         maintenance = env.getProperty("migration.maintenance", Boolean.class, true);
+        studioFixtureEnabled = env.getProperty("migration.studio-fixture-enabled", Boolean.class, false);
         Set<String> profiles = Set.copyOf(Arrays.asList(env.getActiveProfiles().length == 0
                 ? env.getDefaultProfiles() : env.getActiveProfiles()));
         if (!(profiles.equals(Set.of("offline")) || profiles.equals(Set.of("local")))
@@ -49,6 +51,9 @@ public final class OfflineBoundary extends OncePerRequestFilter {
                 || !"none".equalsIgnoreCase(env.getProperty("server.forward-headers-strategy", "none"))
                 || (!maintenance && !authEnabled)
                 || (authEnabled && !profiles.equals(Set.of("local")))
+                || (studioFixtureEnabled && (!authEnabled || !profiles.equals(Set.of("local"))))
+                || (studioFixtureEnabled && (env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true)
+                    || !env.getProperty("migration.db-schema", "").matches("yingxiang_migration_it_[a-f0-9]{12}")))
                 || (authEnabled && !maintenance && env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true))
                 || env.getProperty("migration.allow-external-providers", Boolean.class, false)
                 || env.getProperty("migration.scenes-enabled", Boolean.class, false)
@@ -97,12 +102,13 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         String method = request.getMethod();
         boolean safe = Set.of("GET", "HEAD", "OPTIONS").contains(method);
         boolean authPath = Set.of("/api/account/register", "/api/account/login", "/api/account/logout").contains(request.getRequestURI());
-        if (authEnabled && maintenance && authPath && !safe) {
+        boolean studioPath = Set.of("/api/studio/status", "/api/studio/token", "/api/studio/observation").contains(request.getRequestURI());
+        if (maintenance && ((authEnabled && authPath) || (studioFixtureEnabled && studioPath)) && !safe) {
             error(request, response, 503, "MAINTENANCE", "服务维护中，请稍后再试。", requestId);
             return;
         }
-        // 当前无启用的写能力。精确 Host/Origin 是本阶段跨站边界，不创建会话或接受转发头。
-        boolean accountPath = request.getRequestURI().equals("/api/account/me") || authPath;
+        // 精确Host/Origin保护显式启用的写接口，不接受转发头作为来源证据。
+        boolean accountPath = request.getRequestURI().equals("/api/account/me") || authPath || (studioFixtureEnabled && studioPath);
         boolean wrongHost = !allowedAuthorities.contains(request.getHeader("Host"))
                 || "cross-site".equals(request.getHeader("Sec-Fetch-Site"));
         boolean wrongOrigin = (request.getHeader("Origin") != null && !allowedOrigins.contains(request.getHeader("Origin")))
@@ -146,6 +152,8 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         } else if (accountReadEnabled && path.equals("/api/account/me") && Set.of("GET", "HEAD").contains(method)) {
             chain.doFilter(request, response);
         } else if (authEnabled && !maintenance && authPath && method.equals("POST")) {
+            chain.doFilter(request, response);
+        } else if (studioFixtureEnabled && studioPath) {
             chain.doFilter(request, response);
         } else {
             error(request, response, 503, "SERVICE_DISABLED", "Java业务迁移尚未完成", requestId);

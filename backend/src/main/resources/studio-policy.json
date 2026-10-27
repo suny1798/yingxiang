@@ -1,0 +1,17 @@
+{
+  "batchId": "studio-manual-v1",
+  "model": "lucy-vton-3.6",
+  "sdk": "0.2.12",
+  "consentVersion": "2026-10-26-preview-cloud-save-v1",
+  "approvedBudgetUsd": 5,
+  "tokenTtlSec": 10,
+  "connectionCapSec": 15,
+  "clientWindowSec": 15,
+  "durationOptions": [
+    15,
+    30,
+    60
+  ],
+  "standardUsdPerSec": 0.02,
+  "prompt": "Replace only the current upper-body clothing with the garment in the reference image. Preserve the person, face, body, pose, background and lighting."
+}

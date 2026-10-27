@@ -15,6 +15,7 @@ import java.util.HexFormat;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -31,6 +32,8 @@ class OfflineBoundaryTest {
     @Test void doesNotCreateDatabaseOrRedisConnections() {
         assertThat(context.getBeansOfType(javax.sql.DataSource.class)).isEmpty();
         assertThat(context.getBeansOfType(io.lettuce.core.RedisClient.class)).isEmpty();
+        assertThat(context.getBeansOfType(StudioFixtureService.class)).isEmpty();
+        assertThat(context.getBeansOfType(StudioFixtureController.class)).isEmpty();
     }
 
     @Test void processHealthDoesNotClaimBusinessReadiness() throws Exception {
@@ -98,7 +101,7 @@ class OfflineBoundaryTest {
     }
 
     @Test void refusesUnsafeSettings() {
-        for (String key : List.of("migration.allow-external-providers", "migration.scenes-enabled", "migration.stripe-live-enabled")) {
+        for (String key : List.of("migration.allow-external-providers", "migration.scenes-enabled", "migration.stripe-live-enabled", "migration.studio-fixture-enabled")) {
             assertThatThrownBy(() -> new OfflineBoundary(base().withProperty(key, "true"), json))
                     .isInstanceOf(IllegalStateException.class);
         }
@@ -131,6 +134,17 @@ class OfflineBoundaryTest {
                 }
             }
         }
+    }
+
+    @Test void studioFixtureRequiresWritableTemporarySchemaEvenDuringMaintenance() {
+        var env = base().withProperty("migration.auth-enabled", "true").withProperty("migration.studio-fixture-enabled", "true")
+                .withProperty("migration.db-schema", "yingxiang_migration").withProperty("spring.datasource.hikari.read-only", "false");
+        env.setActiveProfiles("local");
+        assertThatThrownBy(() -> new OfflineBoundary(env, json)).isInstanceOf(IllegalStateException.class);
+        env.setProperty("migration.db-schema", "yingxiang_migration_it_123456abcdef");
+        assertThatCode(() -> new OfflineBoundary(env, json)).doesNotThrowAnyException();
+        env.setProperty("spring.datasource.hikari.read-only", "true");
+        assertThatThrownBy(() -> new OfflineBoundary(env, json)).isInstanceOf(IllegalStateException.class);
     }
 
     private MockEnvironment base() {

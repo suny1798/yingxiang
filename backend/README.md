@@ -25,7 +25,7 @@ curl.exe http://localhost:8792/api/internal/live
 .\mvnw.cmd -B -ntp verify
 ```
 
-已有 `/api/works` 等外部路径保持原样，不叠加前缀。local允许精确的本机localhost／127.0.0.1和配置的同源入口；不信任伪造转发头。live200只说明进程存活，ready仍503表示其余业务未完成；local下仅GET／HEAD /api/account/me已迁移，其余业务继续关闭。
+已有 `/api/works` 等外部路径保持原样，不叠加前缀。local允许精确的本机localhost／127.0.0.1和配置的同源入口；不信任伪造转发头。live200只说明进程存活，ready仍503表示其余业务未完成；默认仅GET／HEAD /api/account/me可用，账号写入与本机studio替身需下述明确测试配置。
 
 Redis沿用参考项目的host／port／password与未启用TLS的实际设置；Boot版本差异仅将 `spring.redis` 映射到 `spring.data.redis`。PG的sslmode从私有YAML读取，本机目前为disable，不再被检查工具硬编码覆盖。没有接入picture业务库、分库分表、COS密钥或其认证／Session实现，也没有切换现有FastAPI。MySQL5.7仍是用户允许的备选，当前主库为PG。
 
@@ -234,3 +234,10 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 `GET /api/works`新增标题关键词`q`、`favorite=true`与`sort=newest|oldest|title`，所有过滤/排序在本人完整作品集合执行后再分页；搜索按字面值转义通配符，排序使用固定白名单和稳定ID次序。`POST /api/works/{id}`接受`{favorite:boolean}`，收藏按账号保存在works索引，不改updatedAt或保存队列时间。0006仅以SQLite原生ADD COLUMN增加`favorite`（默认0、CHECK 0/1）并建立user/favorite/created_at索引，不重建作品表或媒体目录。
 
 本机升级前在服务未运行状态备份至`backups/pre-work-favorites-20261027.sqlite3`，执行`ops init`和`ops check`；revision 0005→0006，作品/账号计数、旧字段、外键和完整性检查通过，原有作品全部默认为未收藏。回退需使用数据库备份并同时核对`data/users`；不能仅降级代码，因为旧revision不会被当前readiness接受。
+
+
+## Java本机studio替身验收（M12-b）
+
+默认`migration.studio-fixture-enabled=false`，不开放生成。完整验收使用`.venv/Scripts/python.exe -m scripts.java_studio_contracts`：工具自建有所有权标记的随机临时PG schema、回环HTTP替身和实际Jar，结束清理；不读取旧业务.env，不访问真实模型／支付。正式yingxiang_migration不允许启用此替身。
+
+替身JVM明确传入`-Djdk.httpclient.disableRetryConnect=true -Djdk.httpclient.enableAllMethodRetry=false`，只接受数字回环URL与内置synthetic凭据。不要给替身填真实模型key。运行前先Wrapper verify；需要本机config/application-local.yml中已验证的PG连接。最终28项JUnit、75项签发／观测／崩溃对照、31项权益回归通过，见[M12-b3报告](../docs/reports/2026-10-27-M12-b3-替身签发与观测闭环.md)。Vue页面、同源入口及迁移后真实模型复验仍未完成。

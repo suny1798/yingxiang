@@ -76,6 +76,24 @@ public final class AccountIntegrationFixture {
                         if (action.equals("quota-reserve")) {
                             service.reserve((String) body.get("hashed"), (String) body.get("attemptId"), ((Number) body.get("seconds")).intValue());
                         } else report.put("transitionApplied", service.confirmIssued((String) body.get("attemptId")));
+                    } else if (action.equals("studio-setting")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        if (!(body.get("paused") instanceof Boolean)) throw new IllegalArgumentException();
+                        try (var query = connection.prepareStatement("INSERT INTO admin_settings(key,value,version) VALUES ('services',?,0) ON CONFLICT(key) DO UPDATE SET value=excluded.value,version=admin_settings.version+1")) {
+                            query.setString(1, json.writeValueAsString(Map.of("studio", body.get("paused")))); query.executeUpdate();
+                        }
+                    } else if (action.equals("studio-attempt")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        try (var query = connection.prepareStatement("SELECT state,account_state,observation,outcome FROM usage_attempts WHERE id=? AND scene='studio'")) {
+                            query.setString(1, (String) body.get("attemptId"));
+                            try (var rows = query.executeQuery()) {
+                                if (!rows.next()) throw new IllegalArgumentException();
+                                var attempt = new LinkedHashMap<String, Object>();
+                                attempt.put("state", rows.getString(1)); attempt.put("accountState", rows.getString(2));
+                                attempt.put("observation", rows.getString(3) == null ? null : json.readValue(rows.getString(3), Map.class));
+                                attempt.put("outcome", rows.getString(4)); report.put("attempt", attempt);
+                            }
+                        }
                     } else if (action.equals("quota-state")) {
                         Map<String, Object> body = json.readValue(System.in, Map.class);
                         String username = String.valueOf(body.get("username"));
@@ -121,10 +139,11 @@ public final class AccountIntegrationFixture {
                         try (var query = connection.prepareStatement("UPDATE auth_rate_limits SET until=0 WHERE key=?")) {
                             query.setString(1, "auth:" + String.valueOf(body.get("username")).toLowerCase(java.util.Locale.ROOT)); query.executeUpdate();
                         }
-                    } else if (action.equals("fail-free-grant")) {
+                    } else if (action.equals("fail-free-grant") || action.equals("fail-consume")) {
                         try (var statement = connection.createStatement()) {
                             statement.execute("CREATE FUNCTION reject_test_grant() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic rollback'; END; $$");
-                            statement.execute("CREATE TRIGGER reject_test_grant BEFORE INSERT ON entitlement_entries FOR EACH ROW EXECUTE FUNCTION reject_test_grant()");
+                            statement.execute("CREATE TRIGGER reject_test_grant BEFORE INSERT ON entitlement_entries FOR EACH ROW "
+                                    + (action.equals("fail-consume") ? "WHEN (NEW.kind='consume') " : "") + "EXECUTE FUNCTION reject_test_grant()");
                         }
                     } else if (action.equals("restore-free-grant")) {
                         try (var statement = connection.createStatement()) {

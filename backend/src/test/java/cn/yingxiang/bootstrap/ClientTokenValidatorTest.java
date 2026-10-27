@@ -7,6 +7,12 @@ import tools.jackson.databind.json.JsonMapper;
 import static org.assertj.core.api.Assertions.*;
 
 class ClientTokenValidatorTest {
+    @Test void studioPolicyTracksFrozenLegacyPolicy() throws Exception {
+        var json = JsonMapper.builder().build();
+        try (var input = getClass().getResourceAsStream("/studio-policy.json")) {
+            assertThat(json.readTree(input)).isEqualTo(json.readTree(java.nio.file.Files.readAllBytes(java.nio.file.Path.of("contracts/node-fixtures.json"))).get("studio"));
+        }
+    }
     @Test void matchesFrozenPythonVectorsWithoutUsingCredentialsOrNetwork() throws Exception {
         try (var input = getClass().getResourceAsStream("/legacy-token-vectors.json")) {
             JsonNode fixture = JsonMapper.builder().build().readTree(input);
