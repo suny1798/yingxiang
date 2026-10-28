@@ -25,12 +25,13 @@ public class AccountAuthService {
     private final JdbcTemplate jdbc;
     private final StringRedisTemplate redis;
     private final AccountReader reader;
+    private final RateLimitService rateLimit;
     private final TransactionTemplate independent;
     private final String schema;
 
     public AccountAuthService(JdbcTemplate jdbc, StringRedisTemplate redis, AccountReader reader,
-                              PlatformTransactionManager manager, Environment env) {
-        this.jdbc = jdbc; this.redis = redis; this.reader = reader;
+                              RateLimitService rateLimit, PlatformTransactionManager manager, Environment env) {
+        this.jdbc = jdbc; this.redis = redis; this.reader = reader; this.rateLimit = rateLimit;
         String target = env.getRequiredProperty("migration.db-schema");
         if (!target.matches("yingxiang_migration(?:_it_[a-f0-9]{12})?")) throw new IllegalArgumentException("Invalid schema");
         schema = '"' + target + '"' + ".";
@@ -43,17 +44,15 @@ public class AccountAuthService {
     public Result authenticate(String username, String password, boolean register) {
         validate(username, password);
         String name = username.toLowerCase(Locale.ROOT);
-        try {
-            String pong = redis.execute((RedisCallback<String>) connection -> connection.ping());
-            if (!"PONG".equals(pong)) throw BusinessFailure.unavailable();
-        } catch (RuntimeException error) { throw BusinessFailure.unavailable(); }
-        boolean denied = Boolean.TRUE.equals(independent.execute(status -> {
-            long now = System.currentTimeMillis();
-            if (rate("auth:global", 60, 15 * 60_000L, now)) return true;
-            if (rate("auth:" + name, 10, 15 * 60_000L, now)) return true;
-            return register && rate("signup", 20, 60 * 60_000L, now);
-        }));
-        if (denied) throw new BusinessFailure("RATE_LIMITED", "操作过于频繁，请稍后再试。", 429);
+        if (!rateLimit.enabled()) {
+            try {
+                String pong = redis.execute((RedisCallback<String>) connection -> connection.ping());
+                if (!"PONG".equals(pong)) throw BusinessFailure.unavailable();
+            } catch (RuntimeException error) { throw BusinessFailure.unavailable(); }
+        }
+        rateLimit.check("auth:global", 60, 15 * 60_000L);
+        rateLimit.check("auth:" + name, 10, 15 * 60_000L);
+        if (register) rateLimit.check("signup", 20, 60 * 60_000L);
         var users = jdbc.queryForList("SELECT id,salt,password_hash FROM " + schema + "users WHERE username=?", name);
         Map<String, Object> existing = users.isEmpty() ? null : users.getFirst();
         if (register && existing != null) throw exists();

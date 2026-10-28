@@ -45,6 +45,7 @@ public class PaymentsService {
 
     private final JdbcTemplate jdbc;
     private final MigrationAccounts accounts;
+    private final RateLimitService rateLimit;
     private final JsonMapper json;
     private final TransactionTemplate transaction;
     private final String schema;
@@ -53,9 +54,9 @@ public class PaymentsService {
     private final String expectedAccount;
     private final StripeGateway gateway;
 
-    public PaymentsService(JdbcTemplate jdbc, MigrationAccounts accounts, PlatformTransactionManager manager,
-                           Environment env, JsonMapper json) {
-        this.jdbc = jdbc; this.accounts = accounts; this.json = json;
+    public PaymentsService(JdbcTemplate jdbc, MigrationAccounts accounts, RateLimitService rateLimit,
+                           PlatformTransactionManager manager, Environment env, JsonMapper json) {
+        this.jdbc = jdbc; this.accounts = accounts; this.rateLimit = rateLimit; this.json = json;
         this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M13 payments");
         this.secret = env.getProperty("migration.stripe-secret", "");
         this.webhookSecret = env.getProperty("migration.stripe-webhook-secret", "");
@@ -180,7 +181,7 @@ public class PaymentsService {
                 Order unknown = find("SELECT * FROM " + schema + "orders WHERE user_id=? AND sku=? AND state='creating' "
                         + "AND session_id IS NULL FOR UPDATE", user.id(), sku);
                 if (unknown != null) return unknown;
-                if (accounts.rateLimit("checkout:" + user.id(), 10, 60 * 60_000L)) {
+                if (rateLimit.exceeded("checkout:" + user.id(), 10, 60 * 60_000L)) {
                     throw new BusinessFailure("RATE_LIMITED", "操作过于频繁，请稍后再试。", 429);
                 }
                 String id = MigrationSupport.uuid();

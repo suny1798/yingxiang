@@ -62,6 +62,9 @@ migration:
   worker-max-attempts: "3"
   worker-capture-timeout-ms: "120000"
   worker-batch: "8"
+  redis-rate-limit-enabled: false
+  redis-import-windows: true
+  redis-gate-seconds: "900"
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}

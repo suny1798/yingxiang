@@ -24,11 +24,14 @@ public class VideoController {
     private static final int BODY_LIMIT = 35 * 1024 * 1024 + 4096;
     private final VideoService service;
     private final MigrationAccounts accounts;
+    private final UploadGate uploadGate;
     private final MigrationOrigin origin;
     private final JsonMapper json;
 
-    public VideoController(VideoService service, MigrationAccounts accounts, MigrationOrigin origin, JsonMapper json) {
-        this.service = service; this.accounts = accounts; this.origin = origin; this.json = json;
+    public VideoController(VideoService service, MigrationAccounts accounts, UploadGate uploadGate,
+                           MigrationOrigin origin, JsonMapper json) {
+        this.service = service; this.accounts = accounts; this.uploadGate = uploadGate;
+        this.origin = origin; this.json = json;
     }
 
     @GetMapping("/video/jobs")
@@ -42,7 +45,8 @@ public class VideoController {
 
     @PostMapping("/video/prepare")
     public void prepare(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        if (!service.enterUpload()) {
+        UploadGate.Lease slot = uploadGate.acquire("video", "api-" + MigrationSupport.uuid(), 130_000L);
+        if (slot == null) {
             MigrationSupport.failure(response, json, new BusinessFailure("VIDEO_BUSY", "视频处理正忙，请稍后重试。", 503));
             return;
         }
@@ -65,7 +69,7 @@ public class VideoController {
         } catch (RuntimeException error) {
             MigrationSupport.failure(response, json, error);
         } finally {
-            service.leaveUpload();
+            slot.close();
         }
     }
 
@@ -90,7 +94,8 @@ public class VideoController {
             if (contentType == null || contentType.length() > 256 || !contentType.startsWith("multipart/form-data;")) {
                 throw new BusinessFailure("INVALID_VIDEO_UPLOAD", "请通过页面选择视频与服装图。", 415);
             }
-            if (!service.enterUpload()) {
+            UploadGate.Lease slot = uploadGate.acquire("video", "api-" + MigrationSupport.uuid(), 130_000L);
+            if (slot == null) {
                 throw new BusinessFailure("VIDEO_BUSY", "任务服务正忙，请稍后刷新。", 503);
             }
             try {
@@ -117,7 +122,7 @@ public class VideoController {
                 MigrationSupport.write(response, json,
                         service.submit(user.id(), ident, prepared.bytes(), image.body(), image.contentType(), prepared.seconds()), 200);
             } finally {
-                service.leaveUpload();
+                slot.close();
             }
         } catch (RuntimeException error) {
             MigrationSupport.failure(response, json, error);

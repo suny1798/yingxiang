@@ -236,6 +236,17 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 本机升级前在服务未运行状态备份至`backups/pre-work-favorites-20261027.sqlite3`，执行`ops init`和`ops check`；revision 0005→0006，作品/账号计数、旧字段、外键和完整性检查通过，原有作品全部默认为未收藏。回退需使用数据库备份并同时核对`data/users`；不能仅降级代码，因为旧revision不会被当前readiness接受。
 
 
+## Redis限流与上传门禁（M19，默认关闭）
+
+`migration.redis-rate-limit-enabled=false`为默认；开启后旧PG限流窗口在启动时以`SET NX`原样导入Redis，Lua脚本原子计数，PG影子记录窗口。Redis断连、重启丢键或键被淘汰且影子窗口仍有效时，登录／注册、支付结账、视频prepare／提交返回503 `RATE_LIMIT_UNAVAILABLE`，不按零计数放开；本人读取、已提交视频状态和Worker保存继续。视频上传全局槽由主库`upload_slots`条件租约控制，跨进程第二个请求503 `VIDEO_BUSY`。
+
+```powershell
+# backend/；真实PG／Redis＋TCP代理断连，23项检查
+.venv/Scripts/python.exe -m scripts.java_redis_gate_contracts
+```
+
+Redis恢复后仍按故障窗口保守关闭，需显式核对并清理窗口后才恢复；不要用FLUSHDB／FLUSHALL。云Redis ACL／TLS／不淘汰配置未验收，生产需独立实例或可靠配置。证据见[M19报告](../docs/reports/2026-10-29-M19-Redis与上传门禁故障.md)。
+
 ## 独立Worker收取视频（M17，默认关闭）
 
 V2新增`background_tasks`持久任务表；独立Worker对已有`provider_id`的视频任务补建作品，只GET查询／下载结果，最多3次失败重试，重启后继续，不重新POST生成。`migration.worker-enabled=false`为默认，正式入口不启动Worker。

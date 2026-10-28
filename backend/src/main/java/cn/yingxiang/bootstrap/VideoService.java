@@ -45,6 +45,7 @@ public class VideoService {
 
     private final JdbcTemplate jdbc;
     private final MigrationAccounts accounts;
+    private final RateLimitService rateLimit;
     private final JsonMapper json;
     private final TransactionTemplate transaction;
     private final String schema;
@@ -58,9 +59,9 @@ public class VideoService {
     private final HttpClient client;
     private final AtomicBoolean busy = new AtomicBoolean();
 
-    public VideoService(JdbcTemplate jdbc, MigrationAccounts accounts, PlatformTransactionManager manager,
-                        Environment env, JsonMapper json) {
-        this.jdbc = jdbc; this.accounts = accounts; this.env = env; this.json = json;
+    public VideoService(JdbcTemplate jdbc, MigrationAccounts accounts, RateLimitService rateLimit,
+                        PlatformTransactionManager manager, Environment env, JsonMapper json) {
+        this.jdbc = jdbc; this.accounts = accounts; this.rateLimit = rateLimit; this.env = env; this.json = json;
         this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M14 video");
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -203,11 +204,7 @@ public class VideoService {
     public void leaveUpload() { busy.set(false); }
 
     public void prepareRateLimit() {
-        transaction.executeWithoutResult(status -> {
-            if (accounts.rateLimit("video-prepare:global", 30, 10 * 60_000L)) {
-                throw new BusinessFailure("RATE_LIMITED", "视频处理过于频繁，请稍后重试。", 429);
-            }
-        });
+        rateLimit.check("video-prepare:global", 30, 10 * 60_000L);
     }
 
     public Prepared prepare(byte[] data) {

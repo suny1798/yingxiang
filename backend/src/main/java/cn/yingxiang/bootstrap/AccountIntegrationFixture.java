@@ -320,6 +320,60 @@ public final class AccountIntegrationFixture {
                             query.setLong(5, ((Number) body.getOrDefault("createdAt", now)).longValue());
                             query.executeUpdate();
                         }
+                    } else if (action.equals("upload-acquire")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        long now = System.currentTimeMillis();
+                        long lease = ((Number) body.getOrDefault("leaseMs", 30_000)).longValue();
+                        try (var query = connection.prepareStatement("INSERT INTO upload_slots(id,owner,"
+                                + "lease_generation,lease_until,updated_at) VALUES ('video',?,1,?,?) "
+                                + "ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,"
+                                + "lease_generation=upload_slots.lease_generation+1,lease_until=excluded.lease_until,"
+                                + "updated_at=excluded.updated_at WHERE upload_slots.lease_until<? "
+                                + "RETURNING lease_generation")) {
+                            query.setString(1, String.valueOf(body.get("owner")));
+                            query.setLong(2, now + lease); query.setLong(3, now); query.setLong(4, now);
+                            try (var rows = query.executeQuery()) {
+                                report.put("acquired", rows.next());
+                                if (rows.getRow() > 0) report.put("generation", rows.getLong(1));
+                            }
+                        }
+                    } else if (action.equals("upload-release")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        try (var query = connection.prepareStatement("DELETE FROM upload_slots WHERE id='video' AND owner=?")) {
+                            query.setString(1, String.valueOf(body.get("owner")));
+                            report.put("released", query.executeUpdate());
+                        }
+                    } else if (action.equals("rate-limit-state")) {
+                        List<Map<String, Object>> shadows = new ArrayList<>(), gates = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT key,count,until FROM rate_limit_shadows ORDER BY key")) {
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) shadows.add(Map.of("key", rows.getString(1), "count", rows.getInt(2),
+                                        "until", rows.getLong(3)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT key,until,reason FROM rate_limit_gates ORDER BY key")) {
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) gates.add(Map.of("key", rows.getString(1), "until", rows.getLong(2),
+                                        "reason", rows.getString(3)));
+                            }
+                        }
+                        report.put("shadows", shadows); report.put("gates", gates);
+                    } else if (action.equals("rate-limit-clear")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String key = String.valueOf(body.getOrDefault("key", ""));
+                        if (key.isEmpty()) {
+                            try (var statement = connection.createStatement()) {
+                                statement.executeUpdate("DELETE FROM rate_limit_shadows");
+                                statement.executeUpdate("DELETE FROM rate_limit_gates");
+                            }
+                        } else {
+                            try (var query = connection.prepareStatement("DELETE FROM rate_limit_shadows WHERE key=?")) {
+                                query.setString(1, key); query.executeUpdate();
+                            }
+                            try (var query = connection.prepareStatement("DELETE FROM rate_limit_gates WHERE key=?")) {
+                                query.setString(1, key); query.executeUpdate();
+                            }
+                        }
                     } else if (action.equals("worker-state")) {
                         List<Map<String, Object>> tasks = new ArrayList<>();
                         try (var query = connection.prepareStatement("SELECT id,type,user_id,resource_id,dedupe_key,state,"
