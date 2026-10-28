@@ -236,6 +236,19 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 本机升级前在服务未运行状态备份至`backups/pre-work-favorites-20261027.sqlite3`，执行`ops init`和`ops check`；revision 0005→0006，作品/账号计数、旧字段、外键和完整性检查通过，原有作品全部默认为未收藏。回退需使用数据库备份并同时核对`data/users`；不能仅降级代码，因为旧revision不会被当前readiness接受。
 
 
+## 独立Worker收取视频（M17，默认关闭）
+
+V2新增`background_tasks`持久任务表；独立Worker对已有`provider_id`的视频任务补建作品，只GET查询／下载结果，最多3次失败重试，重启后继续，不重新POST生成。`migration.worker-enabled=false`为默认，正式入口不启动Worker。
+
+```powershell
+# backend/；真实临时PG＋独立Worker进程＋合成供应商，20项检查
+.venv/Scripts/python.exe -m scripts.java_worker_contracts
+# 手动Worker进程（隔离schema与临时存储，不接正式库）
+java -jar target/yingxiang-backend-0.1.0.jar --migration.worker-enabled=true --migration.db-schema=<临时schema> --migration.storage-root=<临时目录> --migration.video-provider-url=http://127.0.0.1:<替身端口> --migration.video-key=<合成key> --spring.datasource.hikari.read-only=false
+```
+
+Worker不提交生成、不读取正式库、不记录媒体或凭据；租约竞争／旧代次／删除竞态与片段超时由M18补齐，Redis门禁由M19补齐。证据见[M17报告](../docs/reports/2026-10-29-M17-Worker收取已有视频.md)。
+
 ## Java本机studio替身验收（M12-b）
 
 默认`migration.studio-fixture-enabled=false`，不开放生成。完整验收使用`.venv/Scripts/python.exe -m scripts.java_studio_contracts`：工具自建有所有权标记的随机临时PG schema、回环HTTP替身和实际Jar，结束清理；不读取旧业务.env，不访问真实模型／支付。正式yingxiang_migration不允许启用此替身。

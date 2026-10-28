@@ -296,6 +296,65 @@ public final class AccountIntegrationFixture {
                             }
                         }
                         report.put("attempts", attempts); report.put("reservations", reservations);
+                    } else if (action.equals("video-job")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        long now = System.currentTimeMillis();
+                        try (var query = connection.prepareStatement("INSERT INTO video_jobs(id,user_id,state,created_at,"
+                                + "expires_at,seconds_milli,micro_usd,provider_id,checked_at) VALUES (?,?,?,?,?,?,?,?,NULL)")) {
+                            query.setString(1, String.valueOf(body.get("id")));
+                            query.setString(2, String.valueOf(body.get("userId")));
+                            query.setString(3, String.valueOf(body.get("state")));
+                            query.setLong(4, ((Number) body.getOrDefault("createdAt", now)).longValue());
+                            query.setLong(5, ((Number) body.getOrDefault("expiresAt", now + 3_600_000L)).longValue());
+                            query.setInt(6, ((Number) body.getOrDefault("secondsMilli", 9000)).intValue());
+                            query.setLong(7, ((Number) body.getOrDefault("microUsd", 360_000)).longValue());
+                            query.setString(8, String.valueOf(body.get("providerId")));
+                            query.executeUpdate();
+                        }
+                        try (var query = connection.prepareStatement("INSERT INTO budget_reservations(id,scene,user_id,"
+                                + "micro_usd,lease_until,created_at) VALUES (?,'video',?,?,?,?)")) {
+                            query.setString(1, String.valueOf(body.get("id")));
+                            query.setString(2, String.valueOf(body.get("userId")));
+                            query.setLong(3, ((Number) body.getOrDefault("microUsd", 360_000)).longValue());
+                            query.setLong(4, ((Number) body.getOrDefault("expiresAt", now + 3_600_000L)).longValue());
+                            query.setLong(5, ((Number) body.getOrDefault("createdAt", now)).longValue());
+                            query.executeUpdate();
+                        }
+                    } else if (action.equals("worker-state")) {
+                        List<Map<String, Object>> tasks = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT id,type,user_id,resource_id,dedupe_key,state,"
+                                + "attempts,max_attempts,lease_owner,lease_until,lease_generation,last_error_code "
+                                + "FROM background_tasks ORDER BY created_at,id")) {
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) {
+                                    var item = new LinkedHashMap<String, Object>();
+                                    item.put("id", rows.getString(1)); item.put("type", rows.getString(2));
+                                    item.put("userId", rows.getString(3)); item.put("resourceId", rows.getString(4));
+                                    item.put("dedupeKey", rows.getString(5)); item.put("state", rows.getString(6));
+                                    item.put("attempts", rows.getInt(7)); item.put("maxAttempts", rows.getInt(8));
+                                    item.put("leaseOwner", rows.getString(9)); item.put("leaseUntil", rows.getObject(10));
+                                    item.put("leaseGeneration", rows.getLong(11)); item.put("lastErrorCode", rows.getString(12));
+                                    tasks.add(item);
+                                }
+                            }
+                        }
+                        report.put("tasks", tasks);
+                    } else if (action.equals("works-age")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        try (var query = connection.prepareStatement("UPDATE works SET updated_at=? WHERE id=?")) {
+                            query.setLong(1, ((Number) body.get("updatedAt")).longValue());
+                            query.setString(2, String.valueOf(body.get("workId"))); query.executeUpdate();
+                        }
+                    } else if (action.equals("works-delete")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        try (var query = connection.prepareStatement("UPDATE works SET state='deleted',title='',"
+                                + "favorite=0,error_code=NULL,updated_at=? WHERE id=?")) {
+                            query.setLong(1, System.currentTimeMillis());
+                            query.setString(2, String.valueOf(body.get("workId"))); query.executeUpdate();
+                        }
+                        try (var query = connection.prepareStatement("DELETE FROM work_references WHERE work_id=?")) {
+                            query.setString(1, String.valueOf(body.get("workId"))); query.executeUpdate();
+                        }
                     } else if (action.equals("works-state")) {
                         Map<String, Object> body = json.readValue(System.in, Map.class);
                         String username = String.valueOf(body.get("username"));

@@ -54,6 +54,14 @@ migration:
   prompt-unlimited-usernames: ""
   prompt-key: ""
   prompt-token-url: "http://127.0.0.1:12113/v1/client/tokens"
+  worker-enabled: false
+  worker-id: ""
+  worker-poll-ms: "500"
+  worker-lease-ms: "60000"
+  worker-retry-ms: "2000"
+  worker-max-attempts: "3"
+  worker-capture-timeout-ms: "120000"
+  worker-batch: "8"
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}
