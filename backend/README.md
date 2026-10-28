@@ -250,6 +250,24 @@ npm run smoke
 
 40项全链路与155项Nginx入口合同通过；真实模型／Stripe／相机效果未复验。G2不等于G3停写切换或G4稳定性，M21以后仍等待最终源数据、停写窗口与用户授权。证据见[M20报告](../docs/reports/2026-10-29-M20-新后端全入口兼容.md)。
 
+## 全量导入核对与恢复演练（M21-a）
+
+新增 `ops/` 离线工具与 `scripts/java_import_rehearsal.py`，把冻结的 SQLite 0006＋`users` 媒体按19表白名单导入隔离 PG schema 与独立私有卷；只读源、不新增常驻服务、不通过业务接口导入。`V3__import_batches.sql` 只新增导入批次／对象指纹表，不改V1／V2。
+
+```powershell
+# backend/；先准备冻结源目录（含yingxiang.sqlite3与users/）
+.venv/Scripts/python.exe -m ops inventory --source <冻结源目录>
+.venv/Scripts/python.exe -m ops dry-run --source <冻结源目录>
+$env:YINGXIANG_IMPORT_DSN = "<隔离PG DSN，不提交>"
+.venv/Scripts/python.exe -m ops import --source <冻结源目录> --schema yingxiang_migration_it_<12hex> --storage <临时私有卷> --batch <批次ID> --rehearsal
+.venv/Scripts/python.exe -m ops verify --source <冻结源目录> --schema ... --storage ... --batch ...
+.venv/Scripts/python.exe -m ops seal --source <冻结源目录> --schema ... --storage ... --batch ...
+# 真实临时Docker PG15＋合成源＋正式只读副本＋重复／异常／中断／恢复
+.venv/Scripts/python.exe -m scripts.java_import_rehearsal
+```
+
+退出码：0成功、2用法、3目标非空／批次冲突、4源异常、5核对差异、6存储失败。工具直接拒绝正式 `yingxiang_migration`，只接受隔离schema；DSN只从环境变量读取，报告不输出账号、会话摘要、nonce或提示词正文。M21-a已完成，M21最终停写导入仍待最终源冻结与停写窗口；8787／8788未切换。证据见[M21-a报告](../docs/reports/2026-10-29-M21-a-导入核对与恢复演练.md)。
+
 ## Redis限流与上传门禁（M19，默认关闭）
 
 `migration.redis-rate-limit-enabled=false`为默认；开启后旧PG限流窗口在启动时以`SET NX`原样导入Redis，Lua脚本原子计数，PG影子记录窗口。Redis断连、重启丢键或键被淘汰且影子窗口仍有效时，登录／注册、支付结账、视频prepare／提交返回503 `RATE_LIMIT_UNAVAILABLE`，不按零计数放开；本人读取、已提交视频状态和Worker保存继续。视频上传全局槽由主库`upload_slots`条件租约控制，跨进程第二个请求503 `VIDEO_BUSY`。

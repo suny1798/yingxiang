@@ -76,7 +76,7 @@ def main():
         created = True
         expected = {name: [column.name for column in table.columns] for name, table in metadata.tables.items()}
         assert setup['columns'] == expected, 'PG V1 columns differ from current SQLite0006 model'
-        assert setup['migrationsExecuted'] == 1 and setup['repeatMigrationsExecuted'] == 0
+        assert setup['migrationsExecuted'] == 3 and setup['repeatMigrationsExecuted'] == 0
         assert setup['constraintRejections'] == 3
         with tempfile.TemporaryDirectory(prefix='yingxiang-m10b-contract-') as temporary, ExitStack() as stack:
             settings = Settings(data_dir=Path(temporary), public_origin=ORIGIN, allowed_origins=(ORIGIN,), maintenance=True)
