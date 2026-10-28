@@ -247,7 +247,7 @@ V2新增`background_tasks`持久任务表；独立Worker对已有`provider_id`�
 java -jar target/yingxiang-backend-0.1.0.jar --migration.worker-enabled=true --migration.db-schema=<临时schema> --migration.storage-root=<临时目录> --migration.video-provider-url=http://127.0.0.1:<替身端口> --migration.video-key=<合成key> --spring.datasource.hikari.read-only=false
 ```
 
-Worker不提交生成、不读取正式库、不记录媒体或凭据；租约竞争／旧代次／删除竞态与片段超时由M18补齐，Redis门禁由M19补齐。证据见[M17报告](../docs/reports/2026-10-29-M17-Worker收取已有视频.md)。
+Worker不提交生成、不读取正式库、不记录媒体或凭据；M18已补齐租约竞争／旧代次／删除竞态与片段超时，Redis门禁由M19补齐。证据见[M17报告](../docs/reports/2026-10-29-M17-Worker收取已有视频.md)与[M18报告](../docs/reports/2026-10-29-M18-Worker合并删除与租约.md)。
 
 ## Java本机studio替身验收（M12-b）
 

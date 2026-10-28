@@ -327,10 +327,21 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
             if (!validMp4(temporary)) throw new IllegalStateException();
             if (!publish(task, work, temporary, total)) {
                 Files.deleteIfExists(temporary);
+                Work current = work(work.id());
+                if (current == null || current.state().equals("deleted")) {
+                    if (current != null) removeFiles(current);
+                    completeTask(task, "cancelled", null);
+                }
             }
         } catch (Exception error) {
             try { Files.deleteIfExists(temporary); } catch (IOException ignored) { }
-            retry(task, work, "SAVE_FAILED");
+            Work current = work(work.id());
+            if (current == null || current.state().equals("deleted")) {
+                if (current != null) removeFiles(current);
+                completeTask(task, "cancelled", null);
+            } else {
+                retry(task, current, "SAVE_FAILED");
+            }
         }
     }
 
