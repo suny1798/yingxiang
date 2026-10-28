@@ -22,7 +22,7 @@ try {
     assert.equal(child.exitCode,null,'Preview process exited'); assert.ok(Date.now()<end,'Preview start timed out');
     await new Promise(resolve=>setTimeout(resolve,100));
   }
-  const routes=['/','/#creation-scenes','/terms','/terms#scope','/privacy','/privacy#records','/help','/help/feedback','/pricing','/account','/account/usage','/account/security','/admin','/studio','/studio#preview','/studio/video','/not-a-real-page'];
+  const routes=['/','/#creation-scenes','/terms','/terms#scope','/privacy','/privacy#records','/help','/help/feedback','/pricing','/account','/account/usage','/account/security','/admin','/studio','/studio#preview','/studio/video','/works','/not-a-real-page'];
   for (const path of routes) {
     const response=await fetch(`http://127.0.0.1:${port}${path}`); const html=await response.text();
     assert.equal(response.status,200); assert.ok(html.includes('id="app"')); assert.ok(html.includes('type="module"'));
