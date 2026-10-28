@@ -168,6 +168,34 @@ public class WorksController {
         }
     }
 
+    @GetMapping("/works/{ident}/prompts")
+    public void prompts(HttpServletRequest request, HttpServletResponse response, @PathVariable String ident) throws IOException {
+        run(request, response, false, false, (user, body) -> Map.of("states", service.promptHistory(user, ident)));
+    }
+
+    @PostMapping("/works/{ident}/prompts/{index}")
+    public void promptState(HttpServletRequest request, HttpServletResponse response, @PathVariable String ident,
+                            @PathVariable String index) throws IOException {
+        run(request, response, true, true, (user, body) -> {
+            service.own(user, ident, false);
+            String contentType = request.getContentType();
+            if (contentType == null || !contentType.split(";", 2)[0].strip().equals("application/json")) {
+                throw new BusinessFailure("INVALID_REQUEST", "请使用JSON请求。", 415);
+            }
+            byte[] data = MigrationSupport.readBytes(request, 32 * 1024, "BODY_TOO_LARGE", "请求内容过大。");
+            JsonNode value;
+            try {
+                value = json.readTree(new String(data, StandardCharsets.UTF_8));
+            } catch (RuntimeException error) {
+                throw new BusinessFailure("INVALID_WORK_PROMPTS", "提示词记录格式无效。", 400);
+            }
+            synchronized (service.lock(ident)) {
+                service.promptState(user, ident, parseIndex(index), value);
+            }
+            return Map.of("accepted", true);
+        });
+    }
+
     private interface Action { Object run(String user, JsonNode body); }
 
     private void run(HttpServletRequest request, HttpServletResponse response, boolean mutation, boolean bound, Action action)

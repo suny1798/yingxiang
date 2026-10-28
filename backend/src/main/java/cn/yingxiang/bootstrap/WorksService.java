@@ -32,6 +32,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @ConditionalOnProperty(name = "migration.works-enabled", havingValue = "true")
 public class WorksService {
     static final long MAX_REALTIME = 32L * 1024 * 1024;
+    static final int MAX_PROMPT_STATES = 128;
+    static final long MAX_PROMPT_HISTORY = 4L * 1024 * 1024;
     static final Map<String, String> KINDS = Map.of("realtime", "实时换装", "video", "视频换装", "edit", "实时编辑");
     static final Map<String, String> ERRORS = Map.of(
             "SAVE_FAILED", "视频未能保存，可重试保存已有结果。", "SOURCE_EXPIRED", "原结果已过期，无法补存。",
@@ -82,8 +84,94 @@ public class WorksService {
         return result;
     }
 
-    public Map<String, Object> view(Work work) {
-        List<Map<String, Object>> refs = new ArrayList<>();
+    /** M16：编辑作品的提示词历史；只读取本人私有目录。 */
+    public List<Map<String, Object>> promptHistory(String userId, String ident) {
+        Work work = own(userId, ident, false);
+        if (!work.kind().equals("edit")) return List.of();
+        Path path = storage.directory(userId, ident).resolve("prompts.json");
+        try {
+            if (!storage.exists(path)) return List.of();
+            byte[] data = storage.read(path);
+            if (data.length > MAX_PROMPT_HISTORY) throw new IllegalArgumentException("size");
+            JsonNode value = json.readTree(new String(data, java.nio.charset.StandardCharsets.UTF_8));
+            if (value == null || !value.isArray() || value.size() > MAX_PROMPT_STATES) throw new IllegalArgumentException("history");
+            List<Map<String, Object>> states = new ArrayList<>();
+            long previous = 0;
+            for (int index = 0; index < value.size(); index++) {
+                Map<String, Object> state = validatePromptState(value.get(index));
+                long at = (Long) state.get("atMs");
+                if (at < previous || (index == 0 && at != 0)) throw new IllegalArgumentException("order");
+                previous = at;
+                states.add(state);
+            }
+            return states;
+        } catch (IOException | RuntimeException error) {
+            throw new BusinessFailure("WORK_PROMPTS_UNAVAILABLE", "提示词记录暂时无法读取，请重试。", 503);
+        }
+    }
+
+    public void promptState(String userId, String ident, int index, JsonNode body) {
+        Work work = own(userId, ident, false);
+        Map<String, Object> state = validatePromptState(body);
+        if (!work.kind().equals("edit") || index < 0 || index >= MAX_PROMPT_STATES) {
+            throw new BusinessFailure("INVALID_WORK_PROMPTS", "提示词记录格式无效。", 400);
+        }
+        List<Map<String, Object>> history = promptHistory(userId, ident);
+        if (index < history.size()) {
+            if (!history.get(index).equals(state)) {
+                throw new BusinessFailure("WORK_PROMPTS_CONFLICT", "提示词记录与已保存内容不一致。", 409);
+            }
+            return;
+        }
+        long at = (Long) state.get("atMs");
+        long last = history.isEmpty() ? 0 : (Long) history.getLast().get("atMs");
+        if (!work.state().equals("capturing") || index != history.size() || at < last || (index == 0 && at != 0)) {
+            throw new BusinessFailure("WORK_PROMPTS_ORDER", "提示词记录顺序无效。", 409);
+        }
+        List<Object> values = new ArrayList<>(history);
+        values.add(state);
+        byte[] data;
+        try {
+            data = json.writeValueAsBytes(values);
+        } catch (RuntimeException error) {
+            throw new BusinessFailure("INVALID_WORK_PROMPTS", "提示词记录格式无效。", 400);
+        }
+        if (data.length > MAX_PROMPT_HISTORY) {
+            throw new BusinessFailure("WORK_PROMPTS_LIMIT", "提示词记录超过保存上限。", 413);
+        }
+        try {
+            storage.writeAtomic(storage.directory(userId, ident).resolve("prompts.json"), data);
+        } catch (IOException error) {
+            throw new BusinessFailure("STORAGE_UNAVAILABLE", "作品目录不可用。", 503);
+        }
+    }
+
+    static Map<String, Object> validatePromptState(JsonNode body) {
+        if (body == null || !body.isObject()) throw invalidPrompts();
+        Set<String> fields = new java.util.LinkedHashSet<>();
+        body.propertyNames().forEach(fields::add);
+        JsonNode at = body.get("atMs"), instructions = body.get("instructions");
+        if (!fields.equals(Set.of("atMs", "instructions")) || at == null || !at.isIntegralNumber()
+                || at.asLong() < 0 || at.asLong() > 15_000 || instructions == null || !instructions.isArray()
+                || instructions.size() < 1 || instructions.size() > 12) {
+            throw invalidPrompts();
+        }
+        List<String> items = new ArrayList<>();
+        for (JsonNode item : instructions) {
+            if (!item.isString() || item.asString().strip().isEmpty() || item.asString().length() > 500
+                    || item.asString().indexOf('\0') >= 0) {
+                throw new BusinessFailure("INVALID_WORK_PROMPTS", "每条提示词需为1—500个字符。", 400);
+            }
+            items.add(item.asString());
+        }
+        return MigrationSupport.body("atMs", at.asLong(), "instructions", items);
+    }
+
+    private static BusinessFailure invalidPrompts() {
+        return new BusinessFailure("INVALID_WORK_PROMPTS", "提示词记录格式无效。", 400);
+    }
+
+    public Map<String, Object> view(Work work) {        List<Map<String, Object>> refs = new ArrayList<>();
         for (var ref : references(work.id())) {
             refs.add(MigrationSupport.body("id", ref.get("id"), "url",
                     "/api/works/" + work.id() + "/references/" + ref.get("id"), "bytes", ref.get("bytes")));

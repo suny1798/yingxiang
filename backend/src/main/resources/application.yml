@@ -47,6 +47,13 @@ migration:
   video-key: ""
   works-enabled: false
   storage-root: "C:/yingxiang-migration-storage"
+  prompt-enabled: false
+  prompt-budget-usd: "0"
+  prompt-max-sessions: "0"
+  prompt-allowed-usernames: ""
+  prompt-unlimited-usernames: ""
+  prompt-key: ""
+  prompt-token-url: "http://127.0.0.1:12113/v1/client/tokens"
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}

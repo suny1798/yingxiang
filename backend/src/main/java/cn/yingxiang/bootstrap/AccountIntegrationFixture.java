@@ -265,6 +265,37 @@ public final class AccountIntegrationFixture {
                         }
                         report.put("users", users); report.put("audit", audit); report.put("settings", settings);
                         report.put("grants", grants); report.put("entries", entries);
+                    } else if (action.equals("prompt-clear-lease")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        try (var query = connection.prepareStatement("UPDATE budget_reservations SET lease_until=0 WHERE scene='prompt' AND id=?")) {
+                            query.setString(1, String.valueOf(body.get("attemptId"))); query.executeUpdate();
+                        }
+                    } else if (action.equals("prompt-state")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String username = String.valueOf(body.get("username"));
+                        List<Map<String, Object>> attempts = new ArrayList<>(), reservations = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT a.id,a.state,a.observation,a.created_at,a.updated_at "
+                                + "FROM usage_attempts a JOIN users u ON u.id=a.user_id WHERE u.username=? AND a.scene='prompt' ORDER BY a.created_at,a.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) {
+                                    var item = new LinkedHashMap<String, Object>();
+                                    item.put("id", rows.getString(1)); item.put("state", rows.getString(2));
+                                    item.put("observation", rows.getString(3)); item.put("createdAt", rows.getLong(4));
+                                    item.put("updatedAt", rows.getObject(5));
+                                    attempts.add(item);
+                                }
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT r.id,r.micro_usd,r.lease_until FROM budget_reservations r "
+                                + "JOIN users u ON u.id=r.user_id WHERE u.username=? AND r.scene='prompt' ORDER BY r.created_at,r.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) reservations.add(Map.of("id", rows.getString(1), "microUsd", rows.getLong(2),
+                                        "leaseUntil", rows.getLong(3)));
+                            }
+                        }
+                        report.put("attempts", attempts); report.put("reservations", reservations);
                     } else if (action.equals("works-state")) {
                         Map<String, Object> body = json.readValue(System.in, Map.class);
                         String username = String.valueOf(body.get("username"));
