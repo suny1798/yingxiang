@@ -236,6 +236,20 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 本机升级前在服务未运行状态备份至`backups/pre-work-favorites-20261027.sqlite3`，执行`ops init`和`ops check`；revision 0005→0006，作品/账号计数、旧字段、外键和完整性检查通过，原有作品全部默认为未收藏。回退需使用数据库备份并同时核对`data/users`；不能仅降级代码，因为旧revision不会被当前readiness接受。
 
 
+## 全入口兼容与G2证据（M20）
+
+`migration.compatibility-enabled=false`默认关闭；隔离验收时开启后提供`GET /api/v1/config`、`GET /api/v1/health`与已停用会话POST 503，并补齐视频历史接口。Vue静态构建经临时Nginx同源入口接隔离Java／PG／Redis，`/api`只代理Java；正式8787／8788不参与。
+
+```powershell
+# backend/；临时Nginx＋Vue构建＋隔离Java/PG/Redis＋合成供应商
+.venv/Scripts/python.exe -m scripts.java_full_entry
+# frontend/；构建与静态入口
+npm run check
+npm run smoke
+```
+
+40项全链路与155项Nginx入口合同通过；真实模型／Stripe／相机效果未复验。G2不等于G3停写切换或G4稳定性，M21以后仍等待最终源数据、停写窗口与用户授权。证据见[M20报告](../docs/reports/2026-10-29-M20-新后端全入口兼容.md)。
+
 ## Redis限流与上传门禁（M19，默认关闭）
 
 `migration.redis-rate-limit-enabled=false`为默认；开启后旧PG限流窗口在启动时以`SET NX`原样导入Redis，Lua脚本原子计数，PG影子记录窗口。Redis断连、重启丢键或键被淘汰且影子窗口仍有效时，登录／注册、支付结账、视频prepare／提交返回503 `RATE_LIMIT_UNAVAILABLE`，不按零计数放开；本人读取、已提交视频状态和Worker保存继续。视频上传全局槽由主库`upload_slots`条件租约控制，跨进程第二个请求503 `VIDEO_BUSY`。

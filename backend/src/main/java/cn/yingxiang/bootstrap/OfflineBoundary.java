@@ -38,6 +38,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
     private final boolean videoEnabled;
     private final boolean worksEnabled;
     private final boolean promptEnabled;
+    private final boolean compatibilityEnabled;
 
     @org.springframework.beans.factory.annotation.Autowired
     public OfflineBoundary(Environment env, JsonMapper json, MigrationOrigin origin) throws IOException {
@@ -51,6 +52,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         videoEnabled = env.getProperty("migration.video-enabled", Boolean.class, false);
         worksEnabled = env.getProperty("migration.works-enabled", Boolean.class, false);
         promptEnabled = env.getProperty("migration.prompt-enabled", Boolean.class, false);
+        compatibilityEnabled = env.getProperty("migration.compatibility-enabled", Boolean.class, false);
         Set<String> profiles = Set.copyOf(Arrays.asList(env.getActiveProfiles().length == 0
                 ? env.getDefaultProfiles() : env.getActiveProfiles()));
         boolean readOnly = env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true);
@@ -71,6 +73,8 @@ public final class OfflineBoundary extends OncePerRequestFilter {
                 || (worksEnabled && (!profiles.equals(Set.of("local")) || readOnly
                     || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
                 || (promptEnabled && (!profiles.equals(Set.of("local")) || readOnly
+                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                || (compatibilityEnabled && (!profiles.equals(Set.of("local")) || readOnly
                     || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
                 || env.getProperty("migration.allow-external-providers", Boolean.class, false)
                 || env.getProperty("migration.scenes-enabled", Boolean.class, false)
@@ -112,6 +116,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         boolean videoPath = videoEnabled && path.startsWith("/api/video/");
         boolean worksPath = worksEnabled && (path.equals("/api/works") || path.startsWith("/api/works/"));
         boolean promptPath = promptEnabled && path.startsWith("/api/prompt/");
+        boolean compatibilityPath = compatibilityEnabled && path.startsWith("/api/v1/");
         boolean paymentPath = paymentsEnabled && path.startsWith("/api/payments/");
         boolean adminPath = adminEnabled && (path.startsWith("/api/admin/") || path.equals("/api/site/announcement"));
         if (maintenance && !safe && ((authEnabled && authPath) || (studioFixtureEnabled && studioPath)
@@ -121,9 +126,13 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         }
         // 精确Host/Origin保护显式启用的接口，不接受转发头作为来源证据。
         // 支付写入口由控制器在支付门禁之后校验，保持旧入口“先门禁、后来源”的顺序。
+        Set<String> knownMethods = new LinkedHashSet<>();
+        routes.stream().filter(route -> route.pattern().matcher(path).matches())
+                .forEach(route -> knownMethods.addAll(route.methods()));
+        boolean methodMismatch = !knownMethods.isEmpty() && !knownMethods.contains(method);
         boolean protectedPath = path.equals("/api/account/me") || authPath || (studioFixtureEnabled && studioPath)
                 || (adminPath && !path.equals("/api/site/announcement")) || videoPath || worksPath || promptPath;
-        if (!paymentPath) {
+        if (!paymentPath && !compatibilityPath && !methodMismatch) {
             boolean wrongHost = !origin.hostAllowed(request.getHeader("Host"))
                     || "cross-site".equals(request.getHeader("Sec-Fetch-Site"));
             String sent = request.getHeader("Origin");
@@ -160,6 +169,11 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         if (allowed.isEmpty()) {
             error(request, response, 404, "NOT_FOUND", "接口不存在", requestId);
         } else if (!allowed.contains(method)) {
+            if (Set.of("GET", "HEAD").contains(method)
+                    && path.matches("^/api/(account|payments)/[^/]+$")) {
+                error(request, response, 404, "NOT_FOUND", "接口不存在。", requestId);
+                return;
+            }
             response.setHeader("Allow", String.join(", ", allowed));
             error(request, response, 405, "METHOD_NOT_ALLOWED", "请求方法不被允许", requestId);
         } else if (method.equals("OPTIONS")) {
@@ -171,7 +185,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } else if (studioFixtureEnabled && studioPath) {
             chain.doFilter(request, response);
-        } else if (paymentPath || adminPath || videoPath || worksPath || promptPath) {
+        } else if (paymentPath || adminPath || videoPath || worksPath || promptPath || compatibilityPath) {
             chain.doFilter(request, response);
         } else {
             error(request, response, 503, "SERVICE_DISABLED", "Java业务迁移尚未完成", requestId);

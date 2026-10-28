@@ -143,6 +143,56 @@ public class VideoService {
         return view(job);
     }
 
+    public Map<String, Object> history(String userId, boolean archived, int page, int size) {
+        int total = count("SELECT count(*) FROM " + schema + "video_jobs j LEFT JOIN " + schema
+                + "video_history h ON h.job_id=j.id WHERE j.user_id=? AND coalesce(h.archived,0)=?",
+                userId, archived ? 1 : 0);
+        int pages = Math.max(1, (total + size - 1) / size);
+        int actual = Math.min(Math.max(1, page), pages);
+        List<Map<String, Object>> items = new ArrayList<>();
+        for (var row : jdbc.queryForList("SELECT j.*,h.title,h.archived FROM " + schema + "video_jobs j LEFT JOIN "
+                + schema + "video_history h ON h.job_id=j.id WHERE j.user_id=? AND coalesce(h.archived,0)=? "
+                + "ORDER BY j.created_at DESC,j.id DESC LIMIT ? OFFSET ?", userId, archived ? 1 : 0, size,
+                (actual - 1) * size)) {
+            Job job = job(row);
+            items.add(historyView(job, (String) row.get("title"), MigrationSupport.number(row, "archived") == 1));
+        }
+        return MigrationSupport.body("items", items, "page", actual, "pageSize", size, "pages", pages, "total", total);
+    }
+
+    public Map<String, Object> historyChange(String userId, String ident, JsonNode body) {
+        Set<String> fields = new java.util.LinkedHashSet<>();
+        body.propertyNames().forEach(fields::add);
+        if (fields.isEmpty() || !Set.of("title", "archived").containsAll(fields)) {
+            throw new BusinessFailure("INVALID_VIDEO_HISTORY", "请填写视频名称或选择归档操作。", 400);
+        }
+        JsonNode titleNode = body.get("title");
+        if (titleNode != null && (!titleNode.isString() || titleNode.asString().strip().length() < 1
+                || titleNode.asString().strip().length() > 60
+                || titleNode.asString().chars().anyMatch(value -> value < 32))) {
+            throw new BusinessFailure("INVALID_VIDEO_TITLE", "视频名称需为1—60个字符，不能含换行。", 400);
+        }
+        JsonNode archivedNode = body.get("archived");
+        if (archivedNode != null && !archivedNode.isBoolean()) {
+            throw new BusinessFailure("INVALID_VIDEO_HISTORY", "归档状态无效，请刷新后重试。", 400);
+        }
+        Job job = own(userId, ident);
+        if (archivedNode != null && archivedNode.asBoolean() && !Set.of("completed", "failed").contains(job.state())) {
+            throw new BusinessFailure("VIDEO_HISTORY_ACTIVE", "任务完成或失败后才可归档，待核查任务请先确认状态。", 409);
+        }
+        var previous = jdbc.queryForList("SELECT title,archived FROM " + schema + "video_history WHERE job_id=?", ident);
+        String title = titleNode != null ? titleNode.asString().strip()
+                : previous.isEmpty() ? "视频换装" : (String) previous.getFirst().get("title");
+        boolean archived = archivedNode != null ? archivedNode.asBoolean()
+                : !previous.isEmpty() && MigrationSupport.number(previous.getFirst(), "archived") == 1;
+        long now = System.currentTimeMillis();
+        jdbc.update("INSERT INTO " + schema + "video_history(job_id,title,archived,updated_at) VALUES (?,?,?,?) "
+                        + "ON CONFLICT (job_id) DO UPDATE SET title=excluded.title,archived=excluded.archived,"
+                        + "updated_at=excluded.updated_at",
+                ident, title, archived ? 1 : 0, now);
+        return historyView(job, title, archived);
+    }
+
     public Map<String, Object> submit(String userId, String ident, byte[] video, byte[] image, String mime, double seconds) {
         Reservation reservation = reserve(userId, ident, seconds);
         if (!reservation.fresh()) return view(reservation.job());
@@ -317,6 +367,18 @@ public class VideoService {
                 "createdAt", MigrationSupport.iso(job.createdAt()), "expiresAt", MigrationSupport.iso(job.expiresAt()),
                 "seconds", job.secondsMilli() / 1000.0, "estimateUsd", job.microUsd() / 1_000_000.0,
                 "expired", now >= job.expiresAt());
+    }
+
+    private static Map<String, Object> historyView(Job job, String title, boolean archived) {
+        Map<String, Object> value = new java.util.LinkedHashMap<>(view(job));
+        value.put("title", title == null || title.isBlank() ? "视频换装" : title);
+        value.put("archived", archived);
+        return value;
+    }
+
+    private int count(String sql, Object... args) {
+        Integer value = jdbc.queryForObject(sql, Integer.class, args);
+        return value == null ? 0 : value;
     }
 
     private Map<String, Object> createJob(byte[] video, byte[] image, String mime) {

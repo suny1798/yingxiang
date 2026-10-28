@@ -31,6 +31,7 @@ logging:
     root: WARN
 migration:
   studio-fixture-enabled: false
+  studio-fixture-url: "http://127.0.0.1:12114/v1/client/tokens"
   auth-enabled: false
   account-read-enabled: false
   payments-enabled: false
@@ -65,6 +66,7 @@ migration:
   redis-rate-limit-enabled: false
   redis-import-windows: true
   redis-gate-seconds: "900"
+  compatibility-enabled: false
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}

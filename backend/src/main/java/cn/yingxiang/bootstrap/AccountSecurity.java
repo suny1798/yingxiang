@@ -39,10 +39,12 @@ public class AccountSecurity {
                 .logout(AbstractHttpConfigurer::disable).requestCache(AbstractHttpConfigurer::disable)
                 // 仅已迁移账号与显式本机studio/支付/管理写接口复用前置精确Host/Origin校验。
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/account/register", "/account/login", "/account/logout",
-                                "/studio/token", "/studio/observation", "/payments/**", "/admin/**", "/video/**", "/works/**", "/prompt/**"))
+                                "/studio/token", "/studio/observation", "/payments/**", "/admin/**", "/video/**", "/works/**", "/prompt/**",
+                                "/v1/**"))
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/account/me", "/account/register", "/account/login",
                                 "/account/logout", "/studio/status", "/studio/token", "/studio/observation",
-                                "/payments/**", "/admin/**", "/site/announcement", "/video/**", "/works/**", "/prompt/**")
+                                "/payments/**", "/admin/**", "/site/announcement", "/video/**", "/works/**", "/prompt/**",
+                                "/v1/**")
                         .permitAll().anyRequest().denyAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, error) -> unavailable(request, response, json))
                         .accessDeniedHandler((request, response, error) -> unavailable(request, response, json)));

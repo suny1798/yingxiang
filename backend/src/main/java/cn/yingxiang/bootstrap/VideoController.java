@@ -138,9 +138,30 @@ public class VideoController {
         } catch (RuntimeException error) { MigrationSupport.failure(response, json, error); }
     }
 
-    @GetMapping("/video/jobs/{ident}/content")
-    public void content(HttpServletRequest request, HttpServletResponse response, @PathVariable String ident) throws IOException {
+    @GetMapping("/video/history")
+    public void history(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
+            origin.require(request, false);
+            var user = accounts.require(AccountReader.cookieHash(request.getHeader("Cookie")));
+            boolean archived = "true".equals(request.getParameter("archived"));
+            int page = integer(request, "page", 1, 1, 100_000);
+            int size = integer(request, "pageSize", 3, 1, 12);
+            MigrationSupport.write(response, json, service.history(user.id(), archived, page, size), 200);
+        } catch (RuntimeException error) { MigrationSupport.failure(response, json, error); }
+    }
+
+    @PostMapping("/video/jobs/{ident}/history")
+    public void historyChange(HttpServletRequest request, HttpServletResponse response, @PathVariable String ident) throws IOException {
+        try {
+            origin.require(request, true);
+            var user = accounts.require(AccountReader.cookieHash(request.getHeader("Cookie")));
+            var body = MigrationSupport.readJson(request, json, 4096, true);
+            MigrationSupport.write(response, json, service.historyChange(user.id(), ident, body), 200);
+        } catch (RuntimeException error) { MigrationSupport.failure(response, json, error); }
+    }
+
+    @GetMapping("/video/jobs/{ident}/content")
+    public void content(HttpServletRequest request, HttpServletResponse response, @PathVariable String ident) throws IOException {        try {
             origin.require(request, false);
             var user = accounts.require(AccountReader.cookieHash(request.getHeader("Cookie")));
             var content = service.content(user.id(), ident);
@@ -163,6 +184,18 @@ public class VideoController {
             }
         } catch (RuntimeException error) {
             if (!response.isCommitted()) MigrationSupport.failure(response, json, error);
+        }
+    }
+
+    private static int integer(HttpServletRequest request, String name, int fallback, int minimum, int maximum) {
+        String value = request.getParameter(name);
+        if (value == null || value.isEmpty()) return fallback;
+        try {
+            int parsed = Integer.parseInt(value);
+            if (parsed < minimum || parsed > maximum) throw new NumberFormatException();
+            return parsed;
+        } catch (NumberFormatException error) {
+            throw new BusinessFailure("INVALID_REQUEST", "请求参数无效。", 400);
         }
     }
 }
