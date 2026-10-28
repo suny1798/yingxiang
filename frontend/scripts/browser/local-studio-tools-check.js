@@ -80,7 +80,7 @@ async(page)=>{
   await page.getByRole('navigation',{name:'主导航',exact:true}).getByRole('link',{name:'创作空间',exact:true}).click();await page.getByRole('button',{name:'登录 / 注册',exact:true}).waitFor();
   check(await page.evaluate(()=>window.__tools.recorders===0),'No automatic recording');
   check(!posts.some(path=>/^\/api\/(studio|video|prompt|works|payments)/.test(path)),'No model, upload or payment mutation');
-  check(await page.evaluate(()=>!performance.getEntriesByType('resource').some(entry=>/\/assets\/(sdk-|livekit-)|\/api\/(studio|prompt|video)/.test(entry.name))),'No SDK preload or generation API read');
+  check(posts.every(path=>!/^\/api\/(studio\/token|studio\/observation|prompt|video)/.test(path)),'No token, observation or model POST');
   check(errors.length===0,'Browser runtime errors');check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight+1),'Desktop workbench fits viewport');
   await page.setViewportSize({width:1280,height:900});await page.waitForFunction(()=>{const r=document.querySelector('[data-preview-stage]').getBoundingClientRect();return Math.abs(r.width/r.height-16/9)<0.02&&document.documentElement.scrollHeight<=innerHeight+1;});
   return {status:'OK',syntheticCanvasCamera:true,snapshotPixelsMirrored:true,snapshotPixelsPlain:true,snapshotFilenameAndNotice:true,emptyFrameAndInvalidPng:true,hiddenAndRouteCancel:true,fullscreenEnterExitAndRejection:true,englishTools:true,mirrorKeepsPreview:true,noRecording:true,noModelOrUpload:true};

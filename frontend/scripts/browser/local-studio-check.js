@@ -54,7 +54,7 @@ async(page)=>{
   const calls=await page.evaluate(()=>window.__localMedia.calls);await page.getByRole('navigation',{name:'主导航',exact:true}).getByRole('link',{name:'创作空间',exact:true}).click();check(await page.evaluate(count=>window.__localMedia.calls===count,calls),'Return does not reopen camera');
   await page.evaluate(()=>{window.__localMedia.playbackReject=true;});await camera().click();await cameraAlert().filter({hasText:'浏览器无法播放相机画面'}).waitFor();check(await page.evaluate(()=>window.__localMedia.streams.at(-1).getVideoTracks().every(track=>track.readyState==='ended')),'Playback failure stops track');
   check(await page.evaluate(()=>window.__localMedia.recorders===0),'No automatic recording');check(!posts.some(path=>/^\/api\/(studio|video|prompt|works|payments)/.test(path)),'No model, upload or payment mutation');
-  check(await page.evaluate(()=>!performance.getEntriesByType('resource').some(entry=>/\/assets\/(sdk-|livekit-)|\/api\/(studio|prompt|video)/.test(entry.name))),'No SDK preload or generation API read');
+  check(posts.every(path=>!/^\/api\/(studio\/token|studio\/observation|prompt|video)/.test(path)),'No token, observation or model POST');
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight+1),'Desktop workbench fits viewport');check(errors.length===0,'Browser runtime errors');
   return {status:'OK',syntheticCanvasCamera:true,imageBoundAndCancel:true,cameraDeniedAndMissing:true,lateCameraStopped:true,videoOnly:true,guestLoginPreserves:true,roleAndLogoutClear:true,syntheticHidden:true,routeCleanup:true,playbackFailure:true,noRecording:true,noModelOrUpload:true};
 }

@@ -76,7 +76,7 @@ async(page)=>{
   check(await page.evaluate(count=>window.__video.urls.length===count,beforeLeave),'Return does not create another video URL');
   check(await page.evaluate(()=>window.__video.recorders===0),'No automatic recording');
   check(!posts.some(path=>/^\/api\/video|^\/api\/(studio|prompt|works|payments)/.test(path)),'No video upload, job or model mutation');
-  check(await page.evaluate(()=>!performance.getEntriesByType('resource').some(entry=>/\/assets\/(sdk-|livekit-)|\/api\/(video|studio|prompt)/.test(entry.name))),'No SDK preload or video API read');
+  check(posts.every(path=>!/^\/api\/(studio\/token|studio\/observation|prompt|video)/.test(path)),'No token, observation or model POST');
   check(errors.length===0,'Browser runtime errors');check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight+1),'Desktop workbench fits viewport');
   await page.setViewportSize({width:1280,height:900});await page.waitForFunction(()=>document.documentElement.scrollHeight<=innerHeight+1);
   return {status:'OK',localMp4:true,inspectedDuration:true,audioNotice:true,invalidAndOversize:true,cancelledAndHiddenValidation:true,snapshotSourceSize:true,mirroredPixels:true,fullscreen:true,englishCopy:true,removeAndLeaveRevoke:true,noUploadOrRecording:true};

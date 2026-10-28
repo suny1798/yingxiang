@@ -8,6 +8,7 @@ import s from '../components/studio/studio.module.css';
 const props=defineProps<{input:ReturnType<GarmentInput['getSnapshot']>}>();
 const emit=defineEmits<{upload:[files:File[]];select:[id:string];remove:[id:string];cancel:[]}>();
 const file=ref<HTMLInputElement|null>(null),dragging=ref(false);
+defineExpose({open:()=>file.value?.click()});
 const selected=computed(()=>props.input.garments.find(item=>item.id===props.input.selectedId)),full=computed(()=>props.input.garments.length>=MAX_GARMENTS);
 function change(event:Event){const element=event.target as HTMLInputElement;emit('upload',Array.from(element.files??[]));element.value='';}
 function drop(event:DragEvent){dragging.value=false;emit('upload',Array.from(event.dataTransfer?.files??[]));}

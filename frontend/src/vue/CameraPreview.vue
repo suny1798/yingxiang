@@ -3,7 +3,7 @@ import { ref,watchEffect } from 'vue';
 import type { LocalCamera } from '../lib/media/local-camera';
 import { t } from './preferences';
 import s from '../components/studio/studio.module.css';
-const props=defineProps<{stream:MediaStream;camera:LocalCamera;mirrored:boolean}>();
+const props=defineProps<{stream:MediaStream;camera:Pick<LocalCamera,'markPlaying'|'playbackFailed'>;mirrored:boolean;visible?:boolean;remote?:boolean}>();
 const video=ref<HTMLVideoElement|null>(null);
 defineExpose({video});
 watchEffect(onCleanup=>{
@@ -14,4 +14,4 @@ watchEffect(onCleanup=>{
 },{flush:'post'});
 function playing(){const element=video.value;if(element?.srcObject===props.stream&&element.readyState>=2)props.camera.markPlaying(props.stream);}
 </script>
-<template><video ref="video" :class="s['camera-video']" :data-mirrored="mirrored" autoplay playsinline muted :aria-label="t('本地相机原画，未进行AI处理')" @playing="playing" @error="camera.playbackFailed(stream)"/></template>
+<template><video ref="video" :class="[s['camera-video'],visible===false?s['camera-hidden']:'']" :data-mirrored="mirrored" autoplay playsinline muted :aria-label="t(remote?'AI生成画面，效果需人工确认':'本地相机原画，未进行AI处理')" :aria-hidden="visible===false" @playing="playing" @error="camera.playbackFailed(stream)"/></template>
