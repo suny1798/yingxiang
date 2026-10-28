@@ -265,6 +265,36 @@ public final class AccountIntegrationFixture {
                         }
                         report.put("users", users); report.put("audit", audit); report.put("settings", settings);
                         report.put("grants", grants); report.put("entries", entries);
+                    } else if (action.equals("works-state")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String username = String.valueOf(body.get("username"));
+                        List<Map<String, Object>> works = new ArrayList<>(), references = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT w.id,w.kind,w.title,w.state,w.bytes,w.chunks,w.duration_ms,"
+                                + "w.error_code,w.favorite,w.source_id,w.extension FROM works w JOIN users u ON u.id=w.user_id "
+                                + "WHERE u.username=? ORDER BY w.created_at,w.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) {
+                                    var item = new LinkedHashMap<String, Object>();
+                                    item.put("id", rows.getString(1)); item.put("kind", rows.getString(2));
+                                    item.put("title", rows.getString(3)); item.put("state", rows.getString(4));
+                                    item.put("bytes", rows.getLong(5)); item.put("chunks", rows.getInt(6));
+                                    item.put("durationMs", rows.getLong(7)); item.put("errorCode", rows.getString(8));
+                                    item.put("favorite", rows.getInt(9)); item.put("sourceId", rows.getString(10));
+                                    item.put("extension", rows.getString(11));
+                                    works.add(item);
+                                }
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT r.id,r.work_id,r.mime,r.extension,r.bytes FROM work_references r "
+                                + "JOIN works w ON w.id=r.work_id JOIN users u ON u.id=w.user_id WHERE u.username=? ORDER BY r.created_at,r.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) references.add(Map.of("id", rows.getString(1), "workId", rows.getString(2),
+                                        "mime", rows.getString(3), "extension", rows.getString(4), "bytes", rows.getLong(5)));
+                            }
+                        }
+                        report.put("works", works); report.put("references", references);
                     } else if (action.equals("video-reset-check")) {
                         Map<String, Object> body = json.readValue(System.in, Map.class);
                         try (var query = connection.prepareStatement("UPDATE video_jobs SET checked_at=0 WHERE id=?")) {

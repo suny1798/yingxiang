@@ -45,6 +45,8 @@ migration:
   video-allowed-usernames: ""
   video-provider-url: "http://127.0.0.1:12112"
   video-key: ""
+  works-enabled: false
+  storage-root: "C:/yingxiang-migration-storage"
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}
