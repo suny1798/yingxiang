@@ -92,15 +92,26 @@ try {
     await new Promise(resolve=>setTimeout(resolve,180000));
   }
   const check=(value,message)=>{assert.ok(value,message);checks++;};
-  const index=await readFile(join(root,'dist/index.html'));
-  for(const path of ['/','/pricing','/help','/help/feedback','/privacy','/terms','/terms?synthetic=1']) {
-    const value=await http(port,path);check(value.status===200&&value.body.equals(index),'Known public route must serve built entry');check(value.headers['cache-control']==='no-store','HTML cache');
+  const shell=await readFile(join(root,'dist/app.html'));
+  const publicPages=[['/','index.html','映想 — 让想象，在眼前发生。'],['/pricing','pricing/index.html','价格方案 · 映想'],['/help','help/index.html','帮助中心 · 映想'],['/help/feedback','help/feedback/index.html','问题反馈 · 映想'],['/privacy','privacy/index.html','隐私与使用说明 · 映想'],['/terms','terms/index.html','用户协议 · 映想'],['/terms?synthetic=1','terms/index.html','用户协议 · 映想']];
+  for(const [path,file,title] of publicPages) {
+    const expected=await readFile(join(root,'dist',file));const value=await http(port,path);
+    check(value.status===200&&value.body.equals(expected),'Known public route must serve its prerendered HTML');
+    check(value.headers['cache-control']==='no-store','HTML cache');
+    check(!value.headers['x-robots-tag'],'Public page stays indexable');
+    check(value.body.toString('utf8').includes(`<title>${title}</title>`),'Public page server title');
   }
-  const unknown=await http(port,'/synthetic-not-a-page');check(unknown.status===404&&unknown.body.equals(index),'Unknown page HTTP404 with app entry');
+  for(const path of ['/account','/account/orders','/studio','/studio/video','/works','/admin']) {
+    const value=await http(port,path);
+    check(value.status===200&&value.body.equals(shell),'Private route serves SPA shell');
+    check(value.headers['x-robots-tag']==='noindex, nofollow','Private route noindex header');
+  }
+  const unknown=await http(port,'/synthetic-not-a-page');check(unknown.status===404&&unknown.body.equals(shell),'Unknown page HTTP404 with SPA shell');
+  check(unknown.headers['x-robots-tag']==='noindex, nofollow','Unknown page noindex header');
   const assets=await readdir(join(root,'dist/assets'));const script=assets.find(name=>/^app-.+\.js$/.test(name));assert.ok(script);
   const asset=await http(port,'/assets/'+script);check(asset.status===200&&asset.headers['content-type'].includes('javascript'),'Script MIME');check(asset.headers['cache-control'].includes('immutable'),'Fingerprint cache');
   const conditional=await http(port,'/assets/'+script,{headers:{'If-None-Match':asset.headers.etag}});check(conditional.status===304,'Static conditional response');
-  const missing=await http(port,'/assets/synthetic-missing-12345678.js');check(missing.status===404&&!missing.body.equals(index)&&missing.headers['cache-control']==='no-store','Missing asset must not serve entry');
+  const missing=await http(port,'/assets/synthetic-missing-12345678.js');check(missing.status===404&&!missing.body.equals(shell)&&missing.headers['cache-control']==='no-store','Missing asset must not serve entry');
   for(const path of ['/api','/api/synthetic-not-found']) {const value=await http(port,path);check(value.status===404&&JSON.parse(value.body).error.code==='NOT_FOUND','Unknown API stays upstream JSON');}
   const body=Buffer.from('  {"synthetic":"\u8863\u670d"}\n\x00');
   const headers={Origin:`http://127.0.0.1:${port}`,Cookie:'synthetic-cookie=value','Content-Type':'multipart/form-data; boundary=synthetic-boundary','Stripe-Signature':'synthetic-signature','X-Work-Owner':'synthetic-owner','X-Video-Attempt':'synthetic-attempt',Forwarded:'for=6.6.6.6','X-Forwarded-For':'6.6.6.6','X-Forwarded-Host':'forged.invalid','X-Forwarded-Proto':'https','X-Real-IP':'6.6.6.6'};

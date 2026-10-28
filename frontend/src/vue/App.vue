@@ -2,6 +2,8 @@
 import { watchEffect, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { preferences, t } from './preferences';
+import { applyDocumentMeta } from './document-meta';
+import type { PageMeta } from './route-data';
 import s from '../components/site/site.module.css';
 import studio from '../components/studio/studio.module.css';
 import NoticeCenter from './NoticeCenter.vue';
@@ -16,8 +18,7 @@ const route = useRoute();
 watchEffect(() => {
   document.documentElement.lang = preferences.locale.value === 'en' ? 'en' : 'zh-CN';
   document.documentElement.dataset.theme = preferences.theme.value;
-  const title = preferences.locale.value==='en' && route.meta.englishTitle ? route.meta.englishTitle : route.meta.title;
-  document.title = route.meta.fullTitle?t(String(title)): `${t(String(title ?? '映想'))} · ${t('映想')}`;
+  applyDocumentMeta(route.meta as unknown as PageMeta, preferences.locale.value);
 });
 onUnmounted(preferences.stop);
 onUnmounted(()=>{void accountCoordinator.dispose().catch(()=>{});});

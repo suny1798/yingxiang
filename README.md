@@ -2,7 +2,7 @@
 
 **让想象，在眼前发生。**
 
-**当前迁移worktree说明（2026-10-28）**：本分支在 `frontend/` 增量接入Vue3／Vite，默认 `npm run dev` 为127.0.0.1:8791隔离预览，目前已迁 `/`、`/terms`、`/privacy`、`/help`、`/help/feedback`、`/pricing` 与公共导航／公告／偏好／404，已完成实际Nginx隔离入口HTTP及桌面验证；已接全站登录注册／退出与账号协调、个人中心三页及管理员无权门禁；/studio已接选图、本机相机预览、实时换装与分片保存，/studio/video已接视频提交与结果，/studio/edit已接提示词组合实时编辑，作品页已接列表与详情；订单／管理控制台及正式入口切换等仍待后续迁移，不作为完整应用使用。原Next／FastAPI运行基线仍保留在原工作区，未合并或切流。Next对照命令在本分支保留为 `legacy:dev`、`legacy:build`、`legacy:typecheck`、`legacy:smoke`。进度见[M08-b报告](docs/reports/2026-10-28-M08-b-提示词实时编辑.md)，下方原运行资料继续保留作对照。
+**当前迁移worktree说明（2026-10-28）**：本分支在 `frontend/` 增量接入Vue3／Vite，默认 `npm run dev` 为127.0.0.1:8791隔离预览，目前已迁 `/`、`/terms`、`/privacy`、`/help`、`/help/feedback`、`/pricing` 与公共导航／公告／偏好／404，已完成实际Nginx隔离入口HTTP及桌面验证；已接全站登录注册／退出与账号协调、个人中心三页及管理员无权门禁；/studio已接选图、本机相机预览、实时换装与分片保存，/studio/video已接视频提交与结果，/studio/edit已接提示词组合实时编辑，作品页已接列表与详情，订单与沙盒购买、管理控制台与公告已接；六个公开页在构建期预渲染并输出服务端title／description／分享标签，私有页保持SPA与noindex。**本机正式入口已于2026-10-28从Next切换为Vue静态构建**：8787由隔离Nginx提供静态文件并把 `/api` 转发8788 FastAPI，原Next源码、依赖锁与构建产物保留作回退（`legacy:dev`／`legacy:build`／`legacy:typecheck`／`legacy:smoke`）。切换证据与回退步骤见[M09-d报告](docs/reports/2026-10-28-M09-d-前端入口切换.md)，功能进度见[M09-c报告](docs/reports/2026-10-28-M09-c-公开页预渲染与服务端meta.md)，下方原运行资料继续保留作对照。
 
 映想提供实时换装、视频换装和提示词实时编辑，三种创作的生成视频默认保存到“我的作品”。三个创作画面及作品详情另提供桌面全屏与当前帧 PNG 截图；截图仅本机主动导出，不上传、不自动入作品。我的作品支持标题搜索、最新/最早/名称排序及账号级收藏筛选。实时编辑已接入云端生成，支持在同一连接内添加、移除并同步完整提示词组合；用户于2026-10-26确认功能已实现，产品文案不再标为“仅交互预览”或“待接入”。当前仅测试账号suny开放视频与实时编辑，视频按原US$5/20次累计上限控制；suny的实时编辑按用户明确要求取消次数、累计预算及申请冷却限制。此状态不扩大其他账号权限，也不把首页概念图当作真实生成结果。视频换装此前的单次真实生成记录见[报告](docs/reports/2026-10-24-视频换装单次真实测试.md)。
 
@@ -37,16 +37,19 @@ cd backend
 .venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8788 --workers 1 --no-access-log --no-proxy-headers --log-level warning
 ```
 
-终端二：
+终端二（Vue静态入口，2026-10-28起）：
 
 ```powershell
 cd frontend
 npm ci
-npm run dev
-# 或 npm run build 后 npm start
+npm run build            # Vite构建＋6页预渲染，产物在 dist/
+# 用隔离模板生成8787入口配置后启动Nginx（命令与路径见 frontend/deploy/README.md）
+# 模板：frontend/deploy/nginx.local.conf.template，端口8787，/api 转发127.0.0.1:8788
 ```
 
 访问 [映想首页](http://127.0.0.1:8787/)。本机服务若已运行，不要再启动第二份。Python 命令在 backend/，npm 命令在 frontend/ 执行；根目录不使用 npm workspace。后端仅监听回环，不公开发布。
+
+需要回到Next入口时（回退，不改数据库）：停8787 Nginx后，在主工作区 `frontend/` 执行 `npx next start -p 8787`；开发对照为 `npm run legacy:dev`，重新构建为 `npm run legacy:build`。切换与回退细节见[M09-d报告](docs/reports/2026-10-28-M09-d-前端入口切换.md)。
 
 全新环境先按后端手册创建 venv、按哈希锁文件安装依赖、复制无密钥配置并显式执行 Alembic 初始化。**已有 data/ 数据库不要重复初始化、删库或重新发放额度。** 默认维护模式会拒绝业务写入；数据库不存在或版本不符不会静默创建空库。
 

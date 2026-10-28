@@ -5,8 +5,9 @@ import { accountCoordinator,sessionScope } from '../runtime';
 import { preferences,t } from '../preferences';
 import { durationLabel } from '../../lib/studio/policy';
 import { notify } from '../../lib/notices';
+import OrdersPanel from '../OrdersPanel.vue';
 import s from '../../components/site/site.module.css';
-defineProps<{section:'overview'|'usage'|'security'}>();
+defineProps<{section:'overview'|'usage'|'orders'|'security'}>();
 const {snapshot,refresh}=useAccountView();const account=computed(()=>snapshot.value.account),actionError=ref('');
 const remaining=computed(()=>account.value?.trialRemaining??0),trial=computed(()=>remaining.value>0),review=computed(()=>account.value?.trial==='review');
 const longDurations=computed(()=>account.value?.durations.filter(item=>item.seconds!==15)??[]),longRemaining=computed(()=>longDurations.value.reduce((sum,item)=>sum+item.remaining,0));
@@ -29,6 +30,7 @@ async function logout(){actionError.value='';try{await accountCoordinator.logout
           <div :class="s.paidBenefit"><div :class="s.quoteTop"><span>{{t('长时权益')}}</span><span>{{t(longRemaining?'已发放':'购买暂未开放')}}</span></div><strong>{{longRemaining}}<span>{{t('次可用体验')}}</span></strong><p>{{longDurations.map(item=>t(`${durationLabel(item.seconds)} · ${item.remaining}次`)).join(' / ')}}</p><RouterLink v-if="longRemaining" to="/studio">{{t('去使用对应时长 ↗')}}</RouterLink><RouterLink v-else to="/pricing">{{t('查看拟定价格 ↗')}}</RouterLink></div></section>
       </template>
       <section v-if="section==='usage'" :class="s.accountSection"><div :class="s.cardHeading"><h2>{{t('使用记录')}}</h2><span>{{t('最近20条 · 北京时间')}}</span></div><div v-if="account.history.length" :class="s.historyTable"><table><thead><tr><th>{{t('体验内容')}}</th><th>{{t('时间')}}</th><th>{{t('状态')}}</th></tr></thead><tbody><tr v-for="item in account.history" :key="item.id"><td>{{t('实时换装 ')}}<small>{{t(durationLabel(item.durationSec))}}{{t('体验')}}</small></td><td><time :datetime="item.createdAt">{{date(item.createdAt,true)}}</time></td><td><span :class="s.statusPill">{{t(item.state==='review'?'待核查':item.outcome==='ended'?'已结束':item.outcome==='error'?'连接异常':'已申请连接')}}</span></td></tr></tbody></table></div><div v-else :class="s.emptyState"><span aria-hidden="true">↗</span><h3>{{t('暂无使用记录')}}</h3><p>{{t('选择服装并开始实时换装后，这里会记录使用状态。')}}</p><RouterLink to="/studio" :class="s.textLink">{{t('进入创作空间 →')}}</RouterLink></div></section>
+      <section v-if="section==='orders'" :class="s.accountSection"><div :class="s.cardHeading"><h2>{{t('我的订单')}}</h2><RouterLink to="/pricing">{{t('查看价格 →')}}</RouterLink></div><OrdersPanel/></section>
       <section v-if="section==='security'" :class="s.accountSection"><div :class="s.cardHeading"><h2>{{t('账号信息')}}</h2><span>{{t('账号密码登录')}}</span></div><dl :class="s.accountDetails"><div><dt>{{t('账号')}}</dt><dd>{{account.user.username}}</dd></div><div><dt>{{t('注册日期')}}</dt><dd>{{date(account.user.createdAt)}}</dd></div><div><dt>{{t('手机号验证')}}</dt><dd>{{t('暂未开放')}}</dd></div><div><dt>{{t('密码管理')}}</dt><dd>{{t('暂不支持找回，请妥善保存密码。')}}</dd></div></dl><div :class="s.accountSignout"><span>{{t('生成视频与服装参考图保存到我的作品；相机原画和输入人物视频不保存。')}}</span><button type="button" :disabled="snapshot.busy" @click="logout">{{t(snapshot.busy?'正在退出…':'退出登录')}}</button></div><p v-if="actionError" role="alert" :class="s.inlineError">{{t(actionError)}}</p></section>
     </div>
   </main>
