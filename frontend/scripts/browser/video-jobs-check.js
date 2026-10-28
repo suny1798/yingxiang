@@ -1,0 +1,113 @@
+async(page)=>{
+  const origin='http://127.0.0.1:8791',check=(value,message)=>{if(!value)throw new Error(message);};
+  check(new URL(page.url()).origin===origin,'Use isolated Vue preview');await page.unrouteAll({behavior:'wait'});
+  await page.context().addCookies([{name:'yingxiang-locale',value:'zh',url:origin},{name:'yingxiang-theme',value:'light',url:origin}]);
+  await page.request.post(origin+'/api/account/logout',{headers:{Origin:origin}});
+  await page.addInitScript(()=>{
+    if(location.origin!=='http://127.0.0.1:8791')return;
+    const m=window.__videoJobs={urls:[],pngs:[],anchors:[],revoked:[],recorders:0};
+    const create=URL.createObjectURL.bind(URL),revoke=URL.revokeObjectURL.bind(URL);
+    URL.createObjectURL=blob=>{const url=create(blob);if(blob&&blob.type.startsWith('video/'))m.urls.push(url);if(blob&&blob.type==='image/png')m.pngs.push(blob);return url;};
+    URL.revokeObjectURL=url=>{m.revoked.push(url);revoke(url);};
+    const click=HTMLAnchorElement.prototype.click;HTMLAnchorElement.prototype.click=function(){if(this.download)m.anchors.push(this.download);return click.call(this);};
+    if(window.MediaRecorder)window.MediaRecorder=new Proxy(window.MediaRecorder,{construct(target,args){m.recorders++;return Reflect.construct(target,args);}});
+  });
+  await page.setViewportSize({width:1440,height:1000});await page.emulateMedia({reducedMotion:'reduce'});
+  const errors=[],posts=[],modelPosts=[];
+  page.on('pageerror',error=>errors.push(error.name));
+  page.on('request',request=>{if(request.method()==='POST'){const path=new URL(request.url()).pathname;posts.push(path);if(/^\/api\/(studio|prompt|payments)/.test(path))modelPosts.push(path);}});
+  const silent=await (await page.request.get(origin+'/assets/try-on-demo.mp4')).body();
+  check(silent.length>1000,'Synthetic silent MP4 available');
+  const job=(id,state)=>({id,state,createdAt:'2026-10-28T00:00:00.000Z',expiresAt:'2026-10-29T00:00:00.000Z',seconds:9,estimateUsd:0.36,expired:false});
+  let serviceJobs=[],submitCount=0,prepareCount=0,pollCount=0,attempt='',phase='pending',lastMultipart='';
+  await page.route('**/api/video/prepare',async route=>{
+    prepareCount++;
+    try{await new Promise(resolve=>setTimeout(resolve,prepareCount===1?1200:80));await route.fulfill({status:200,contentType:'video/mp4',body:silent});}catch{}
+  });
+  await page.route('**/api/video/jobs**',async route=>{
+    const request=route.request(),url=new URL(request.url()),path=url.pathname,method=request.method();
+    if(path==='/api/video/jobs'&&method==='GET')return route.fulfill({json:{available:true,message:'本轮视频生成已开放。',jobs:serviceJobs}});
+    if(path==='/api/video/jobs'&&method==='POST'){
+      submitCount++;attempt=request.headers()['x-video-attempt']??'';
+      lastMultipart=(request.postDataBuffer()??Buffer.alloc(0)).toString('latin1');
+      serviceJobs=[job(attempt,'pending')];phase='pending';
+      return route.abort('failed');
+    }
+    if(/\/api\/video\/jobs\/[^/]+\/content$/.test(path))return route.fulfill({status:200,contentType:'video/mp4',body:silent});
+    if(/\/api\/video\/jobs\/[^/]+$/.test(path)&&method==='GET'){
+      pollCount++;const id=path.split('/').at(-1);phase=phase==='pending'?'processing':'completed';
+      serviceJobs=serviceJobs.map(item=>item.id===id?job(id,phase):item);
+      return route.fulfill({json:job(id,phase)});
+    }
+    return route.fulfill({status:404,json:{error:{message:'Unexpected video route'}}});
+  });
+  await page.goto(origin+'/studio/video');await page.getByRole('button',{name:'登录 / 注册',exact:true}).waitFor();
+  const fileInput=()=>page.locator('input[type=file][accept="video/mp4,.mp4"]'),imageInput=()=>page.locator('input[type=file][accept*="image"]');
+  const localVideo=()=>page.locator('video[aria-label="本地人物视频预览"]'),resultVideo=()=>page.locator('video[aria-label="生成的换装视频"]');
+  await fileInput().setInputFiles('output/playwright/fixtures/person.mp4');await page.getByRole('button',{name:'移除',exact:true}).waitFor();
+  await page.getByText('检测到音轨；本机预览为静音，云端提交时会自动移除。').first().waitFor();
+  const png=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=64;canvas.height=64;canvas.getContext('2d').fillRect(0,0,64,64);return canvas.toDataURL('image/png').split(',')[1];});
+  await imageInput().setInputFiles({name:'garment.png',mimeType:'image/png',buffer:Buffer.from(png,'base64')});
+  await page.getByRole('button',{name:'使用服装1',exact:true}).waitFor();
+  await page.locator('[data-preview-details]').getByRole('checkbox').check();
+  await page.getByRole('button',{name:'登录后生成',exact:true}).click();
+  const dialog=page.locator('dialog[open]');await dialog.waitFor();
+  check(submitCount===0&&prepareCount===0,'Login gate does not submit or prepare');
+  const name='scope_video_'+Date.now().toString(36),password='Synthetic-Only-123';
+  await dialog.getByRole('button',{name:'创建账号',exact:true}).click();
+  await dialog.getByRole('textbox',{name:/^账号/}).fill(name);await dialog.getByLabel(/^密码/).fill(password);await dialog.getByRole('checkbox').check();await dialog.locator('form button[type=submit]').click();
+  await page.getByRole('button',{name:'账号菜单',exact:true}).waitFor();
+  check(await localVideo().count()===1,'Guest media survives sign-in');
+  await page.locator('[data-preview-details]').getByRole('checkbox').check();
+  await page.waitForFunction(()=>{const button=[...document.querySelectorAll('main button')].find(node=>node.textContent?.includes('生成换装视频'));return button&&!button.disabled;});
+  await page.getByRole('button',{name:'生成换装视频',exact:true}).click();
+  await page.getByRole('button',{name:'取消处理',exact:true}).waitFor();
+  const preparation=page.locator('[class*=preparation]');
+  await page.waitForFunction(()=>{const panel=document.querySelector('[class*=preparation]');return panel&&panel.textContent?.includes('正在上传视频');});
+  check(await preparation.locator('progress').count()===1,'Preparation exposes a real progress element');
+  await page.getByRole('button',{name:'取消处理',exact:true}).click();
+  await page.getByText('已取消视频处理。').waitFor();
+  check(submitCount===0,'Cancelled preparation does not submit');
+  check(prepareCount===1,'Preparation endpoint called once before submit');
+  await page.waitForFunction(()=>{const button=[...document.querySelectorAll('main button')].find(node=>node.textContent?.includes('生成换装视频'));return button&&!button.disabled;});
+  await page.getByRole('button',{name:'生成换装视频',exact:true}).click();
+  await page.getByText('提交结果尚未确认，请刷新任务核查，不要再次生成。').first().waitFor();
+  await page.getByText('已从任务列表恢复本次提交，请查看状态，不要再次生成。').waitFor();
+  check(submitCount===1,'Unknown submit POSTed exactly once');
+  check(/^[0-9a-f-]{36}$/.test(attempt),'X-Video-Attempt UUID: '+attempt);
+  check(lastMultipart.includes('name="data"')&&lastMultipart.includes('name="reference_image"')&&lastMultipart.includes('name="consentVersion"')&&lastMultipart.includes('2026-10-26-video-save-v1'),'Multipart fields and consent version');
+  check(prepareCount===2,'Audio removed before the single submit');
+  await page.getByText('排队中').first().waitFor();
+  await page.getByText('正在换装').first().waitFor({timeout:15000});
+  await page.waitForFunction(()=>{const video=document.querySelector('video[aria-label="生成的换装视频"]');return video&&video.readyState>=2;},undefined,{timeout:25000});
+  check(pollCount>=2,'Processing polled before completion');
+  const source=await resultVideo().getAttribute('src');check(source===`/api/video/jobs/${attempt}/content?v=0`,'Result content URL: '+source);
+  await page.waitForFunction(()=>{const button=[...document.querySelectorAll('[data-preview-stage] button')].find(node=>node.getAttribute('aria-label')==='保存当前帧');return button&&!button.disabled;});
+  await page.locator('[data-preview-stage]').getByRole('button',{name:'全屏观看',exact:true}).click();
+  await page.waitForFunction(()=>document.fullscreenElement===document.querySelector('[data-preview-stage]'));
+  await page.locator('[data-preview-stage]').getByRole('button',{name:'退出全屏',exact:true}).click();await page.waitForFunction(()=>document.fullscreenElement===null);
+  const beforePng=await page.evaluate(()=>window.__videoJobs.pngs.length);
+  await page.locator('[data-preview-stage]').getByRole('button',{name:'保存当前帧',exact:true}).click();
+  await page.waitForFunction(count=>window.__videoJobs.pngs.length>count,beforePng);
+  const frame=await page.evaluate(async()=>{const blob=window.__videoJobs.pngs.at(-1),bitmap=await createImageBitmap(blob),width=bitmap.width,height=bitmap.height;bitmap.close();return {type:blob.type,width,height};});
+  check(frame.type==='image/png'&&frame.width===1280&&frame.height===720,'Result PNG uses video size');
+  await page.getByRole('button',{name:'原视频',exact:true}).click();
+  check(await localVideo().count()===1&&await resultVideo().count()===0,'Switch back to local video');
+  await page.getByRole('button',{name:'换装结果',exact:true}).click();await resultVideo().waitFor();
+  await page.getByRole('button',{name:'视频镜像',exact:true}).click();
+  const [download]=await Promise.all([page.waitForEvent('download',{timeout:60000}),page.getByRole('button',{name:/^下载视频/}).click()]);
+  check(/^映想-视频换装\.(mp4|webm)$/.test(download.suggestedFilename()),'Mirrored download filename: '+download.suggestedFilename());
+  await page.screenshot({path:'output/playwright/video-jobs-result.png'});
+  await page.getByRole('button',{name:'返回创作',exact:true}).click();
+  await page.waitForFunction(()=>!document.querySelector('video[aria-label="生成的换装视频"]')&&Boolean(document.querySelector('video[aria-label="本地人物视频预览"]')));
+  check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth&&document.documentElement.scrollHeight<=innerHeight+1),'Desktop workbench fits viewport');
+  await page.setViewportSize({width:1280,height:900});await page.waitForFunction(()=>document.documentElement.scrollHeight<=innerHeight+1);
+  const pollsBeforeLeave=pollCount;
+  await page.getByRole('navigation',{name:'主导航',exact:true}).getByRole('link',{name:'帮助中心',exact:true}).click();
+  await page.waitForURL('**/help');await page.waitForTimeout(4500);
+  check(pollCount===pollsBeforeLeave,'No polling after route leave');
+  check(posts.every(path=>/^\/api\/(account\/(register|login|logout)|video\/(prepare|jobs))$/.test(path)),'No model, payment or work mutation: '+posts.join(','));
+  check(modelPosts.length===0,'No studio, prompt or payment POST');
+  check(errors.length===0,'Browser runtime errors: '+errors.join(','));
+  return {status:'OK',loginGate:true,audioPreparationCancelled:true,prepareCount,submitCount,unknownRecovered:true,processingToCompleted:true,pollCount,resultPlayback:true,resultPng:frame,fullscreen:true,switchOriginal:true,mirroredDownload:download.suggestedFilename(),backToStudio:true,leaveStopsPolling:true,noModelOrPaymentPost:true,noRuntimeErrors:true};
+}

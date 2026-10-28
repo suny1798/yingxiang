@@ -27,7 +27,7 @@ const active=(path:string)=>route.path===path||(path!=='/'&&route.path.startsWit
 </script>
 
 <template>
-  <div :class="[s.site,{[studio.studio]:route.path.startsWith('/studio')}]" :data-mode="route.path==='/studio'?'realtime':route.path==='/studio/video'?'video':undefined">
+  <div :class="[s.site,{[studio.studio]:route.path.startsWith('/studio')}]" :data-mode="route.path==='/studio'?'realtime':route.path==='/studio/video'?'video':route.path==='/studio/edit'?'prompt':undefined">
     <header :class="s.header"><div :class="s.headerInner">
       <RouterLink to="/" :class="s.brand" :aria-label="t('映想首页')">{{t('映想')}}<span aria-hidden="true">✳</span></RouterLink>
       <nav :class="s.navigation" :aria-label="t('主导航')">

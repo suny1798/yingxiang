@@ -13,6 +13,7 @@ import AccountPage from './pages/AccountPage.vue';
 import AdminAccess from './pages/AdminAccess.vue';
 import StudioPage from './pages/StudioPage.vue';
 import VideoStudioPage from './pages/VideoStudioPage.vue';
+import PromptStudioPage from './pages/PromptStudioPage.vue';
 import WorksPage from './pages/WorksPage.vue';
 import NotFound from './pages/NotFound.vue';
 import '../app/globals.css';
@@ -32,6 +33,7 @@ const router = createRouter({
     { path: '/admin', component: AdminAccess, meta:{title:'管理后台'} },
     { path: '/studio', component: StudioPage, meta:{title:'创作空间'} },
     { path: '/studio/video', component: VideoStudioPage, meta:{title:'视频换装'} },
+    { path: '/studio/edit', component: PromptStudioPage, meta:{title:'实时编辑'} },
     { path: '/works', component: WorksPage, meta:{title:'我的作品'} },
     { path: '/:pathMatch(.*)*', component: NotFound, meta: { title: '页面不存在', englishTitle: 'Page not found' } },
   ],

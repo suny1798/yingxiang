@@ -1,9 +1,10 @@
 import { onUnmounted,shallowRef,watch } from 'vue';
+import type { WorkPromptState } from '../lib/api-schema';
 import { GeneratedRecording } from '../lib/media/generated-recording';
 import { emptySave,WorkUpload,type ReferenceImage,type SaveSnapshot } from '../lib/works-upload';
 
 /** 生成画面默认录制并分片保存；离开或换账号只收尾，不重新生成。 */
-export function useGeneratedRecording(options: { enabled: boolean; live: () => boolean; stream: () => MediaStream | null; session: () => number | null; seconds: () => number; owner: () => string | null; reference: () => ReferenceImage | null }) {
+export function useGeneratedRecording(options: { enabled: boolean; live: () => boolean; stream: () => MediaStream | null; session: () => number | null; seconds: () => number; owner: () => string | null; kind?: 'realtime' | 'edit'; reference?: () => ReferenceImage | null; promptHistory?: () => readonly WorkPromptState[] }) {
   const recorder = new GeneratedRecording();
   const recording = shallowRef(recorder.getSnapshot()), save = shallowRef<SaveSnapshot>(emptySave);
   let started: number | null = null, boundOwner = options.owner(), uploader: WorkUpload | null = null, generation = 0;
@@ -18,12 +19,17 @@ export function useGeneratedRecording(options: { enabled: boolean; live: () => b
     if (options.enabled && live && stream && session !== null && started !== session) {
       started = session;
       const revision = generation;
-      uploader = owner ? new WorkUpload(owner, 'realtime', options.seconds(), value => { if (revision === generation) save.value = value; }) : null;
-      uploader?.addReference(options.reference());
+      uploader = owner ? new WorkUpload(owner, options.kind ?? 'realtime', options.seconds(), value => { if (revision === generation) save.value = value; }) : null;
+      uploader?.addReference(options.reference?.() ?? null);
+      uploader?.addPromptHistory(options.promptHistory?.() ?? []);
       void recorder.start(stream, options.seconds(), uploader ?? undefined);
-    } else if (!live || !stream) recorder.stop();
+    } else if (!live || !stream) {
+      uploader?.addPromptHistory(options.promptHistory?.() ?? []);
+      recorder.stop();
+    }
   }, { immediate: true });
-  watch(options.reference, value => { if (options.live()) uploader?.addReference(value); });
+  watch(options.reference ?? (() => null), value => { if (options.live()) uploader?.addReference(value); });
+  if (options.promptHistory) watch(options.promptHistory, value => { if (options.live()) uploader?.addPromptHistory(value); });
   const hidden = () => { if (document.hidden) recorder.stop(); };
   const leaving = () => recorder.finishInBackground();
   document.addEventListener('visibilitychange', hidden); window.addEventListener('pagehide', leaving);
