@@ -5,6 +5,7 @@ import { t } from './preferences';
 import s from '../components/studio/studio.module.css';
 const props=defineProps<{stream:MediaStream;camera:LocalCamera;mirrored:boolean}>();
 const video=ref<HTMLVideoElement|null>(null);
+defineExpose({video});
 watchEffect(onCleanup=>{
   const element=video.value,stream=props.stream;if(!element)return;
   let current=true;element.srcObject=stream;
