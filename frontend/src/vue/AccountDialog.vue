@@ -21,7 +21,7 @@ onMounted(()=>dialog.value?.showModal());
 onUnmounted(()=>{password.value='';username.value='';confirmed.value=false;dialog.value?.close();});
 </script>
 <template>
-  <div :class="s.studio" style="min-height:0;padding-bottom:0">
+  <div :class="s.studio" style="height:0;min-height:0;padding-bottom:0">
     <dialog ref="dialog" :class="s['account-dialog']" aria-labelledby="account-title" @cancel.prevent="close" @click="backdrop">
       <div :class="s['dialog-heading']"><span :class="s.eyebrow">{{t('映想 · ')}}{{t('账号登录与注册')}}</span><button type="button" :disabled="snapshot.busy" :class="s['icon-button']" :aria-label="t('关闭账号')" @click="close"><svg :class="s.icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
       <h2 id="account-title">{{t(register?'创建账号':'登录账号')}}</h2><p :class="s['account-subtitle']">{{t(register?'创建账号后可获得一次15秒实时换装免费体验。':'登录后查看权益、使用记录与账号信息。')}}</p>

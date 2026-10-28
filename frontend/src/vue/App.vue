@@ -3,6 +3,7 @@ import { watchEffect, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { preferences, t } from './preferences';
 import s from '../components/site/site.module.css';
+import studio from '../components/studio/studio.module.css';
 import NoticeCenter from './NoticeCenter.vue';
 import PreferenceControls from './PreferenceControls.vue';
 import SiteAnnouncement from './SiteAnnouncement.vue';
@@ -26,7 +27,7 @@ const active=(path:string)=>route.path===path||(path!=='/'&&route.path.startsWit
 </script>
 
 <template>
-  <div :class="s.site">
+  <div :class="[s.site,{[studio.studio]:route.path.startsWith('/studio')}]" :data-mode="route.path==='/studio'?'realtime':undefined">
     <header :class="s.header"><div :class="s.headerInner">
       <RouterLink to="/" :class="s.brand" :aria-label="t('映想首页')">{{t('映想')}}<span aria-hidden="true">✳</span></RouterLink>
       <nav :class="s.navigation" :aria-label="t('主导航')">
@@ -39,7 +40,7 @@ const active=(path:string)=>route.path===path||(path!=='/'&&route.path.startsWit
       </div>
     </div><SiteAnnouncement /></header>
     <RouterView />
-    <footer :class="s.footer"><div><RouterLink to="/" :class="s.footerBrand">{{t('映想 ')}}<span>✳</span></RouterLink><p>{{t('让想象，在眼前发生。')}}</p></div>
+    <footer v-if="!route.path.startsWith('/studio')" :class="s.footer"><div><RouterLink to="/" :class="s.footerBrand">{{t('映想 ')}}<span>✳</span></RouterLink><p>{{t('让想象，在眼前发生。')}}</p></div>
       <nav :aria-label="t('页脚导航')"><RouterLink v-for="[path,label] in footerLinks" :key="path" :to="path">{{t(label!)}}</RouterLink></nav>
       <p :class="s.footerNote">{{t('实时换装 · 视频换装 · 实时编辑')}}<br/>{{t('不采集音频；生成内容自动保存，可随时下载。')}}</p>
     </footer>
