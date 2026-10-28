@@ -29,6 +29,12 @@ migration:
   studio-fixture-enabled: false
   auth-enabled: false
   account-read-enabled: false
+  payments-enabled: false
+  admin-enabled: false
+  stripe-secret: ""
+  stripe-webhook-secret: ""
+  stripe-expected-account: ""
+  stripe-api-base: "http://127.0.0.1:12111"
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}

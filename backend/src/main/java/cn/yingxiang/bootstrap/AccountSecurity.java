@@ -37,9 +37,13 @@ public class AccountSecurity {
         http.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(AbstractHttpConfigurer::disable).httpBasic(AbstractHttpConfigurer::disable)
                 .logout(AbstractHttpConfigurer::disable).requestCache(AbstractHttpConfigurer::disable)
-                // 仅已迁移账号与显式本机studio替身写接口复用前置精确Host/Origin校验。
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/account/register", "/account/login", "/account/logout", "/studio/token", "/studio/observation"))
-                .authorizeHttpRequests(auth -> auth.requestMatchers("/account/me", "/account/register", "/account/login", "/account/logout", "/studio/status", "/studio/token", "/studio/observation").permitAll().anyRequest().denyAll())
+                // 仅已迁移账号与显式本机studio/支付/管理写接口复用前置精确Host/Origin校验。
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/account/register", "/account/login", "/account/logout",
+                                "/studio/token", "/studio/observation", "/payments/**", "/admin/**"))
+                .authorizeHttpRequests(auth -> auth.requestMatchers("/account/me", "/account/register", "/account/login",
+                                "/account/logout", "/studio/status", "/studio/token", "/studio/observation",
+                                "/payments/**", "/admin/**", "/site/announcement")
+                        .permitAll().anyRequest().denyAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, error) -> unavailable(request, response, json))
                         .accessDeniedHandler((request, response, error) -> unavailable(request, response, json)));
         AccountReader reader = readers.getIfAvailable();

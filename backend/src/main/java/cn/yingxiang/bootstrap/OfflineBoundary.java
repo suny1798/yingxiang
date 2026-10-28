@@ -22,29 +22,33 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
-/** M10-a 专用关闭边界；身份与业务接入后必须由后续切片显式替换。 */
+/** 迁移入口的显式关闭边界；每个切片只开放已实现且验证过的路径。 */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public final class OfflineBoundary extends OncePerRequestFilter {
     private final JsonMapper json;
-    private final String origin;
-    private final String authority;
-    private final Set<String> allowedAuthorities;
-    private final Set<String> allowedOrigins;
+    private final MigrationOrigin origin;
     private final List<Route> routes;
     private final boolean accountReadEnabled;
     private final boolean authEnabled;
     private final boolean maintenance;
     private final boolean studioFixtureEnabled;
+    private final boolean paymentsEnabled;
+    private final boolean adminEnabled;
 
-    public OfflineBoundary(Environment env, JsonMapper json) throws IOException {
-        this.json = json;
+    @org.springframework.beans.factory.annotation.Autowired
+    public OfflineBoundary(Environment env, JsonMapper json, MigrationOrigin origin) throws IOException {
+        this.json = json; this.origin = origin;
         accountReadEnabled = env.getProperty("migration.account-read-enabled", Boolean.class, false);
         authEnabled = env.getProperty("migration.auth-enabled", Boolean.class, false);
         maintenance = env.getProperty("migration.maintenance", Boolean.class, true);
         studioFixtureEnabled = env.getProperty("migration.studio-fixture-enabled", Boolean.class, false);
+        paymentsEnabled = env.getProperty("migration.payments-enabled", Boolean.class, false);
+        adminEnabled = env.getProperty("migration.admin-enabled", Boolean.class, false);
         Set<String> profiles = Set.copyOf(Arrays.asList(env.getActiveProfiles().length == 0
                 ? env.getDefaultProfiles() : env.getActiveProfiles()));
+        boolean readOnly = env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true);
+        String schema = env.getProperty("migration.db-schema", "");
         if (!(profiles.equals(Set.of("offline")) || profiles.equals(Set.of("local")))
                 || !"127.0.0.1".equals(env.getProperty("server.address"))
                 || !"/api".equals(env.getProperty("server.servlet.context-path", "/api"))
@@ -52,30 +56,14 @@ public final class OfflineBoundary extends OncePerRequestFilter {
                 || (!maintenance && !authEnabled)
                 || (authEnabled && !profiles.equals(Set.of("local")))
                 || (studioFixtureEnabled && (!authEnabled || !profiles.equals(Set.of("local"))))
-                || (studioFixtureEnabled && (env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true)
-                    || !env.getProperty("migration.db-schema", "").matches("yingxiang_migration_it_[a-f0-9]{12}")))
-                || (authEnabled && !maintenance && env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true))
+                || (studioFixtureEnabled && (readOnly || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                || (authEnabled && !maintenance && readOnly)
+                || ((paymentsEnabled || adminEnabled) && (!profiles.equals(Set.of("local")) || readOnly
+                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
                 || env.getProperty("migration.allow-external-providers", Boolean.class, false)
                 || env.getProperty("migration.scenes-enabled", Boolean.class, false)
                 || env.getProperty("migration.stripe-live-enabled", Boolean.class, false)) {
             throw new IllegalStateException("M10-a requires the isolated migration configuration");
-        }
-        origin = env.getRequiredProperty("migration.public-origin");
-        URI uri = URI.create(origin);
-        if (!Set.of("http", "https").contains(uri.getScheme()) || uri.getHost() == null
-                || uri.getUserInfo() != null || uri.getQuery() != null || uri.getFragment() != null
-                || (uri.getPath() != null && !uri.getPath().isEmpty())) {
-            throw new IllegalStateException("Invalid migration public origin");
-        }
-        authority = uri.getRawAuthority();
-        allowedAuthorities = new LinkedHashSet<>(Set.of(authority));
-        allowedOrigins = new LinkedHashSet<>(Set.of(origin));
-        if (profiles.equals(Set.of("local"))) {
-            int port = env.getProperty("server.port", Integer.class, 8792);
-            for (String host : List.of("127.0.0.1", "localhost")) {
-                allowedAuthorities.add(host + ":" + port);
-                allowedOrigins.add("http://" + host + ":" + port);
-            }
         }
         try (var stream = getClass().getResourceAsStream("/migration-api-routes.json")) {
             if (stream == null) throw new IllegalStateException("Missing frozen route catalog");
@@ -92,6 +80,11 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         }
     }
 
+    /** 仅测试入口：按同一环境构造来源校验。 */
+    OfflineBoundary(Environment env, JsonMapper json) throws IOException {
+        this(env, json, new MigrationOrigin(env));
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -100,31 +93,39 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         response.setHeader("Cache-Control", "no-store");
         response.setHeader("X-Content-Type-Options", "nosniff");
         String method = request.getMethod();
+        String path = request.getRequestURI();
         boolean safe = Set.of("GET", "HEAD", "OPTIONS").contains(method);
-        boolean authPath = Set.of("/api/account/register", "/api/account/login", "/api/account/logout").contains(request.getRequestURI());
-        boolean studioPath = Set.of("/api/studio/status", "/api/studio/token", "/api/studio/observation").contains(request.getRequestURI());
-        if (maintenance && ((authEnabled && authPath) || (studioFixtureEnabled && studioPath)) && !safe) {
+        boolean authPath = Set.of("/api/account/register", "/api/account/login", "/api/account/logout").contains(path);
+        boolean studioPath = Set.of("/api/studio/status", "/api/studio/token", "/api/studio/observation").contains(path);
+        boolean paymentPath = paymentsEnabled && path.startsWith("/api/payments/");
+        boolean adminPath = adminEnabled && (path.startsWith("/api/admin/") || path.equals("/api/site/announcement"));
+        if (maintenance && !safe && ((authEnabled && authPath) || (studioFixtureEnabled && studioPath)
+                || paymentPath || adminPath)) {
             error(request, response, 503, "MAINTENANCE", "服务维护中，请稍后再试。", requestId);
             return;
         }
-        // 精确Host/Origin保护显式启用的写接口，不接受转发头作为来源证据。
-        boolean accountPath = request.getRequestURI().equals("/api/account/me") || authPath || (studioFixtureEnabled && studioPath);
-        boolean wrongHost = !allowedAuthorities.contains(request.getHeader("Host"))
-                || "cross-site".equals(request.getHeader("Sec-Fetch-Site"));
-        boolean wrongOrigin = (request.getHeader("Origin") != null && !allowedOrigins.contains(request.getHeader("Origin")))
-                || (!safe && !allowedOrigins.contains(request.getHeader("Origin")));
-        if (accountPath && request.getHeader("Origin") != null && !wrongOrigin) {
-            wrongOrigin |= !URI.create(request.getHeader("Origin")).getRawAuthority().equals(request.getHeader("Host"));
+        // 精确Host/Origin保护显式启用的接口，不接受转发头作为来源证据。
+        // 支付写入口由控制器在支付门禁之后校验，保持旧入口“先门禁、后来源”的顺序。
+        boolean protectedPath = path.equals("/api/account/me") || authPath || (studioFixtureEnabled && studioPath)
+                || (adminPath && !path.equals("/api/site/announcement"));
+        if (!paymentPath) {
+            boolean wrongHost = !origin.hostAllowed(request.getHeader("Host"))
+                    || "cross-site".equals(request.getHeader("Sec-Fetch-Site"));
+            String sent = request.getHeader("Origin");
+            boolean wrongOrigin = (sent != null && !origin.originAllowed(sent)) || (!safe && sent == null);
+            if (protectedPath && sent != null && !wrongOrigin) {
+                wrongOrigin |= !URI.create(sent).getRawAuthority().equals(request.getHeader("Host"));
+            }
+            if (wrongHost || wrongOrigin) {
+                String code = protectedPath ? wrongHost ? "LOCAL_ONLY" : "ORIGIN_REJECTED" : "ORIGIN_FORBIDDEN";
+                String message = protectedPath ? wrongHost ? "此验证入口仅允许本机页面访问。" : "页面来源不符，请从本机验证入口重新打开。"
+                        : "请求来源不被允许";
+                error(request, response, 403, code, message, requestId);
+                return;
+            }
         }
-        if (wrongHost || wrongOrigin) {
-            String code = accountPath ? wrongHost ? "LOCAL_ONLY" : "ORIGIN_REJECTED" : "ORIGIN_FORBIDDEN";
-            String message = accountPath ? wrongHost ? "此验证入口仅允许本机页面访问。" : "页面来源不符，请从本机验证入口重新打开。" : "请求来源不被允许";
-            error(request, response, 403, code, message, requestId);
-            return;
-        }
-        String path = request.getRequestURI();
         if (Set.of("/api/internal/live", "/api/internal/ready").contains(path)) {
-            if (!Set.of("GET", "HEAD", "OPTIONS").contains(method)) {
+            if (!safe) {
                 response.setHeader("Allow", "GET, HEAD, OPTIONS");
                 error(request, response, 405, "METHOD_NOT_ALLOWED", "请求方法不被允许", requestId);
             } else if (method.equals("OPTIONS")) {
@@ -154,6 +155,8 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         } else if (authEnabled && !maintenance && authPath && method.equals("POST")) {
             chain.doFilter(request, response);
         } else if (studioFixtureEnabled && studioPath) {
+            chain.doFilter(request, response);
+        } else if (paymentPath || adminPath) {
             chain.doFilter(request, response);
         } else {
             error(request, response, 503, "SERVICE_DISABLED", "Java业务迁移尚未完成", requestId);

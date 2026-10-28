@@ -40,7 +40,10 @@ public final class AccountIntegrationFixture {
                     }
                     Map<String, List<Map<String, Object>>> tables = (Map<String, List<Map<String, Object>>>) body.get("tables");
                     for (var table : tables.entrySet()) {
-                        if (!Set.of("users", "auth_sessions", "entitlement_grants", "usage_attempts").contains(table.getKey())) throw new IllegalArgumentException();
+                        if (!Set.of("users", "auth_sessions", "entitlement_grants", "usage_attempts",
+                                "orders", "payment_events", "sandbox_credit_packs", "admin_audit", "admin_settings",
+                                "works", "work_references", "video_jobs", "video_history",
+                                "budget_campaigns", "budget_reservations", "scene_access", "auth_rate_limits").contains(table.getKey())) throw new IllegalArgumentException();
                         for (Map<String, Object> row : table.getValue()) {
                             List<String> columns = new ArrayList<>(row.keySet());
                             if (columns.stream().anyMatch(column -> !column.matches("[a-z_]+"))) throw new IllegalArgumentException();
@@ -164,6 +167,104 @@ public final class AccountIntegrationFixture {
                         } else {
                             try (var statement = connection.prepareStatement(sql)) { statement.setString(1, userId); statement.executeUpdate(); }
                         }
+                    } else if (action.equals("payments-state")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String username = String.valueOf(body.get("username"));
+                        List<Map<String, Object>> orders = new ArrayList<>(), grants = new ArrayList<>(),
+                                entries = new ArrayList<>(), packs = new ArrayList<>(), events = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT o.id,o.sku,o.plan_id,o.seconds,o.count,o.amount,o.currency,"
+                                + "o.state,o.session_id,o.checkout_url,o.expires_at,o.fulfilled_at,o.request_snapshot,o.created_at "
+                                + "FROM orders o JOIN users u ON u.id=o.user_id WHERE u.username=? ORDER BY o.created_at,o.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) {
+                                    var item = new LinkedHashMap<String, Object>();
+                                    item.put("id", rows.getString("id")); item.put("sku", rows.getString("sku"));
+                                    item.put("planId", rows.getString("plan_id")); item.put("seconds", rows.getObject("seconds"));
+                                    item.put("count", rows.getObject("count")); item.put("amount", rows.getInt("amount"));
+                                    item.put("currency", rows.getString("currency")); item.put("state", rows.getString("state"));
+                                    item.put("sessionId", rows.getString("session_id")); item.put("checkoutUrl", rows.getString("checkout_url"));
+                                    item.put("expiresAt", rows.getObject("expires_at")); item.put("fulfilledAt", rows.getObject("fulfilled_at"));
+                                    item.put("requestSnapshot", rows.getString("request_snapshot")); item.put("createdAt", rows.getLong("created_at"));
+                                    orders.add(item);
+                                }
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT g.id,g.seconds,g.environment,g.source,g.source_key,g.total,g.reserved,g.used,g.revoked "
+                                + "FROM entitlement_grants g JOIN users u ON u.id=g.user_id WHERE u.username=? ORDER BY g.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) grants.add(Map.of("id", rows.getString(1), "seconds", rows.getInt(2),
+                                        "environment", rows.getString(3), "source", rows.getString(4), "sourceKey", rows.getString(5),
+                                        "total", rows.getInt(6), "reserved", rows.getInt(7), "used", rows.getInt(8), "revoked", rows.getInt(9)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT e.operation_key,e.kind,e.quantity FROM entitlement_entries e "
+                                + "JOIN entitlement_grants g ON g.id=e.grant_id JOIN users u ON u.id=g.user_id WHERE u.username=? ORDER BY e.operation_key")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) entries.add(Map.of("operationKey", rows.getString(1), "kind", rows.getString(2), "quantity", rows.getInt(3)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT p.order_id,p.plan_id,p.credits,p.scenes,p.created_at FROM sandbox_credit_packs p "
+                                + "JOIN users u ON u.id=p.user_id WHERE u.username=? ORDER BY p.created_at,p.order_id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) packs.add(Map.of("orderId", rows.getString(1), "planId", rows.getString(2),
+                                        "credits", rows.getInt(3), "scenes", rows.getString(4), "createdAt", rows.getLong(5)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT e.id,e.order_id,e.source,e.created_at FROM payment_events e "
+                                + "JOIN orders o ON o.id=e.order_id JOIN users u ON u.id=o.user_id WHERE u.username=? ORDER BY e.created_at,e.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) events.add(Map.of("id", rows.getString(1), "orderId", rows.getString(2),
+                                        "source", rows.getString(3), "createdAt", rows.getLong(4)));
+                            }
+                        }
+                        report.put("orders", orders); report.put("grants", grants); report.put("entries", entries);
+                        report.put("packs", packs); report.put("events", events);
+                    } else if (action.equals("admin-state")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String username = String.valueOf(body.get("username"));
+                        List<Map<String, Object>> users = new ArrayList<>(), audit = new ArrayList<>(),
+                                settings = new ArrayList<>(), grants = new ArrayList<>(), entries = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT id,username,role,disabled FROM users ORDER BY username")) {
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) users.add(Map.of("id", rows.getString(1), "username", rows.getString(2),
+                                        "role", rows.getString(3), "disabled", rows.getInt(4)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT request_id,actor_id,action,target,reason,changes,created_at "
+                                + "FROM admin_audit ORDER BY created_at,id")) {
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) audit.add(Map.of("requestId", rows.getString(1), "actorId", rows.getString(2),
+                                        "action", rows.getString(3), "target", rows.getString(4), "reason", rows.getString(5),
+                                        "changes", rows.getString(6), "createdAt", rows.getLong(7)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT key,value,version FROM admin_settings ORDER BY key")) {
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) settings.add(Map.of("key", rows.getString(1), "value", rows.getString(2), "version", rows.getInt(3)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT g.id,g.seconds,g.total,g.reserved,g.used,g.revoked FROM entitlement_grants g "
+                                + "JOIN users u ON u.id=g.user_id WHERE u.username=? AND g.environment='real_usage' ORDER BY g.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) grants.add(Map.of("id", rows.getString(1), "seconds", rows.getInt(2), "total", rows.getInt(3),
+                                        "reserved", rows.getInt(4), "used", rows.getInt(5), "revoked", rows.getInt(6)));
+                            }
+                        }
+                        try (var query = connection.prepareStatement("SELECT e.operation_key,e.kind,e.quantity FROM entitlement_entries e "
+                                + "JOIN entitlement_grants g ON g.id=e.grant_id JOIN users u ON u.id=g.user_id WHERE u.username=? ORDER BY e.operation_key")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) entries.add(Map.of("operationKey", rows.getString(1), "kind", rows.getString(2), "quantity", rows.getInt(3)));
+                            }
+                        }
+                        report.put("users", users); report.put("audit", audit); report.put("settings", settings);
+                        report.put("grants", grants); report.put("entries", entries);
                     } else throw new IllegalArgumentException();
                 }
             }
