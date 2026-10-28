@@ -1,5 +1,6 @@
 import type { AccountView } from '../lib/account';
 import { SessionScope } from './session-scope';
+import type { IdentitySignal,IdentitySignals } from './identity-signals';
 
 type Snapshot={account:AccountView|null;error:string|null;busy:boolean};
 type Request=(url:string,init:RequestInit)=>Promise<Response>;
@@ -25,15 +26,32 @@ export class AccountCoordinator {
   private mutationController:AbortController|null=null;
   private active=true;
   private stopScope:()=>void;
-  constructor(readonly scope:SessionScope,private request:Request=(url,init)=>fetch(url,init)){
+  private stopSignals:(()=>void)|undefined;
+  private localBusy=false;
+  private remote=new Map<string,ReturnType<typeof setTimeout>>();
+  constructor(readonly scope:SessionScope,private request:Request=(url,init)=>fetch(url,init),private signals?:IdentitySignals,private remoteTimeoutMs=60_000){
     this.stopScope=scope.onIdentityChange(()=>this.publish({account:null,error:null}));
+    this.stopSignals=signals?.subscribe(signal=>this.receive(signal));
   }
   getSnapshot=()=>this.snapshot;
   subscribe=(listener:()=>void)=>{this.listeners.add(listener);return ()=>{this.listeners.delete(listener);};};
   private publish(value:Partial<Snapshot>){if(!this.active)return;this.snapshot={...this.snapshot,...value};this.listeners.forEach(listener=>listener());}
   private abortRead(){this.revision++;this.readController?.abort();this.pending=null;}
+  private updateBusy(){const busy=this.localBusy||this.remote.size>0;this.scope.state.transitioning=busy;this.publish({busy});}
+  private receive(signal:IdentitySignal){
+    if(!this.active)return;
+    if(signal.phase==='settled'){
+      const timer=this.remote.get(signal.id);if(!timer)return;
+      clearTimeout(timer);this.remote.delete(signal.id);this.updateBusy();
+      if(!this.snapshot.busy)void this.revalidate();return;
+    }
+    if(this.remote.has(signal.id)||this.remote.size>=32)return;
+    this.remote.set(signal.id,setTimeout(()=>this.receive({phase:'settled',id:signal.id}),this.remoteTimeoutMs));
+    this.abortRead();this.updateBusy();
+    void this.scope.changeIdentity(null,true).then(()=>{if(!this.snapshot.busy)void this.revalidate();}).catch(()=>this.publish({error:'旧账号资源清理未完成，请刷新页面后继续。'}));
+  }
   private read=():Promise<AccountView|null>=>{
-    if(!this.active||this.scope.state.blocked)return Promise.resolve(null);
+    if(!this.active||this.scope.state.blocked||this.remote.size)return Promise.resolve(null);
     this.abortRead();const operation=this.revision,token=this.scope.capture(),controller=new AbortController();this.readController=controller;
     const pending=(async()=>{
       try {
@@ -48,7 +66,9 @@ export class AccountCoordinator {
         if(!response.ok)throw new Error(readError);
         const account=accountValue(await response.json());
         if(!this.active||operation!==this.revision||!this.scope.current(token))return null;
-        const changing=this.scope.changeIdentity(account.user?.id??null),confirmed=this.scope.capture();await changing;
+        const previous=this.snapshot.account?.user;
+        const roleChanged=!!previous&&previous.id===account.user?.id&&(previous.role??'user')!==(account.user.role??'user');
+        const changing=this.scope.changeIdentity(account.user?.id??null,roleChanged),confirmed=this.scope.capture();await changing;
         if(!this.active||operation!==this.revision||!this.scope.current(confirmed))return null;
         if(account.user)this.scope.client.setQueryData(['private',account.user.id,confirmed.epoch,'account'],account);
         this.publish({account,error:null});return account;
@@ -66,7 +86,9 @@ export class AccountCoordinator {
   async logout(){await this.authentication('logout');}
   private async authentication(action:'login'|'register'|'logout',body?:{username:string;password:string}) {
     if(!this.active||this.snapshot.busy)throw new Error('账号操作正在处理中。');
-    this.abortRead();this.publish({busy:true,error:null});
+    const signalId=this.signals?crypto.randomUUID():undefined;
+    this.localBusy=true;this.updateBusy();this.abortRead();this.publish({error:null});
+    if(signalId)this.signals!.publish({phase:'changing',id:signalId});
     const controller=new AbortController();this.mutationController=controller;
     try {
       // 在任何写入前隔离旧身份；失败后只能以新的服务器读取恢复显示。
@@ -86,7 +108,7 @@ export class AccountCoordinator {
       // 不补发POST；仅核查当前Cookie。成功与否仍按本次写入和本人再确认判断。
       if(this.active)await this.read();
       throw new Error(this.scope.state.blocked?'旧账号资源清理未完成，请刷新页面后继续。':error instanceof AccountOperationError?error.message:operationError);
-    }finally {this.mutationController=null;this.publish({busy:false});}
+    }finally {this.mutationController=null;this.localBusy=false;this.updateBusy();if(signalId)this.signals!.publish({phase:'settled',id:signalId});}
   }
-  async dispose(){this.active=false;this.abortRead();this.mutationController?.abort();this.listeners.clear();this.stopScope();await this.scope.changeIdentity(null,true);}
+  async dispose(){this.active=false;this.abortRead();this.mutationController?.abort();this.listeners.clear();this.stopScope();this.stopSignals?.();this.signals?.close();for(const timer of this.remote.values())clearTimeout(timer);this.remote.clear();this.scope.state.transitioning=false;await this.scope.changeIdentity(null,true);}
 }

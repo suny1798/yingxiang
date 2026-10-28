@@ -3,7 +3,7 @@ import { QueryClient, type QueryKey } from '@tanstack/vue-query';
 
 /** 仅最小身份协调和弹窗；账号详情归Query，媒体／令牌／素材不进入store。 */
 export const useIdentityScopeStore=defineStore('identity-scope',{
-  state:()=>({userId:null as string|null,epoch:0,loginOpen:false,blocked:false}),
+  state:()=>({userId:null as string|null,epoch:0,loginOpen:false,blocked:false,transitioning:false}),
 });
 
 export function createAppQueryClient() {
@@ -49,6 +49,7 @@ export class SessionScope {
   }
 
   private key(token:IdentityToken,key:QueryKey):QueryKey {
+    if(this.state.transitioning)throw new Error('账号操作正在处理中。');
     if(this.state.blocked)throw new Error('旧账号资源清理未完成，请刷新页面后继续。');
     if(!token.userId)throw new Error('请先登录。');
     return ['private',token.userId,token.epoch,...key];

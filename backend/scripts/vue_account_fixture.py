@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 import uvicorn
 from fastapi import Request
 
-from app.core import Settings, local_origin, private_json
+from app.core import Settings, local_origin, private_json, read_json, BusinessError
 from app.main import create_app
 from scripts.ops import initialize
 
@@ -25,6 +25,7 @@ def run():
     parser.add_argument('--port', type=int, default=8790)
     parser.add_argument('--origin', default='http://127.0.0.1:8791')
     parser.add_argument('--lifetime-seconds', type=int, default=900)
+    parser.add_argument('--allow-identity-controls', action='store_true', help='仅临时库角色／停用测试控制，默认不注册')
     args = parser.parse_args()
     origin = urlsplit(args.origin)
     if not (1024 <= args.port <= 65535 and 30 <= args.lifetime_seconds <= 3600
@@ -47,6 +48,25 @@ def run():
         app = create_app(settings)
         server = uvicorn.Server(uvicorn.Config(app, host='127.0.0.1', port=args.port,
                                               access_log=False, log_level='error', proxy_headers=False))
+
+        if args.allow_identity_controls:
+            from sqlalchemy import select, update
+            from app.models import users
+
+            @app.post('/api/__migration/identity')
+            async def identity(request: Request):
+                local_origin(request, settings, True)
+                body = await read_json(request, True)
+                name, role, disabled = body.get('username'), body.get('role'), body.get('disabled', False)
+                if not isinstance(name, str) or not name.startswith('scope_') or role not in ('user', 'admin') or not isinstance(disabled, bool):
+                    raise BusinessError('BAD_REQUEST', 'Invalid synthetic identity control', 400)
+                # 仅作用于本函数创建的临时库；不是产品授权API，不载入正式设置。
+                with app.state.db.transaction(True) as session:
+                    row = session.execute(select(users).where(users.c.username == name)).mappings().first()
+                    if not row:
+                        raise BusinessError('NOT_FOUND', 'Synthetic user missing', 404)
+                    session.execute(update(users).where(users.c.id == row['id']).values(role=role, disabled=disabled))
+                return private_json({'accepted': True})
 
         @app.post('/api/__migration/finish')
         async def finish(request: Request):

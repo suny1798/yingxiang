@@ -6,6 +6,7 @@ export interface PreferenceBrowser {
   secure: boolean;
   writeCookie(value: string): void;
   setItem(key: string, value: string): void;
+  broadcast?(key:string,value:string):void;
   listen(handler: (event: { key: string | null; newValue: string | null }) => void): () => void;
 }
 
@@ -21,6 +22,7 @@ export function createPreferenceState(browser: PreferenceBrowser) {
   function persist(key: string, value: string) {
     try { browser.writeCookie(`${key}=${value}; Path=/; Max-Age=31536000; SameSite=Lax${browser.secure ? '; Secure' : ''}`); } catch {}
     try { browser.setItem(key, value); } catch {}
+    try { browser.broadcast?.(key,value); } catch {}
   }
   const stop = browser.listen(event => {
     if (event.key === LOCALE_COOKIE) locale.value = validLocale(event.newValue);
