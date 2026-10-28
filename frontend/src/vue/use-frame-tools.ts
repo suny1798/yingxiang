@@ -17,7 +17,7 @@ const browserHost: FrameHost = {
 };
 
 /** Vue只桥接页面操作；流、视频元素与导出结果仍由页面拥有，不进入store。 */
-export function useFrameTools(options: { stage: () => HTMLElement | null; video: () => HTMLVideoElement | null; stem: () => string }) {
+export function useFrameTools(options: { stage: () => HTMLElement | null; video: () => HTMLVideoElement | null; stem: () => string; mirrored?: boolean }) {
   const tools = new LocalFrameTools(browserHost, {
     capture: (video, mirrored) => captureVideoFrame(video, mirrored),
     download: (blob, filename) => downloadVideoFrame(blob, filename),

@@ -47,6 +47,13 @@ test('默认镜像开启、全屏支持按浏览器能力读取，切换镜像�
   const unsupported=fixture(undefined,false);assert.equal(unsupported.tools.getSnapshot().supported,false);unsupported.tools.dispose();
 });
 
+test('视频页可显式关闭初始镜像，状态与截图读取同一来源',()=>{
+  const host=new Host(),p=platform();
+  const tools=new LocalFrameTools(host,p.value,{stage:()=>null,video:()=>null,stem:()=>'x',mirrored:false});
+  assert.equal(tools.getSnapshot().mirrored,false);
+  tools.toggleMirror();assert.equal(tools.getSnapshot().mirrored,true);tools.dispose();
+});
+
 test('截图使用点击时镜像与当前视频，重复点击只导出一次，成功后恢复可再次操作',async()=>{
   const f=fixture(),running=f.tools.capture();
   assert.equal(f.tools.getSnapshot().capturing,true);

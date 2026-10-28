@@ -31,8 +31,8 @@ export class LocalFrameTools {
   private disposed = false;
   private readonly stopScope: (() => void) | undefined;
 
-  constructor(private host: FrameHost, private platform: FrameToolsPlatform, private options: { stage: () => HTMLElement | null; video: () => HTMLVideoElement | null; stem: () => string; scope?: SessionScope }) {
-    this.value = { mirrored: true, fullscreen: false, supported: Boolean(host.fullscreenEnabled), capturing: false };
+  constructor(private host: FrameHost, private platform: FrameToolsPlatform, private options: { stage: () => HTMLElement | null; video: () => HTMLVideoElement | null; stem: () => string; scope?: SessionScope; mirrored?: boolean }) {
+    this.value = { mirrored: options.mirrored ?? true, fullscreen: false, supported: Boolean(host.fullscreenEnabled), capturing: false };
     this.stops.push(host.onFullscreenChange(() => this.syncFullscreen()));
     this.stops.push(host.onHidden(() => { if (this.host.hidden) this.cancel(); }));
     this.stops.push(host.onPageHide(() => this.cancel()));

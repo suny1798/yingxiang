@@ -12,6 +12,7 @@ import HomePage from './pages/HomePage.vue';
 import AccountPage from './pages/AccountPage.vue';
 import AdminAccess from './pages/AdminAccess.vue';
 import StudioPage from './pages/StudioPage.vue';
+import VideoStudioPage from './pages/VideoStudioPage.vue';
 import NotFound from './pages/NotFound.vue';
 import '../app/globals.css';
 
@@ -29,6 +30,7 @@ const router = createRouter({
     { path: '/account/security', component: AccountPage, props:{section:'security'}, meta:{title:'账号信息'} },
     { path: '/admin', component: AdminAccess, meta:{title:'管理后台'} },
     { path: '/studio', component: StudioPage, meta:{title:'创作空间'} },
+    { path: '/studio/video', component: VideoStudioPage, meta:{title:'视频换装'} },
     { path: '/:pathMatch(.*)*', component: NotFound, meta: { title: '页面不存在', englishTitle: 'Page not found' } },
   ],
   scrollBehavior(to, _from, saved) { return saved ?? (to.hash ? { el: to.hash, top: 108 } : { top: 0 }); },

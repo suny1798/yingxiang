@@ -700,6 +700,7 @@
   "查看我的权益 ↗": "View my access ↗",
   "查看方案 · 购买暂未开放 ↗": "View plans · Purchases unavailable ↗",
   "检测到音轨，系统会自动移除。无需手动剪辑。": "Audio detected. It will be removed automatically; no manual editing needed.",
+  "检测到音轨；本机预览为静音，云端提交时会自动移除。": "Audio detected. The local preview is muted; audio is removed when you submit to the cloud.",
   "模型测试只接受本地上传的有效服装图片。": "Model tests require a valid garment image uploaded from your device.",
   "模型返回错误（{0}），本轮已停止。请核对供应商用量。": "The model returned an error ({0}). The session stopped. Check provider usage.",
   "模型连接已中断，本轮停止，不自动重新建连。": "The model connection was interrupted. This session stopped without automatic reconnection.",

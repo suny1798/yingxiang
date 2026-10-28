@@ -11,9 +11,9 @@ import GarmentPicker from '../GarmentPicker.vue';
 import CameraPreview from '../CameraPreview.vue';
 import MediaTools from '../MediaTools.vue';
 import MirrorButton from '../MirrorButton.vue';
+import StudioModes from '../StudioModes.vue';
 import StudioIcon from '../StudioIcon.vue';
 import s from '../../components/studio/studio.module.css';
-import modes from '../../components/studio/studio-modes.module.css';
 const {media,stream,preview,input,toggleCamera}=useLocalStudio(),{snapshot}=useAccountView();
 const slot=ref<HTMLDivElement|null>(null),stage=ref<HTMLElement|null>(null),cameraView=ref<{video:HTMLVideoElement|null}|null>(null),hintClosed=ref(false),duration=ref<DurationSec>(15);
 const {snapshot:frame,toggleMirror,toggleFullscreen,capture}=useFrameTools({stage:()=>stage.value,video:()=>cameraView.value?.video??null,stem:()=> '映想-相机原画'});
@@ -25,7 +25,7 @@ function upload(files:File[]){if(!document.hidden&&!sessionScope.state.transitio
 <template>
   <main id="creative-space" :class="[s['page-shell'],s['creation-shell']]" @dragover.prevent @drop.prevent>
     <div :class="s['workbench-title']"><h1>{{t('创作空间')}}</h1><span>{{t('实时换装')}}</span><RouterLink to="/account">{{t(snapshot.account?.user?`剩余 ${snapshot.account.durations.reduce((sum,item)=>sum+item.remaining,0)} 次`:'我的权益')}} ↗</RouterLink></div>
-    <nav :class="modes.modes" :aria-label="t('创作模式')"><RouterLink to="/studio" aria-current="page"><span aria-hidden="true">◉</span>{{t('实时换装')}}</RouterLink><RouterLink to="/studio/video"><span aria-hidden="true">▷</span>{{t('视频换装')}}</RouterLink><RouterLink to="/studio/edit"><span aria-hidden="true">✳</span>{{t('实时编辑')}}</RouterLink></nav>
+    <StudioModes active="realtime"/>
     <div :class="s.workspace">
       <GarmentPicker :input="input" @upload="upload" @select="media.input.select" @remove="media.input.remove" @cancel="media.input.cancel"/>
       <div ref="slot" :class="s['preview-slot']"><section id="preview" data-workspace-preview :class="[s['mirror-panel'],s.panel,s['compact-mirror']]" :aria-label="t('相机与映想画面')">
