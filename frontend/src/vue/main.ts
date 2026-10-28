@@ -9,6 +9,8 @@ import HelpPage from './pages/HelpPage.vue';
 import FeedbackPage from './pages/FeedbackPage.vue';
 import PricingPage from './pages/PricingPage.vue';
 import HomePage from './pages/HomePage.vue';
+import AccountPage from './pages/AccountPage.vue';
+import AdminAccess from './pages/AdminAccess.vue';
 import NotFound from './pages/NotFound.vue';
 import '../app/globals.css';
 
@@ -21,6 +23,10 @@ const router = createRouter({
     { path: '/help', component: HelpPage, meta: { title: '帮助中心' } },
     { path: '/help/feedback', component: FeedbackPage, meta: { title: '问题反馈' } },
     { path: '/pricing', component: PricingPage, meta: { title: '价格方案' } },
+    { path: '/account', component: AccountPage, props:{section:'overview'}, meta:{title:'个人中心'} },
+    { path: '/account/usage', component: AccountPage, props:{section:'usage'}, meta:{title:'使用记录'} },
+    { path: '/account/security', component: AccountPage, props:{section:'security'}, meta:{title:'账号信息'} },
+    { path: '/admin', component: AdminAccess, meta:{title:'管理后台'} },
     { path: '/:pathMatch(.*)*', component: NotFound, meta: { title: '页面不存在', englishTitle: 'Page not found' } },
   ],
   scrollBehavior(to, _from, saved) { return saved ?? (to.hash ? { el: to.hash, top: 108 } : { top: 0 }); },
