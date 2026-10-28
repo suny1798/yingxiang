@@ -32,7 +32,7 @@ export class SessionScope {
   /** 先推进世代，再同步取消／清缓存／停止旧资源。强制刷新用于退出或重新认证。 */
   async changeIdentity(userId:string|null,force=false) {
     if(!force&&userId===this.state.userId)return false;
-    this.state.epoch++;this.state.userId=userId;this.state.loginOpen=false;
+    this.state.epoch++;this.state.userId=userId;
     const cancelled=this.client.cancelQueries({predicate:privateQuery},{silent:true});
     this.client.removeQueries({predicate:privateQuery});
     let failed=false;

@@ -1422,5 +1422,10 @@
   "生成依赖云端连接，网络线路会影响等待和流畅度。出现超时或结果未知时，先查看使用记录或我的作品，不要连续点击生成，以免重复提交。": "Generation depends on a cloud connection, and your network affects waiting times and smoothness. If a request times out or its result is unknown, check usage records or My creations first. Do not repeatedly click generate and submit duplicate requests.",
   "视频换装已提交的任务会在后台继续生成和保存，可在“我的作品”查看结果。本站已收到的实时录像片段会继续保存；未上传片段在强制关闭或断网时可能丢失。素材预览和提示词草稿仍只留在本页。": "Submitted video try-on tasks continue generating and saving in the background. View results in My creations. Live recording segments already received by this site continue to save; segments not yet uploaded may be lost if the browser is forced closed or the network disconnects. Material previews and prompt drafts remain only on this page.",
   "后端会自动保存生成结果及服装参考图，已保存作品可在“我的作品”随时回看。供应商结果过期前未能保存的历史任务可能无法补存。": "The backend automatically saves generated results and garment references. Saved creations can be viewed in My creations. Older tasks that were not saved before the provider result expired may no longer be recoverable.",
-  "先查看使用记录和我的作品，记录出错时间与页面提示，再交给项目维护者核查。删除作品不会恢复额度；重试保存只获取已有结果，不会重新生成。": "Check usage records and My creations first. Record the time and the message shown, then share them with the project maintainer for review. Deleting a creation does not restore quota. Retrying a save only retrieves an existing result; it does not generate again."
+  "先查看使用记录和我的作品，记录出错时间与页面提示，再交给项目维护者核查。删除作品不会恢复额度；重试保存只获取已有结果，不会重新生成。": "Check usage records and My creations first. Record the time and the message shown, then share them with the project maintainer for review. Deleting a creation does not restore quota. Retrying a save only retrieves an existing result; it does not generate again.",
+  "重新读取账号": "Retry account lookup",
+  "账号操作未完成，请刷新状态核查，不要重复提交。": "Account operation could not be confirmed. Refresh your account status before submitting again.",
+  "账号操作正在处理中。": "An account operation is already in progress.",
+  "旧账号资源清理未完成，请刷新页面后继续。": "Previous account resources could not be cleared. Reload the page to continue.",
+  "刷新页面": "Reload page"
 }

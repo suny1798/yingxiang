@@ -1,15 +1,15 @@
 import { shallowRef, onMounted, onUnmounted, watch } from 'vue';
-import { accountSession } from '../lib/account-session';
+import { accountCoordinator } from './runtime';
 import { notify } from '../lib/notices';
 
-/** 当前由价格页消费；M04接全站账号协调后改由共享页面容器提供。 */
-export function useAccountView() {
-  const snapshot=shallowRef(accountSession.getSnapshot());
-  const stop=accountSession.subscribe(()=>{snapshot.value=accountSession.getSnapshot();});
-  const update=()=>{if (!document.hidden) void accountSession.revalidate();};
+/** 仅公共容器传入poll=true；页面只订阅，不重复创建读取计时器。 */
+export function useAccountView(poll=false) {
+  const snapshot=shallowRef(accountCoordinator.getSnapshot());
+  const stop=accountCoordinator.subscribe(()=>{snapshot.value=accountCoordinator.getSnapshot();});
+  const update=()=>{if (!document.hidden) void accountCoordinator.revalidate();};
   let timer:ReturnType<typeof setInterval>|undefined;
-  onMounted(()=>{update(); timer=setInterval(update,10_000); window.addEventListener('focus',update);});
+  onMounted(()=>{if(poll){update();timer=setInterval(update,10_000);window.addEventListener('focus',update);}});
   onUnmounted(()=>{stop(); clearInterval(timer); window.removeEventListener('focus',update);});
-  watch(()=>snapshot.value.error,error=>{if(error) notify(error,'error');});
-  return {snapshot,refresh:accountSession.refresh};
+  if(poll)watch(()=>snapshot.value.error,error=>{if(error) notify(error,'error');});
+  return {snapshot,refresh:accountCoordinator.refresh};
 }

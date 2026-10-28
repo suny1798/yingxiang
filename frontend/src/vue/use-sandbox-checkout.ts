@@ -1,11 +1,9 @@
 import { shallowRef, onMounted, onUnmounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import { accountSession } from '../lib/account-session';
+import { accountCoordinator,sessionScope } from './runtime';
 import { SandboxCheckout } from '../lib/sandbox-checkout';
 import { notify } from '../lib/notices';
 
 export function useSandboxCheckout() {
-  const router=useRouter();
   const controller=new SandboxCheckout({
     async request(url,body) {
       let response: Response;
@@ -17,10 +15,10 @@ export function useSandboxCheckout() {
       if (!response.ok) throw new Error(typeof value?.error?.message==='string'?value.error.message:'支付服务暂不可用。');
       return value;
     },
-    userId:()=>accountSession.getSnapshot().account?.user?.id,
-    refresh:accountSession.refresh,
-    // M04接入账号模态前使用既定个人中心入口；不伪造登录成功。
-    openLogin:()=>{void router.push('/account');},
+    userId:()=>accountCoordinator.getSnapshot().account?.user?.id,
+    identityEpoch:()=>sessionScope.state.epoch,
+    refresh:accountCoordinator.refresh,
+    openLogin:()=>{sessionScope.state.loginOpen=true;},
     navigate:url=>window.location.assign(url), requestId:()=>crypto.randomUUID(),
   });
   const state=shallowRef(controller.getSnapshot());

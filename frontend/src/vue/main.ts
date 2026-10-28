@@ -1,4 +1,6 @@
 import { createApp } from 'vue';
+import { VueQueryPlugin } from '@tanstack/vue-query';
+import { pinia,queryClient } from './runtime';
 import { createRouter, createWebHistory } from 'vue-router';
 import App from './App.vue';
 import TermsPage from './pages/TermsPage.vue';
@@ -23,4 +25,4 @@ const router = createRouter({
   ],
   scrollBehavior(to, _from, saved) { return saved ?? (to.hash ? { el: to.hash, top: 108 } : { top: 0 }); },
 });
-createApp(App).use(router).mount('#app');
+createApp(App).use(pinia).use(VueQueryPlugin,{queryClient}).use(router).mount('#app');

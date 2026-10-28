@@ -47,3 +47,13 @@ test('页面离开后迟到订单不跳转，非法收银台链接拒绝',async(
   const invalid=new SandboxCheckout({...dependencies,request:async(url)=>url.endsWith('/status')?{testEnabled:true}:{url:'https://invalid.example'}});
   await invalid.load();await invalid.buy('credits-v1-light');assert.equal(navigations,0);assert.equal(invalid.getSnapshot().error,'支付链接无法验证。');invalid.dispose();
 });
+
+test('同一账号重新认证使旧购买响应失效，未知操作仅显式重试复用原ID',async()=>{
+  let epoch=1,posts=0,ids=0,navigations=0;const pending=deferred<Record<string,unknown>>(),bodies:object[]=[];
+  const controller=new SandboxCheckout({request:async(url,body)=>{if(url.endsWith('/status'))return{testEnabled:true};bodies.push(body!);posts++;return posts===1?pending.promise:{url:'https://checkout.stripe.com/c/pay/cs_test_synthetic'};},
+    userId:()=>'A',identityEpoch:()=>epoch,refresh:async()=>view('A'),openLogin(){},navigate(){navigations++;},requestId:()=>`synthetic-${++ids}`});
+  await controller.load();const buy=controller.buy('credits-v1-light');await tick();epoch++;
+  pending.resolve({url:'https://checkout.stripe.com/c/pay/cs_test_synthetic'});await buy;
+  assert.equal(navigations,0);assert.match(controller.getSnapshot().error,/登录状态已变化/);
+  assert.equal(posts,1);await controller.buy('credits-v1-light');assert.equal(posts,2);assert.deepEqual(bodies[0],bodies[1]);assert.equal(ids,1);assert.equal(navigations,1);controller.dispose();
+});

@@ -5,6 +5,7 @@ export interface CheckoutSnapshot { enabled: boolean; ready: boolean; busy: bool
 interface CheckoutDependencies {
   request(url: string, body?: object): Promise<Record<string, unknown>>;
   userId(): string | undefined;
+  identityEpoch?(): number;
   refresh(): Promise<AccountView | null>;
   openLogin(): void;
   navigate(url: string): void;
@@ -35,17 +36,19 @@ export class SandboxCheckout {
     if (!this.active || this.inFlight || !this.snapshot.enabled) return;
     const userId=this.dependencies.userId();
     if (!userId) { this.dependencies.openLogin(); return; }
+    const epoch=this.dependencies.identityEpoch?.();
+    const sameIdentity=()=>this.dependencies.userId()===userId&&this.dependencies.identityEpoch?.()===epoch;
     this.inFlight=true; this.update({busy:true,error:''});
     try {
       const verified=await this.dependencies.refresh();
       if (!this.active) return;
       if (!verified?.user) { this.dependencies.openLogin(); return; }
-      if (verified.user.id!==userId || this.dependencies.userId()!==userId) throw new Error('登录状态已变化，请重新确认订单。');
+      if (verified.user.id!==userId || !sameIdentity()) throw new Error('登录状态已变化，请重新确认订单。');
       if (!this.operation || this.operation.sku!==sku || this.operation.userId!==userId)
         this.operation={sku,userId,requestId:this.dependencies.requestId()};
       const result=await this.dependencies.request('/api/payments/checkout',{sku,requestId:this.operation.requestId});
       if (!this.active) return;
-      if (this.dependencies.userId()!==userId) throw new Error('登录状态已变化，请重新确认订单。');
+      if (!sameIdentity()) throw new Error('登录状态已变化，请重新确认订单。');
       this.dependencies.navigate(checkoutDestination(result.url));
     } catch (error) { this.update({error:error instanceof Error?error.message:'支付准备未完成，请到订单中核查。'}); }
     finally { this.inFlight=false; this.update({busy:false}); }
