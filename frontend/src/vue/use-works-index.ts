@@ -21,6 +21,9 @@ const browserPlatform: WorksPlatform = {
   setFavorite: async (signal, id, favorite, owner) => json<WorkItem>(await fetch(`/api/works/${id}`, {
     method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'X-Work-Owner': owner }, body: JSON.stringify({ favorite }),
   })),
+  changeWork: async (signal, id, body, owner) => json<WorkItem | { accepted: true }>(await fetch(`/api/works/${id}`, {
+    method: 'POST', signal, headers: { 'Content-Type': 'application/json', 'X-Work-Owner': owner }, body: JSON.stringify(body),
+  })),
   hidden: () => document.hidden,
   notify: (message, kind) => notify(message, kind),
   translate: t,

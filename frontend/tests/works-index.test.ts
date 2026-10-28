@@ -10,16 +10,17 @@ const page=(items:WorkItem[],over:Partial<WorkPage>={}):WorkPage=>({items,page:1
 
 function platform(){
   const calls:WorksFilters[]=[],notices:Array<{message:string;kind:string}>=[];
-  const loads:Array<{resolve:(value:WorkPage)=>void;reject:(error:unknown)=>void}>=[],favorites:Array<{resolve:(value:WorkItem)=>void;reject:(error:unknown)=>void}>=[];
+  const loads:Array<{resolve:(value:WorkPage)=>void;reject:(error:unknown)=>void}>=[],favorites:Array<{resolve:(value:WorkItem)=>void;reject:(error:unknown)=>void}>=[],changes:Array<{resolve:(value:WorkItem|{accepted:true})=>void;reject:(error:unknown)=>void}>=[];
   let hidden=false;
   const value:WorksPlatform={
     fetchWorks:(signal,filters)=>{calls.push(filters);return new Promise<WorkPage>((resolve,reject)=>{loads.push({resolve,reject});});},
     setFavorite:()=>new Promise<WorkItem>((resolve,reject)=>{favorites.push({resolve,reject});}),
+    changeWork:()=>new Promise<WorkItem|{accepted:true}>((resolve,reject)=>{changes.push({resolve,reject});}),
     hidden:()=>hidden,
     notify:(message,kind)=>{notices.push({message,kind});},
     translate:(message)=>`[en]${message}`,
   };
-  return {value,calls,notices,loads,favorites,resolveLoad:(result:WorkPage)=>loads.shift()!.resolve(result),rejectLoad:(error:unknown)=>loads.shift()!.reject(error),resolveFavorite:(result:WorkItem)=>favorites.shift()!.resolve(result),rejectFavorite:(error:unknown)=>favorites.shift()!.reject(error),setHidden:(next:boolean)=>{hidden=next;}};
+  return {value,calls,notices,loads,favorites,changes,resolveLoad:(result:WorkPage)=>loads.shift()!.resolve(result),rejectLoad:(error:unknown)=>loads.shift()!.reject(error),resolveFavorite:(result:WorkItem)=>favorites.shift()!.resolve(result),rejectFavorite:(error:unknown)=>favorites.shift()!.reject(error),resolveChange:(result:WorkItem|{accepted:true})=>changes.shift()!.resolve(result),rejectChange:(error:unknown)=>changes.shift()!.reject(error),setHidden:(next:boolean)=>{hidden=next;}};
 }
 const tick=()=>new Promise(resolve=>setImmediate(resolve));
 
@@ -75,6 +76,20 @@ test('收藏成功更新当前列表并静默刷新，失败只通知且释放�
   assert.equal(index.getSnapshot().favoriteBusy,null);
   const failing=index.toggleFavorite(work('w1','春日',{favorite:true}));p.rejectFavorite(new Error('收藏状态未能更新。'));await failing;
   assert.deepEqual(p.notices[1],{message:'[en]收藏状态未能更新。',kind:'error'});assert.equal(index.getSnapshot().favoriteBusy,null);
+  index.dispose();s.client.clear();
+});
+
+test('改名、重试与删除成功后才刷新并通知，失败只提示且释放详情忙碌状态',async()=>{
+  const s=scope(),p=platform(),index=new WorksIndex(s,p.value);
+  await s.changeIdentity('user-1');p.resolveLoad(page([work('w1','旧名')]));await tick();
+  const renaming=index.change('w1',{title:'新名'});assert.equal(index.getSnapshot().detailBusy,true);
+  p.resolveChange(work('w1','新名'));await tick();
+  assert.deepEqual(p.notices[0],{message:'[en]作品名称已更新。',kind:'success'});
+  p.resolveLoad(page([work('w1','新名')]));await renaming;assert.equal(index.getSnapshot().detailBusy,false);
+  const deleting=index.change('w1',{action:'delete'});p.resolveChange({accepted:true});await tick();
+  assert.deepEqual(p.notices[1],{message:'[en]作品及关联资料已删除。',kind:'success'});p.resolveLoad(page([]));await deleting;
+  const failing=index.change('w1',{action:'retry'});p.rejectChange(new Error('作品操作未完成。'));await failing;
+  assert.deepEqual(p.notices[2],{message:'[en]作品操作未完成。',kind:'error'});assert.equal(index.getSnapshot().detailBusy,false);
   index.dispose();s.client.clear();
 });
 

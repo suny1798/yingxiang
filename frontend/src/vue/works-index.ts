@@ -4,11 +4,14 @@ import type { SessionScope } from './session-scope';
 export type WorkKind = 'all' | 'realtime' | 'video' | 'edit';
 export type WorkSort = 'newest' | 'oldest' | 'title';
 export type WorksFilters = Readonly<{ kind: WorkKind; page: number; query: string; sort: WorkSort; favoritesOnly: boolean }>;
-export type WorksIndexState = Readonly<WorksFilters & { searchInput: string; owner: string | null; list: WorkPage | null; loading: boolean; error: string | null; favoriteBusy: string | null }>;
+export type WorksIndexState = Readonly<WorksFilters & { searchInput: string; owner: string | null; list: WorkPage | null; loading: boolean; error: string | null; favoriteBusy: string | null; detailBusy: boolean }>;
+
+export type WorkChange = { title: string } | { action: 'retry' | 'delete' };
 
 export interface WorksPlatform {
   fetchWorks(signal: AbortSignal, filters: WorksFilters): Promise<WorkPage>;
   setFavorite(signal: AbortSignal, id: string, favorite: boolean, owner: string): Promise<WorkItem>;
+  changeWork(signal: AbortSignal, id: string, body: WorkChange, owner: string): Promise<WorkItem | { accepted: true }>;
   hidden(): boolean;
   notify(message: string, kind: 'success' | 'error'): void;
   translate(message: string): string;
@@ -16,10 +19,11 @@ export interface WorksPlatform {
 
 /** 列表只经SessionScope读取；退出或换账号后旧响应与旧列表都不得进入新账号。 */
 export class WorksIndex {
-  private current: WorksIndexState = { kind: 'all', page: 1, searchInput: '', query: '', sort: 'newest', favoritesOnly: false, owner: null, list: null, loading: false, error: null, favoriteBusy: null };
+  private current: WorksIndexState = { kind: 'all', page: 1, searchInput: '', query: '', sort: 'newest', favoritesOnly: false, owner: null, list: null, loading: false, error: null, favoriteBusy: null, detailBusy: false };
   private listeners = new Set<() => void>();
   private inflight: AbortController | null = null;
   private favorite: AbortController | null = null;
+  private detail: AbortController | null = null;
   private disposed = false;
   private readonly stopIdentity: () => void;
 
@@ -35,7 +39,7 @@ export class WorksIndex {
   subscribe = (listener: () => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private publish(patch: Partial<WorksIndexState>) { this.current = { ...this.current, ...patch }; this.listeners.forEach((listener) => listener()); }
   private filters(): WorksFilters { const { kind, page, query, sort, favoritesOnly } = this.current; return { kind, page, query, sort, favoritesOnly }; }
-  private abort() { this.inflight?.abort(); this.inflight = null; this.favorite?.abort(); this.favorite = null; }
+  private abort() { this.inflight?.abort(); this.inflight = null; this.favorite?.abort(); this.favorite = null; this.detail?.abort(); this.detail = null; }
 
   setKind(kind: WorkKind) { if (this.current.kind === kind) return; this.publish({ kind, page: 1 }); void this.load(); }
   setPage(page: number) { if (page < 1 || page === this.current.page) return; this.publish({ page }); void this.load(); }
@@ -87,6 +91,30 @@ export class WorksIndex {
       this.platform.notify(this.platform.translate(cause instanceof Error ? cause.message : '收藏状态未能更新。'), 'error');
     } finally {
       if (this.favorite === controller) { this.favorite = null; this.publish({ favoriteBusy: null }); }
+    }
+  }
+
+  /** 改名、重试或删除；成功后才刷新列表，删除后由页面关闭详情。 */
+  async change(id: string, body: WorkChange) {
+    if (this.disposed || this.current.detailBusy) return null;
+    const token = this.scope.capture();
+    if (!token.userId) return null;
+    const controller = new AbortController(); this.detail = controller;
+    this.publish({ detailBusy: true });
+    try {
+      const result = await this.platform.changeWork(controller.signal, id, body, token.userId);
+      if (controller.signal.aborted) return null;
+      this.scope.assertCurrent(token);
+      if ('action' in body && body.action === 'delete') this.platform.notify(this.platform.translate('作品及关联资料已删除。'), 'success');
+      else if ('id' in result) this.platform.notify(this.platform.translate('title' in body ? '作品名称已更新。' : '已重新保存已有结果，不会重新生成。'), 'success');
+      await this.load(true);
+      return result;
+    } catch (cause) {
+      if (controller.signal.aborted || !this.scope.current(token)) return null;
+      this.platform.notify(this.platform.translate(cause instanceof Error ? cause.message : '作品操作未完成。'), 'error');
+      return null;
+    } finally {
+      if (this.detail === controller) { this.detail = null; this.publish({ detailBusy: false }); }
     }
   }
 
