@@ -1,0 +1,99 @@
+# 本机隔离入口模板。由工具填充路径和端口；不得覆盖已安装Nginx的配置。
+daemon off;
+master_process off;
+worker_processes 1;
+pid "@RUNTIME@/nginx.pid";
+error_log "@RUNTIME@/nginx-error.log" crit;
+events { worker_connections 128; }
+http {
+    access_log off;
+    server_tokens off;
+    default_type application/octet-stream;
+    types {
+        text/html html;
+        text/css css;
+        application/javascript js mjs;
+        application/json json;
+        application/wasm wasm;
+        image/svg+xml svg;
+        image/webp webp;
+        image/png png;
+        image/jpeg jpg jpeg;
+        image/x-icon ico;
+        font/woff2 woff2;
+    }
+    map $http_host $entry_host_ok {
+        default 0;
+        "127.0.0.1:@PORT@" 1;
+        "localhost:@PORT@" 1;
+    }
+    # 所有旧页面路径保留；具体业务组件仍按M04—09逐步迁移。
+    map $uri $entry_page {
+        default 0;
+        / 1;
+        ~^/(pricing|help(/feedback)?|privacy|terms|studio(/(video|edit))?|works|account(/(orders|usage|security))?|admin)/?$ 1;
+    }
+    map "$status:$uri" $entry_cache {
+        default "no-store";
+        "~^(200|206|304):/assets/.+-[A-Za-z0-9_-]{8,}\.(js|css|wasm)$" "public, max-age=31536000, immutable";
+        ~^(200|206|304):/assets/ "public, max-age=3600";
+    }
+    server {
+        listen 127.0.0.1:@PORT@ default_server;
+        server_name localhost 127.0.0.1;
+        root "@DIST@";
+        index index.html;
+        client_max_body_size 36704256; # 35MiB + 4096 bytes
+        client_body_temp_path "@RUNTIME@/body";
+        proxy_temp_path "@RUNTIME@/proxy";
+        add_header Cache-Control $entry_cache always;
+        add_header X-Content-Type-Options nosniff always;
+        if ($entry_host_ok = 0) { return 403; }
+
+        location = /__entry_live { return 204; }
+        location = /index.html { try_files /index.html =404; }
+        location ^~ /assets/ { try_files $uri =404; }
+        location ~ ^/api(/|$) {
+            proxy_pass http://127.0.0.1:@UPSTREAM@;
+            proxy_http_version 1.1;
+            proxy_set_header Connection "";
+            proxy_set_header Host $http_host;
+            proxy_set_header Origin $http_origin;
+            proxy_set_header Cookie $http_cookie;
+            proxy_set_header Forwarded "";
+            proxy_set_header X-Forwarded-For $remote_addr;
+            proxy_set_header X-Forwarded-Host $http_host;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_hide_header Cache-Control;
+            proxy_hide_header X-Content-Type-Options;
+            proxy_hide_header X-Powered-By;
+            proxy_cache off;
+            proxy_next_upstream off;
+            proxy_request_buffering off;
+            proxy_buffering off;
+            gzip off;
+            proxy_connect_timeout 5s;
+            # 读写空闲间隔，不冒称Nginx原生提供130秒业务总截止。
+            proxy_read_timeout 130s;
+            proxy_send_timeout 130s;
+            proxy_intercept_errors on;
+            error_page 502 504 = @api_unavailable;
+            error_page 413 = @api_too_large;
+        }
+        location @api_unavailable {
+            default_type application/json;
+            return 503 '{"error":{"code":"SERVICE_UNAVAILABLE","message":"服务暂不可用，请刷新状态核查，不要重复提交。","retryable":false},"requestId":"$request_id"}';
+        }
+        location @api_too_large {
+            default_type application/json;
+            return 413 '{"error":{"code":"BODY_TOO_LARGE","message":"请求内容过大。","retryable":false},"requestId":"$request_id"}';
+        }
+        location ~ (^|/)\. { return 404; }
+        location / {
+            error_page 404 /index.html;
+            if ($entry_page = 0) { return 404; }
+            try_files $uri /index.html;
+        }
+    }
+}
