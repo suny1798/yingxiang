@@ -3,6 +3,7 @@ async(page)=>{
   check(new URL(page.url()).origin===origin,'Use isolated Vue preview');await page.unrouteAll({behavior:'wait'});
   await page.context().addCookies([{name:'yingxiang-locale',value:'zh',url:origin},{name:'yingxiang-theme',value:'light',url:origin}]);await page.request.post(origin+'/api/account/logout',{headers:{Origin:origin}});
   await page.addInitScript(()=>{
+    if(location.origin!=='http://127.0.0.1:8791')return;
     const m=window.__localMedia={mode:'normal',calls:0,constraints:[],streams:[],canvases:[],urls:new Set(),bitmapsClosed:0,delayImage:false,playbackReject:false,recorders:0};
     const url=URL.createObjectURL.bind(URL),revoke=URL.revokeObjectURL.bind(URL);
     URL.createObjectURL=blob=>{const value=url(blob);m.urls.add(value);return value;};URL.revokeObjectURL=value=>{m.urls.delete(value);revoke(value);};
