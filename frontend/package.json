@@ -12,7 +12,7 @@
     "build": "vite build",
     "start": "vite preview --host 127.0.0.1 --port 8791 --strictPort",
     "typecheck": "vue-tsc --noEmit -p tsconfig.vue.json",
-    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/decart-adapter.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/prompt.test.ts tests/generated-recording.test.ts tests/works-upload.test.ts tests/notices.test.ts tests/video-prepare.test.ts tests/oriented-video.test.ts tests/video-frame.test.ts tests/video-history-selection.test.ts tests/account-session.test.ts tests/i18n.test.ts tests/vue-preferences.test.ts tests/public-help.test.ts tests/public-feedback.test.ts tests/sandbox-checkout.test.ts tests/home-wheel.test.ts",
+    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/decart-adapter.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/prompt.test.ts tests/generated-recording.test.ts tests/works-upload.test.ts tests/notices.test.ts tests/video-prepare.test.ts tests/oriented-video.test.ts tests/video-frame.test.ts tests/video-history-selection.test.ts tests/account-session.test.ts tests/i18n.test.ts tests/vue-preferences.test.ts tests/public-help.test.ts tests/public-feedback.test.ts tests/sandbox-checkout.test.ts tests/home-wheel.test.ts tests/session-scope.test.ts",
     "smoke": "node scripts/vue-smoke.mjs",
     "smoke:nginx": "node scripts/nginx-contracts.mjs",
     "check": "npm run api:types -- --check && npm run typecheck && npm test && npm run build",
@@ -23,7 +23,9 @@
   },
   "dependencies": {
     "@decartai/sdk": "0.2.12",
+    "@tanstack/vue-query": "5.105.0",
     "next": "16.4.2",
+    "pinia": "4.1.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "vue": "3.5.44",
@@ -33,10 +35,10 @@
     "@types/node": "22.19.0",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-vue": "6.0.10",
     "tsx": "4.23.15",
     "typescript": "5.9.3",
     "vite": "8.3.5",
-    "@vitejs/plugin-vue": "6.0.10",
     "vue-tsc": "3.3.13"
   }
 }
