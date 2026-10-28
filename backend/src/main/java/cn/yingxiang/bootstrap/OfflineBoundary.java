@@ -35,6 +35,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
     private final boolean studioFixtureEnabled;
     private final boolean paymentsEnabled;
     private final boolean adminEnabled;
+    private final boolean videoEnabled;
 
     @org.springframework.beans.factory.annotation.Autowired
     public OfflineBoundary(Environment env, JsonMapper json, MigrationOrigin origin) throws IOException {
@@ -45,6 +46,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         studioFixtureEnabled = env.getProperty("migration.studio-fixture-enabled", Boolean.class, false);
         paymentsEnabled = env.getProperty("migration.payments-enabled", Boolean.class, false);
         adminEnabled = env.getProperty("migration.admin-enabled", Boolean.class, false);
+        videoEnabled = env.getProperty("migration.video-enabled", Boolean.class, false);
         Set<String> profiles = Set.copyOf(Arrays.asList(env.getActiveProfiles().length == 0
                 ? env.getDefaultProfiles() : env.getActiveProfiles()));
         boolean readOnly = env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true);
@@ -59,6 +61,8 @@ public final class OfflineBoundary extends OncePerRequestFilter {
                 || (studioFixtureEnabled && (readOnly || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
                 || (authEnabled && !maintenance && readOnly)
                 || ((paymentsEnabled || adminEnabled) && (!profiles.equals(Set.of("local")) || readOnly
+                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                || (videoEnabled && (!profiles.equals(Set.of("local")) || readOnly
                     || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
                 || env.getProperty("migration.allow-external-providers", Boolean.class, false)
                 || env.getProperty("migration.scenes-enabled", Boolean.class, false)
@@ -97,17 +101,18 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         boolean safe = Set.of("GET", "HEAD", "OPTIONS").contains(method);
         boolean authPath = Set.of("/api/account/register", "/api/account/login", "/api/account/logout").contains(path);
         boolean studioPath = Set.of("/api/studio/status", "/api/studio/token", "/api/studio/observation").contains(path);
+        boolean videoPath = videoEnabled && path.startsWith("/api/video/");
         boolean paymentPath = paymentsEnabled && path.startsWith("/api/payments/");
         boolean adminPath = adminEnabled && (path.startsWith("/api/admin/") || path.equals("/api/site/announcement"));
         if (maintenance && !safe && ((authEnabled && authPath) || (studioFixtureEnabled && studioPath)
-                || paymentPath || adminPath)) {
+                || paymentPath || adminPath || videoPath)) {
             error(request, response, 503, "MAINTENANCE", "服务维护中，请稍后再试。", requestId);
             return;
         }
         // 精确Host/Origin保护显式启用的接口，不接受转发头作为来源证据。
         // 支付写入口由控制器在支付门禁之后校验，保持旧入口“先门禁、后来源”的顺序。
         boolean protectedPath = path.equals("/api/account/me") || authPath || (studioFixtureEnabled && studioPath)
-                || (adminPath && !path.equals("/api/site/announcement"));
+                || (adminPath && !path.equals("/api/site/announcement")) || videoPath;
         if (!paymentPath) {
             boolean wrongHost = !origin.hostAllowed(request.getHeader("Host"))
                     || "cross-site".equals(request.getHeader("Sec-Fetch-Site"));
@@ -156,7 +161,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } else if (studioFixtureEnabled && studioPath) {
             chain.doFilter(request, response);
-        } else if (paymentPath || adminPath) {
+        } else if (paymentPath || adminPath || videoPath) {
             chain.doFilter(request, response);
         } else {
             error(request, response, 503, "SERVICE_DISABLED", "Java业务迁移尚未完成", requestId);

@@ -29,14 +29,17 @@ public class AdministrationService {
     private final JdbcTemplate jdbc;
     private final MigrationAccounts accounts;
     private final PaymentsService payments;
+    private final VideoService video;
     private final JsonMapper json;
     private final TransactionTemplate transaction;
     private final String schema;
     private final Environment env;
 
     public AdministrationService(JdbcTemplate jdbc, MigrationAccounts accounts, ObjectProvider<PaymentsService> payments,
+                                 ObjectProvider<VideoService> video,
                                  PlatformTransactionManager manager, Environment env, JsonMapper json) {
-        this.jdbc = jdbc; this.accounts = accounts; this.payments = payments.getIfAvailable(); this.json = json; this.env = env;
+        this.jdbc = jdbc; this.accounts = accounts; this.payments = payments.getIfAvailable();
+        this.video = video.getIfAvailable(); this.json = json; this.env = env;
         this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M13 admin");
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -68,12 +71,15 @@ public class AdministrationService {
             List<Map<String, Object>> services = new ArrayList<>();
             for (String scene : List.of("studio", "video", "prompt")) {
                 boolean configured = scene.equals("studio")
-                        && Boolean.parseBoolean(env.getProperty("migration.studio-fixture-enabled", "false"));
+                        ? Boolean.parseBoolean(env.getProperty("migration.studio-fixture-enabled", "false"))
+                        : scene.equals("video") && video != null && video.configured();
                 long reserved = 0;
                 for (var row : jdbc.queryForList("SELECT coalesce(sum(micro_usd),0) AS total FROM " + schema
                         + "budget_reservations WHERE scene=?", scene)) reserved += MigrationSupport.number(row, "total");
+                Object budget = scene.equals("video") && video != null ? video.budgetMicro() / 1_000_000.0 : null;
+                Object maximum = scene.equals("video") && video != null ? video.maximum() : null;
                 services.add(MigrationSupport.body("scene", scene, "configured", configured, "paused", paused(scene),
-                        "budgetUsd", null, "reservedUsd", reserved / 1_000_000.0, "maxRequests", null,
+                        "budgetUsd", budget, "reservedUsd", reserved / 1_000_000.0, "maxRequests", maximum,
                         "requests", scene.equals("video") ? jobs
                                 : count("SELECT count(*) FROM " + schema + "usage_attempts WHERE scene=?", scene)));
             }

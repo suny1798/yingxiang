@@ -77,8 +77,18 @@ final class MigrationSupport {
         }
     }
 
-    static void requireJsonContentType(HttpServletRequest request) {
-        String value = request.getContentType();
+    static byte[] readBytes(HttpServletRequest request, int limit, String tooLargeCode, String tooLargeMessage) {
+        byte[] bytes;
+        try {
+            bytes = request.getInputStream().readNBytes(limit + 1);
+        } catch (IOException error) {
+            throw new BusinessFailure("INVALID_REQUEST", "请求内容无法读取。", 400);
+        }
+        if (bytes.length > limit) throw new BusinessFailure(tooLargeCode, tooLargeMessage, 413);
+        return bytes;
+    }
+
+    static void requireJsonContentType(HttpServletRequest request) {        String value = request.getContentType();
         if (value == null || !value.split(";", 2)[0].strip().equals("application/json")) {
             throw new BusinessFailure("INVALID_REQUEST", "请使用JSON请求。", 415);
         }

@@ -265,6 +265,30 @@ public final class AccountIntegrationFixture {
                         }
                         report.put("users", users); report.put("audit", audit); report.put("settings", settings);
                         report.put("grants", grants); report.put("entries", entries);
+                    } else if (action.equals("video-reset-check")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        try (var query = connection.prepareStatement("UPDATE video_jobs SET checked_at=0 WHERE id=?")) {
+                            query.setString(1, String.valueOf(body.get("jobId"))); query.executeUpdate();
+                        }
+                    } else if (action.equals("video-state")) {
+                        Map<String, Object> body = json.readValue(System.in, Map.class);
+                        String username = String.valueOf(body.get("username"));
+                        List<Map<String, Object>> jobs = new ArrayList<>();
+                        try (var query = connection.prepareStatement("SELECT j.id,j.state,j.provider_id,j.seconds_milli,j.micro_usd,j.expires_at,j.checked_at "
+                                + "FROM video_jobs j JOIN users u ON u.id=j.user_id WHERE u.username=? ORDER BY j.created_at,j.id")) {
+                            query.setString(1, username);
+                            try (var rows = query.executeQuery()) {
+                                while (rows.next()) {
+                                    var item = new LinkedHashMap<String, Object>();
+                                    item.put("id", rows.getString(1)); item.put("state", rows.getString(2));
+                                    item.put("providerId", rows.getString(3)); item.put("secondsMilli", rows.getInt(4));
+                                    item.put("microUsd", rows.getLong(5)); item.put("expiresAt", rows.getLong(6));
+                                    item.put("checkedAt", rows.getObject(7));
+                                    jobs.add(item);
+                                }
+                            }
+                        }
+                        report.put("jobs", jobs);
                     } else throw new IllegalArgumentException();
                 }
             }

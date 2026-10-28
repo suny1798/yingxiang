@@ -5,6 +5,10 @@ spring:
     default: local
   main:
     banner-mode: 'off'
+  servlet:
+    multipart:
+      # 迁移入口按有界内存自行解析multipart，禁止Servlet容器预解析或落盘。
+      enabled: false
   sql:
     init:
       mode: never
@@ -35,6 +39,12 @@ migration:
   stripe-webhook-secret: ""
   stripe-expected-account: ""
   stripe-api-base: "http://127.0.0.1:12111"
+  video-enabled: false
+  video-budget-usd: "0"
+  video-max-jobs: "0"
+  video-allowed-usernames: ""
+  video-provider-url: "http://127.0.0.1:12112"
+  video-key: ""
   public-origin: ${MIGRATION_PUBLIC_ORIGIN:http://127.0.0.1:8791}
   maintenance: ${MIGRATION_MAINTENANCE:true}
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}
