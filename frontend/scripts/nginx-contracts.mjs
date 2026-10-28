@@ -86,6 +86,11 @@ try {
   assert.equal(validate.status,0,`Generated Nginx configuration rejected: ${validate.stderr}`);
   gateway=spawn(nginx,['-p',runtime+'/', '-c','nginx.conf'],{windowsHide:true,cwd:runtime,stdio:'ignore'});
   await waitReady(port);
+  if(process.argv.includes('--browser-window')) {
+    console.log(JSON.stringify({browserOrigin:`http://127.0.0.1:${port}`,syntheticUpstream:true,maximumSeconds:180}));
+    // 给桌面浏览器走查保留有限窗口，到期后自动执行合同并清理。
+    await new Promise(resolve=>setTimeout(resolve,180000));
+  }
   const check=(value,message)=>{assert.ok(value,message);checks++;};
   const index=await readFile(join(root,'dist/index.html'));
   for(const path of ['/','/pricing','/help','/help/feedback','/privacy','/terms','/terms?synthetic=1']) {

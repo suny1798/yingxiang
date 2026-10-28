@@ -26,7 +26,7 @@ async (page) => {
   await page.waitForTimeout(6500);check(await active()===after,'Hidden document must not autoplay');
   check(await page.evaluate(()=>window.__homeActiveTimers.size===0),'Hidden timer');
   await page.evaluate(()=>{Reflect.deleteProperty(document,'hidden');document.dispatchEvent(new Event('visibilitychange'));});
-  await page.getByRole('navigation',{name:/Main navigation|主要导航/}).getByRole('link',{name:/Privacy & usage|隐私与使用说明/}).click();
+  await page.getByRole('navigation',{name:/Footer navigation|页脚导航/}).getByRole('link',{name:/Privacy & usage|隐私与使用说明/}).click();
   check(await page.evaluate(()=>window.__homeActiveTimers.size===0),'Unmount timer cleanup');
   check(await page.evaluate(()=>window.dispatchEvent(new WheelEvent('wheel',{deltaY:100,cancelable:true}))),'Unmount wheel cleanup');
   return {status:'OK',manual:true,keyboard:true,reducedMotion:true,autoplay:true,syntheticHidden:true,unmountTimers:true,unmountWheel:true};

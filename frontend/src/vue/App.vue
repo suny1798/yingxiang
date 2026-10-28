@@ -4,6 +4,8 @@ import { useRoute } from 'vue-router';
 import { preferences, t } from './preferences';
 import s from '../components/site/site.module.css';
 import NoticeCenter from './NoticeCenter.vue';
+import PreferenceControls from './PreferenceControls.vue';
+import SiteAnnouncement from './SiteAnnouncement.vue';
 const route = useRoute();
 watchEffect(() => {
   document.documentElement.lang = preferences.locale.value === 'en' ? 'en' : 'zh-CN';
@@ -12,24 +14,26 @@ watchEffect(() => {
   document.title = route.meta.fullTitle?t(String(title)): `${t(String(title ?? '映想'))} · ${t('映想')}`;
 });
 onUnmounted(preferences.stop);
-const links = [['/', '首页'], ['/pricing', '价格方案'], ['/help', '帮助中心'], ['/privacy', '隐私与使用说明'], ['/terms', '用户协议']];
+const links = [['/', '首页'], ['/studio', '创作空间'], ['/works', '我的作品'], ['/pricing', '价格方案'], ['/help', '帮助中心']];
+const footerLinks = [['/pricing','价格方案'],['/studio','创作空间'],['/account','个人中心'],['/help','帮助中心'],['/help/feedback','问题反馈'],['/privacy','隐私与使用说明'],['/terms','用户协议']];
+const active=(path:string)=>route.path===path||(path!=='/'&&route.path.startsWith(path+'/'));
 </script>
 
 <template>
   <div :class="s.site">
     <header :class="s.header"><div :class="s.headerInner">
-      <RouterLink to="/" :class="s.brand" aria-label="映想">映想 <span aria-hidden="true">✳</span></RouterLink>
-      <nav :class="s.navigation" :aria-label="preferences.locale.value==='en'?'Main navigation':'主要导航'">
-        <RouterLink v-for="[path,label] in links" :key="path" :to="path" :class="{[s.navActive]:route.path===path||(path==='/help'&&route.path.startsWith('/help/'))}">{{t(label!)}}</RouterLink>
+      <RouterLink to="/" :class="s.brand" :aria-label="t('映想首页')">{{t('映想')}}<span aria-hidden="true">✳</span></RouterLink>
+      <nav :class="s.navigation" :aria-label="t('主导航')">
+        <RouterLink v-for="[path,label] in links" :key="path" :to="path" :class="{[s.navActive]:active(path!)}" :aria-current="active(path!)?'page':undefined">{{t(label!)}}</RouterLink>
       </nav>
       <div :class="s.headerActions">
-        <button type="button" :class="s.preferenceButton" :aria-label="preferences.locale.value==='en' ? '切换为中文' : 'Switch to English'" @click="preferences.setLocale(preferences.locale.value==='en'?'zh':'en')">{{preferences.locale.value==='en'?'中文':'EN'}}</button>
-        <button type="button" :class="s.preferenceButton" :aria-label="preferences.locale.value==='en'?'Switch theme':'切换主题'" @click="preferences.setTheme(preferences.theme.value==='light'?'dark':'light')">{{preferences.theme.value==='light'?'☾':'☀'}}</button>
+        <PreferenceControls />
       </div>
-    </div></header>
+    </div><SiteAnnouncement /></header>
     <RouterView />
-    <footer :class="s.footer"><div><RouterLink to="/" :class="s.footerBrand">映想 <span>✳</span></RouterLink><p>{{t('让想象，在眼前发生。')}}</p></div>
-      <nav :aria-label="t('页脚导航')"><RouterLink v-for="[path,label] in links" :key="path" :to="path">{{t(label!)}}</RouterLink></nav>
+    <footer :class="s.footer"><div><RouterLink to="/" :class="s.footerBrand">{{t('映想 ')}}<span>✳</span></RouterLink><p>{{t('让想象，在眼前发生。')}}</p></div>
+      <nav :aria-label="t('页脚导航')"><RouterLink v-for="[path,label] in footerLinks" :key="path" :to="path">{{t(label!)}}</RouterLink></nav>
+      <p :class="s.footerNote">{{t('实时换装 · 视频换装 · 实时编辑')}}<br/>{{t('不采集音频；生成内容自动保存，可随时下载。')}}</p>
     </footer>
     <NoticeCenter />
   </div>

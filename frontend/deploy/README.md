@@ -13,6 +13,8 @@ npm run smoke:nginx
 
 工具检查本机Nginx版本，以临时prefix／配置及随机回环端口启动Nginx和合成HTTP上游。47项断言覆盖页面深链接与404、静态资源缓存、API原始字节／查询参数／Cookie／签名、业务拒绝、Range／HEAD、超限413和断开503。退出时只停止工具持有的进程并清理其临时目录，不执行安装目录的全局stop命令。API数据和Cookie均为合成值，真实模型与支付调用为0。
 
+桌面走查时可运行 `node scripts/nginx-contracts.mjs --browser-window`，工具输出本次随机 `browserOrigin`，保留180秒后自动完成合同并清理。用已安装的Playwright CLI打开该地址，再执行 `run-code --filename scripts/browser/public-shell-check.js`；脚本使用当前页面的回环origin，检查六页、404、导航／偏好／前进后退及明确的公告响应替身。保持1440×1000桌面，不使用设备模拟。截图在忽略目录output/playwright；测试最后卸载Vue来验证公告清理，继续查看页面须刷新。
+
 HTML不缓存；带构建哈希的JS／CSS／WASM一年immutable，其他assets一小时，缺失资源不回退HTML且不缓存。未知页面保留HTTP404并交给Vue显示404；未知API保留上游JSON，不落入SPA。入口检查原始Host，保留Origin交给后端验证，并重新设置Forwarded相关头；它不代替后端身份与来源授权。
 
 当前35MiB＋4096字节是外围请求上限，逐接口上传限制仍由后端实施。130秒读写超时是空闲间隔，不是业务总截止；M09仍须处理并验证总截止及上传中断。Windows版Nginx验证不代表Linux／HTTPS生产验收；生产TLS、正式域名、进程托管、日志策略与切换另按M09／后续门槛验收。不要直接公开此本机入口。
