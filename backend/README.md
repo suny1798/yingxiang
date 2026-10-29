@@ -24,7 +24,9 @@ JSON响应统一为 `{code,data,message,requestId,reason}`：成功 `code=0`、`
 
 已按用户指定的picture可运行项目适配，使用当前JDK21／Spring Boot4.1.2。Maven引入 `spring-boot-starter-jdbc` 与 `spring-boot-starter-data-redis`，由Spring自动装配Hikari数据源、RedisConnectionFactory与StringRedisTemplate；PG驱动42.7.14与Lettuce7.5.2.RELEASE由Boot BOM管理。
 
-2026-10-29按要求增加通用依赖并固定版本：`mybatis-plus-spring-boot4-starter:3.5.18`（Boot 4 对应启动器；旧的 `mybatis-plus-boot-starter` 面向 Boot 2/3，未使用）、`cn.hutool:hutool-all:5.8.48`、`com.github.ben-manes.caffeine:caffeine`（3.2.4，由 Boot BOM 管理）。现有业务仍使用 JdbcTemplate 与显式 SQL，本次只加依赖与启动验证，未迁移任何 DAO 或缓存逻辑。
+2026-10-29按要求增加通用依赖并固定版本：`mybatis-plus-spring-boot4-starter:3.5.18`（Boot 4 对应启动器；旧的 `mybatis-plus-boot-starter` 面向 Boot 2/3，未使用）、`cn.hutool:hutool-all:5.8.48`、`com.github.ben-manes.caffeine:caffeine`（3.2.4，由 Boot BOM 管理）。
+
+MyBatis-Plus 已用于账号与作品模块：`model/entity/User`、`mapper/UserMapper`、`mapper/AccountQueryMapper`、`mapper/WorksMapper`。Mapper 保留原显式 SQL 与 `${schema}` 参数，未使用会丢失动态 schema 的 BaseMapper 默认 CRUD；账号会话、限流原语、作品创建/分片/状态/参考图/删除已迁移。作品列表的动态搜索与排序、视频、提示词、管理、权益与 Worker 仍使用 JdbcTemplate，按第二批迁移。Caffeine 尚未接入缓存，Hutool 尚未在业务代码中使用。
 
 配置入口：
 

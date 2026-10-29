@@ -4,21 +4,20 @@ import cn.yingxiang.common.MigrationSupport;
 import cn.yingxiang.exception.BusinessFailure;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-/** M13起复用的会话身份与账务写入原语；只读写迁移schema。 */
+/** M13起复用的会话身份与账务写入原语；SQL 由 MyBatis-Plus Mapper 承载。 */
 @Service
 @Profile("local")
 public class MigrationAccounts {
-    private final JdbcTemplate jdbc;
+    private final UserMapper users;
     private final String schema;
 
-    public MigrationAccounts(JdbcTemplate jdbc, Environment env) {
-        this.jdbc = jdbc;
+    public MigrationAccounts(UserMapper users, Environment env) {
+        this.users = users;
         this.schema = MigrationSupport.quotedSchema(env);
     }
 
@@ -27,11 +26,8 @@ public class MigrationAccounts {
     /** 首个匹配Cookie已在AccountReader.cookieHash完成；此处只按摘要查有效会话。 */
     public User optional(String hashed) {
         if (hashed == null || hashed.isEmpty()) return null;
-        List<java.util.Map<String, Object>> rows = jdbc.queryForList("SELECT u.id,u.username,u.role,u.created_at FROM "
-                + schema + "users u JOIN " + schema + "auth_sessions s ON s.user_id=u.id "
-                + "WHERE s.hash=? AND s.expires_at>? AND u.disabled=0", hashed, System.currentTimeMillis());
-        if (rows.isEmpty()) return null;
-        var row = rows.getFirst();
+        Map<String, Object> row = users.optional(schema, hashed, System.currentTimeMillis());
+        if (row == null) return null;
         return new User((String) row.get("id"), (String) row.get("username"), (String) row.get("role"),
                 MigrationSupport.number(row, "created_at"));
     }
@@ -43,9 +39,8 @@ public class MigrationAccounts {
     }
 
     public User byId(String id) {
-        var rows = jdbc.queryForList("SELECT id,username,role,created_at FROM " + schema + "users WHERE id=?", id);
-        if (rows.isEmpty()) return null;
-        var row = rows.getFirst();
+        Map<String, Object> row = users.byId(schema, id);
+        if (row == null) return null;
         return new User((String) row.get("id"), (String) row.get("username"), (String) row.get("role"),
                 MigrationSupport.number(row, "created_at"));
     }
@@ -53,20 +48,15 @@ public class MigrationAccounts {
     /** 与旧rate_limit同事务：返回true表示超过上限；拒绝时由调用方回滚计数。 */
     public boolean rateLimit(String key, int maximum, long windowMs) {
         long now = System.currentTimeMillis();
-        Integer count = jdbc.queryForObject("INSERT INTO " + schema + "auth_rate_limits AS r(key,count,until) VALUES (?,1,?) "
-                + "ON CONFLICT(key) DO UPDATE SET count=CASE WHEN r.until<=? THEN 1 ELSE r.count+1 END, "
-                + "until=CASE WHEN r.until<=? THEN ? ELSE r.until END RETURNING count", Integer.class,
-                key, now + windowMs, now, now, now + windowMs);
+        Integer count = users.rateLimit(schema, key, now, now + windowMs);
         return count != null && count > maximum;
     }
 
     public String grant(String userId, int seconds, int total, String source, String sourceKey, String environment) {
         String ident = UUID.randomUUID().toString();
-        jdbc.update("INSERT INTO " + schema + "entitlement_grants(id,user_id,seconds,environment,source,source_key,total) "
-                + "VALUES (?,?,?,?,?,?,?)", ident, userId, seconds, environment, source, sourceKey, total);
+        users.insertGrant(schema, ident, userId, seconds, environment, source, sourceKey, total);
         if (total > 0) {
-            jdbc.update("INSERT INTO " + schema + "entitlement_entries(id,grant_id,operation_key,kind,quantity,created_at) "
-                    + "VALUES (?,?,?,'grant',?,?)", UUID.randomUUID().toString(), ident, "grant:" + sourceKey, total,
+            users.insertGrantEntry(schema, UUID.randomUUID().toString(), ident, "grant:" + sourceKey, total,
                     System.currentTimeMillis());
         }
         return ident;

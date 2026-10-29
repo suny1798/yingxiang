@@ -1,6 +1,7 @@
 package cn.yingxiang.service.impl;
 
 import cn.yingxiang.service.WorksService;
+import cn.yingxiang.mapper.WorksMapper;
 import cn.yingxiang.manager.StoragePort;
 import cn.yingxiang.common.MigrationSupport;
 import cn.yingxiang.exception.BusinessFailure;
@@ -37,6 +38,8 @@ public class WorksServiceImpl implements WorksService {
 
     private final JdbcTemplate jdbc;
 
+    private final WorksMapper works;
+
     private final StoragePort storage;
 
     private final JsonMapper json;
@@ -47,9 +50,9 @@ public class WorksServiceImpl implements WorksService {
 
     private final ConcurrentHashMap<String, Object> locks = new ConcurrentHashMap<>();
 
-    public WorksServiceImpl(JdbcTemplate jdbc, StoragePort storage, PlatformTransactionManager manager,
+    public WorksServiceImpl(JdbcTemplate jdbc, WorksMapper works, StoragePort storage, PlatformTransactionManager manager,
                             Environment env, JsonMapper json) {
-            this.jdbc = jdbc; this.storage = storage; this.json = json;
+            this.jdbc = jdbc; this.works = works; this.storage = storage; this.json = json;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M15 works");
             transaction = new TransactionTemplate(manager);
             transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -60,17 +63,16 @@ public class WorksServiceImpl implements WorksService {
     public Object lock(String ident) { return locks.computeIfAbsent(ident, ignored -> new Object()); }
 
     public Work own(String userId, String ident, boolean deleted) {
-            var rows = jdbc.queryForList("SELECT * FROM " + schema + "works WHERE id=? AND user_id=?", ident, userId);
-            if (rows.isEmpty()) throw new BusinessFailure("WORK_NOT_FOUND", "找不到这件作品。", 404);
-            Work work = work(rows.getFirst());
+            Map<String, Object> row = works.own(schema, ident, userId);
+            if (row == null) throw new BusinessFailure("WORK_NOT_FOUND", "找不到这件作品。", 404);
+            Work work = work(row);
             if (!deleted && work.state().equals("deleted")) throw new BusinessFailure("WORK_NOT_FOUND", "找不到这件作品。", 404);
             return work;
         }
 
     public List<Map<String, Object>> references(String ident) {
             List<Map<String, Object>> result = new ArrayList<>();
-            for (var row : jdbc.queryForList("SELECT * FROM " + schema
-                    + "work_references WHERE work_id=? ORDER BY created_at,id", ident)) {
+            for (var row : works.references(schema, ident)) {
                 result.add(MigrationSupport.body("id", row.get("id"), "mime", row.get("mime"),
                         "extension", row.get("extension"), "bytes", MigrationSupport.number(row, "bytes"),
                         "createdAt", MigrationSupport.number(row, "created_at")));
@@ -237,9 +239,9 @@ public class WorksServiceImpl implements WorksService {
             String id = ident.asString(), type = kind.asString(), media = mime.asString();
             storage.directory(userId, id);
             return transaction.execute(status -> {
-                var rows = jdbc.queryForList("SELECT * FROM " + schema + "works WHERE id=?", id);
-                if (!rows.isEmpty()) {
-                    Work old = work(rows.getFirst());
+                Map<String, Object> existing = works.byId(schema, id);
+                if (existing != null) {
+                    Work old = work(existing);
                     if (!old.userId().equals(userId) || old.state().equals("deleted")
                             || !old.kind().equals(type) || !old.mime().equals(media)) {
                         throw new BusinessFailure("WORK_NOT_FOUND", "找不到这件作品。", 404);
@@ -249,10 +251,9 @@ public class WorksServiceImpl implements WorksService {
                 long now = System.currentTimeMillis();
                 Work work = new Work(id, userId, type, null, KINDS.get(type), "capturing", media,
                         media.equals("video/mp4") ? "mp4" : "webm", 0, 0, seconds.asInt() * 1000L, now, now, null, 0, 0);
-                jdbc.update("INSERT INTO " + schema + "works(id,user_id,kind,title,state,mime,extension,bytes,chunks,duration_ms,"
-                                + "created_at,updated_at,retries,favorite) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                        work.id(), work.userId(), work.kind(), work.title(), work.state(), work.mime(), work.extension(),
-                        work.bytes(), work.chunks(), work.durationMs(), work.createdAt(), work.updatedAt(), work.retries(), work.favorite());
+                works.insert(schema, work.id(), work.userId(), work.kind(), work.title(), work.state(), work.mime(),
+                        work.extension(), work.bytes(), work.chunks(), work.durationMs(), work.createdAt(), work.updatedAt(),
+                        work.retries(), work.favorite());
                 return work;
             });
         }
@@ -284,9 +285,8 @@ public class WorksServiceImpl implements WorksService {
             } catch (IOException error) {
                 throw new BusinessFailure("STORAGE_UNAVAILABLE", "作品目录不可用。", 503);
             }
-            transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                            + "works SET chunks=?,bytes=?,updated_at=? WHERE id=? AND state='capturing'",
-                    index + 1, work.bytes() + data.length, System.currentTimeMillis(), ident));
+            transaction.executeWithoutResult(status -> works.updateChunks(schema, ident, index + 1,
+                    work.bytes() + data.length, System.currentTimeMillis()));
         }
 
     public void complete(String userId, String ident, Integer durationMs, boolean interrupted,
@@ -294,8 +294,7 @@ public class WorksServiceImpl implements WorksService {
             Work work = own(userId, ident, false);
             if (!work.state().equals("capturing")) return;
             if (durationMs != null) {
-                transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                        + "works SET duration_ms=? WHERE id=?", durationMs, ident));
+                transaction.executeWithoutResult(status -> works.updateDuration(schema, ident, durationMs));
             }
             String state = work.chunks() > 0 ? "saving" : "failed";
             String error = work.chunks() > 0 ? (interrupted ? "PARTIAL_CAPTURE" : null) : "CAPTURE_EMPTY";
@@ -369,9 +368,8 @@ public class WorksServiceImpl implements WorksService {
             } catch (IOException error) {
                 throw new BusinessFailure("STORAGE_UNAVAILABLE", "作品目录不可用。", 503);
             }
-            transaction.executeWithoutResult(status -> jdbc.update("INSERT INTO " + schema
-                            + "work_references(id,work_id,mime,extension,bytes,created_at) VALUES (?,?,?,?,?,?)",
-                    refId, ident, mime, extension, data.length, System.currentTimeMillis()));
+            transaction.executeWithoutResult(status -> works.insertReference(schema, refId, ident, mime, extension,
+                    data.length, System.currentTimeMillis()));
         }
 
     public Map<String, Object> change(String userId, String ident, JsonNode body) {
@@ -384,13 +382,13 @@ public class WorksServiceImpl implements WorksService {
                         || title.asString().chars().anyMatch(value -> value < 32)) {
                     throw new BusinessFailure("INVALID_WORK_TITLE", "作品名称需为1—60个字符，不能含换行。", 400);
                 }
-                transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                        + "works SET title=?,updated_at=? WHERE id=?", title.asString().strip(), System.currentTimeMillis(), ident));
+                transaction.executeWithoutResult(status -> works.updateTitle(schema, ident,
+                        title.asString().strip(), System.currentTimeMillis()));
             } else if (fields.equals(Set.of("favorite"))) {
                 JsonNode favorite = body.get("favorite");
                 if (!favorite.isBoolean()) throw new BusinessFailure("INVALID_WORK_FAVORITE", "作品收藏状态无效。", 400);
-                transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                        + "works SET favorite=? WHERE id=?", favorite.asBoolean() ? 1 : 0, ident));
+                transaction.executeWithoutResult(status -> works.updateFavorite(schema, ident,
+                        favorite.asBoolean() ? 1 : 0));
             } else if (fields.equals(Set.of("action")) && "retry".equals(body.get("action").asString())) {
                 if (!work.kind().equals("video") || !work.state().equals("failed") || "SOURCE_EXPIRED".equals(work.errorCode())) {
                     throw new BusinessFailure("WORK_RETRY_UNAVAILABLE", "这件作品暂时不能重试保存。", 409);
@@ -401,9 +399,8 @@ public class WorksServiceImpl implements WorksService {
                     throw new BusinessFailure("WORK_SAVING", "请等待生成和保存结束后再删除。", 409);
                 }
                 transaction.executeWithoutResult(status -> {
-                    jdbc.update("UPDATE " + schema + "works SET state='deleted',title='',favorite=0,error_code=NULL,updated_at=? WHERE id=?",
-                            System.currentTimeMillis(), ident);
-                    jdbc.update("DELETE FROM " + schema + "work_references WHERE work_id=?", ident);
+                    works.markDeleted(schema, ident, System.currentTimeMillis());
+                    works.deleteReferences(schema, ident);
                 });
                 removeFiles(work);
                 return Map.of("accepted", true);
@@ -432,11 +429,10 @@ public class WorksServiceImpl implements WorksService {
     private void updateState(String ident, String state, String error, Object... extra) {
             transaction.executeWithoutResult(status -> {
                 if (extra.length >= 2 && "retries".equals(extra[0])) {
-                    jdbc.update("UPDATE " + schema + "works SET state=?,error_code=?,retries=?,updated_at=? "
-                            + "WHERE id=? AND state<>'deleted'", state, error, extra[1], System.currentTimeMillis(), ident);
+                    works.updateStateRetries(schema, ident, state, error, (Integer) extra[1],
+                            System.currentTimeMillis());
                 } else {
-                    jdbc.update("UPDATE " + schema + "works SET state=?,error_code=?,updated_at=? WHERE id=? AND state<>'deleted'",
-                            state, error, System.currentTimeMillis(), ident);
+                    works.updateState(schema, ident, state, error, System.currentTimeMillis());
                 }
             });
         }
