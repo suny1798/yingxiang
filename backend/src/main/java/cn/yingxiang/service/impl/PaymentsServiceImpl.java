@@ -6,6 +6,7 @@ import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.manager.StripeGateway;
 import cn.yingxiang.config.RuntimePolicy;
 import cn.yingxiang.mapper.MigrationAccounts;
+import cn.yingxiang.mapper.PaymentMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
@@ -45,6 +46,8 @@ public class PaymentsServiceImpl implements PaymentsService {
 
     private final JdbcTemplate jdbc;
 
+    private final PaymentMapper payments;
+
     private final MigrationAccounts accounts;
 
     private final RateLimitService rateLimit;
@@ -63,9 +66,10 @@ public class PaymentsServiceImpl implements PaymentsService {
 
     private final StripeGateway gateway;
 
-    public PaymentsServiceImpl(JdbcTemplate jdbc, MigrationAccounts accounts, RateLimitService rateLimit,
-                               PlatformTransactionManager manager, Environment env, JsonMapper json) {
-            this.jdbc = jdbc; this.accounts = accounts; this.rateLimit = rateLimit; this.json = json;
+    public PaymentsServiceImpl(JdbcTemplate jdbc, PaymentMapper payments, MigrationAccounts accounts,
+                               RateLimitService rateLimit, PlatformTransactionManager manager, Environment env,
+                               JsonMapper json) {
+            this.jdbc = jdbc; this.payments = payments; this.accounts = accounts; this.rateLimit = rateLimit; this.json = json;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M13 payments");
             this.secret = env.getProperty("migration.stripe-secret", "");
             this.webhookSecret = env.getProperty("migration.stripe-webhook-secret", "");
@@ -132,18 +136,15 @@ public class PaymentsServiceImpl implements PaymentsService {
     public Map<String, Object> list(String hashed) {
             return transaction.execute(status -> {
                 MigrationAccounts.User user = accounts.require(hashed);
-                List<Map<String, Object>> orders = jdbc.queryForList("SELECT * FROM " + schema
-                        + "orders WHERE user_id=? ORDER BY created_at DESC,id DESC LIMIT 50", user.id());
+                List<Map<String, Object>> orders = payments.orders(schema, user.id());
                 Map<String, Integer> credits = new LinkedHashMap<>();
-                for (var row : jdbc.queryForList("SELECT seconds,total,reserved,used,revoked FROM " + schema
-                        + "entitlement_grants WHERE user_id=? AND environment='stripe_sandbox'", user.id())) {
+                for (var row : payments.sandboxGrants(schema, user.id())) {
                     String key = String.valueOf(MigrationSupport.number(row, "seconds"));
                     credits.merge(key, (int) (MigrationSupport.number(row, "total") - MigrationSupport.number(row, "reserved")
                             - MigrationSupport.number(row, "used") - MigrationSupport.number(row, "revoked")), Integer::sum);
                 }
                 List<Map<String, Object>> packs = new ArrayList<>();
-                for (var row : jdbc.queryForList("SELECT * FROM " + schema
-                        + "sandbox_credit_packs WHERE user_id=? ORDER BY created_at,order_id", user.id())) {
+                for (var row : payments.packs(schema, user.id())) {
                     packs.add(MigrationSupport.body("orderId", row.get("order_id"), "planId", row.get("plan_id"),
                             "credits", row.get("credits"), "scenes", json.readValue((String) row.get("scenes"), List.class),
                             "createdAt", MigrationSupport.iso(MigrationSupport.number(row, "created_at"))));
@@ -202,11 +203,9 @@ public class PaymentsServiceImpl implements PaymentsService {
                     Order created = new Order(id, user.id(), requestId, item.sku(), item.seconds(), item.count(),
                             item.amount(), item.planId(), item.credits(), item.currency(), "creating", now,
                             null, null, null, null, snapshot);
-                    jdbc.update("INSERT INTO " + schema + "orders(id,user_id,request_id,sku,seconds,count,amount,plan_id,credits,"
-                                    + "currency,state,created_at,request_snapshot) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                            created.id(), created.userId(), created.requestId(), created.sku(), created.seconds(),
-                            created.count(), created.amount(), created.planId(), created.credits(), created.currency(),
-                            created.state(), created.createdAt(), created.requestSnapshot());
+                    payments.insertOrder(schema, created.id(), created.userId(), created.requestId(), created.sku(),
+                            created.seconds(), created.count(), created.amount(), created.planId(), created.credits(),
+                            created.currency(), created.state(), created.createdAt(), created.requestSnapshot());
                     return created;
                 });
             } catch (DataIntegrityViolationException error) {
@@ -323,7 +322,7 @@ public class PaymentsServiceImpl implements PaymentsService {
                         || otherSession(ident, order.id());
                 if (mismatch) throw new BusinessFailure("PAYMENT_MISMATCH", "付款资料不匹配，需要人工核查。", 409);
                 String sessionId = (String) ident;
-                if (eventId != null && !jdbc.queryForList("SELECT id FROM " + schema + "payment_events WHERE id=?", eventId).isEmpty()) return;
+                if (eventId != null && !payments.eventIds(schema, eventId).isEmpty()) return;
                 Long expiresAt = value.get("expires_at") instanceof Number number ? number.longValue() : null;
                 String checkoutUrl = safeUrl(value.get("url")) ? (String) value.get("url") : null;
                 Long fulfilledAt = order.fulfilledAt();
@@ -331,9 +330,9 @@ public class PaymentsServiceImpl implements PaymentsService {
                 if ("complete".equals(value.get("status")) && "paid".equals(value.get("payment_status"))) {
                     if (fulfilledAt == null) {
                         if (order.planId() != null) {
-                            jdbc.update("INSERT INTO " + schema + "sandbox_credit_packs(order_id,user_id,plan_id,credits,scenes,created_at) "
-                                            + "VALUES (?,?,?,?,?,?)", order.id(), order.userId(), order.planId(), order.credits(),
-                                    json.writeValueAsString(CREDIT_PLANS.get(order.planId()).scenes()), System.currentTimeMillis());
+                            payments.insertPack(schema, order.id(), order.userId(), order.planId(), order.credits(),
+                                    json.writeValueAsString(CREDIT_PLANS.get(order.planId()).scenes()),
+                                    System.currentTimeMillis());
                         } else {
                             accounts.grant(order.userId(), order.seconds(), order.count(), "paid", "order:" + order.id(), "stripe_sandbox");
                         }
@@ -343,18 +342,16 @@ public class PaymentsServiceImpl implements PaymentsService {
                 } else if (fulfilledAt == null) {
                     state = "expired".equals(value.get("status")) ? "expired" : failed || "failed".equals(order.state()) ? "failed" : "pending";
                 }
-                jdbc.update("UPDATE " + schema + "orders SET session_id=?,expires_at=?,"
-                                + "checkout_url=CASE WHEN ? THEN ? ELSE checkout_url END,state=?,fulfilled_at=? WHERE id=?",
-                        sessionId, expiresAt, checkoutUrl != null, checkoutUrl, state, fulfilledAt, order.id());
+                payments.updateSession(schema, order.id(), sessionId, expiresAt, checkoutUrl != null, checkoutUrl,
+                        state, fulfilledAt);
                 if (eventId != null) {
-                    jdbc.update("INSERT INTO " + schema + "payment_events(id,order_id,source,created_at) VALUES (?,?,'stripe_sandbox',?)",
-                            eventId, order.id(), System.currentTimeMillis());
+                    payments.insertEvent(schema, eventId, order.id(), System.currentTimeMillis());
                 }
             });
         }
 
     private boolean otherSession(Object sessionId, String orderId) {
-            return !jdbc.queryForList("SELECT id FROM " + schema + "orders WHERE id<>? AND session_id=?", orderId, sessionId).isEmpty();
+            return !payments.otherSession(schema, orderId, (String) sessionId).isEmpty();
         }
 
     private Order find(String sql, Object... args) {

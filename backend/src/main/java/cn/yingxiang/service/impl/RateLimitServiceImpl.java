@@ -4,6 +4,7 @@ import cn.yingxiang.service.RateLimitService;
 import cn.yingxiang.common.MigrationSupport;
 import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.mapper.MigrationAccounts;
+import cn.yingxiang.mapper.RateLimitMapper;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Profile;
@@ -28,6 +29,8 @@ public class RateLimitServiceImpl implements RateLimitService {
 
     private final JdbcTemplate jdbc;
 
+    private final RateLimitMapper limits;
+
     private final StringRedisTemplate redis;
 
     private final MigrationAccounts accounts;
@@ -42,9 +45,9 @@ public class RateLimitServiceImpl implements RateLimitService {
 
     private final long gateMs;
 
-    public RateLimitServiceImpl(JdbcTemplate jdbc, StringRedisTemplate redis, MigrationAccounts accounts,
-                                Environment env) {
-            this.jdbc = jdbc; this.redis = redis; this.accounts = accounts;
+    public RateLimitServiceImpl(JdbcTemplate jdbc, RateLimitMapper limits, StringRedisTemplate redis,
+                                MigrationAccounts accounts, Environment env) {
+            this.jdbc = jdbc; this.limits = limits; this.redis = redis; this.accounts = accounts;
             this.schema = MigrationSupport.quotedSchema(env);
             String value = env.getRequiredProperty("migration.redis-namespace");
             if (!value.matches("yingxiang:migration:[A-Za-z0-9:_-]+")) {
@@ -108,8 +111,7 @@ public class RateLimitServiceImpl implements RateLimitService {
         public void importWindows() {
             if (!enabled || !importWindows) return;
             long now = System.currentTimeMillis();
-            for (Map<String, Object> row : jdbc.queryForList("SELECT key,count,until FROM " + schema
-                    + "auth_rate_limits WHERE until>?", now)) {
+            for (Map<String, Object> row : limits.importRows(schema, now)) {
                 String key = (String) row.get("key");
                 long count = MigrationSupport.number(row, "count");
                 long until = MigrationSupport.number(row, "until");
@@ -131,8 +133,7 @@ public class RateLimitServiceImpl implements RateLimitService {
         }
 
     private void gate(String key, long now) {
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT until FROM " + schema
-                    + "rate_limit_gates WHERE key=?", key);
+            List<Map<String, Object>> rows = limits.gate(schema, key);
             if (!rows.isEmpty() && MigrationSupport.number(rows.getFirst(), "until") > now) {
                 throw unavailable();
             }
@@ -140,23 +141,15 @@ public class RateLimitServiceImpl implements RateLimitService {
 
     private void gateUntil(String key, long until, String reason) {
             long now = System.currentTimeMillis();
-            jdbc.update("INSERT INTO " + schema + "rate_limit_gates(key,until,reason,updated_at) VALUES (?,?,?,?) "
-                            + "ON CONFLICT(key) DO UPDATE SET until=GREATEST(rate_limit_gates.until,excluded.until),"
-                            + "reason=excluded.reason,updated_at=excluded.updated_at",
-                    key, until, reason, now);
+            limits.upsertGate(schema, key, until, reason, now);
         }
 
     private Map<String, Object> shadow(String key) {
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT count,until FROM " + schema
-                    + "rate_limit_shadows WHERE key=?", key);
-            return rows.isEmpty() ? null : rows.getFirst();
+            return limits.shadow(schema, key);
         }
 
     private void shadow(String key, long count, long until) {
-            jdbc.update("INSERT INTO " + schema + "rate_limit_shadows(key,count,until,updated_at) VALUES (?,?,?,?) "
-                            + "ON CONFLICT(key) DO UPDATE SET count=excluded.count,until=excluded.until,"
-                            + "updated_at=excluded.updated_at",
-                    key, count, until, System.currentTimeMillis());
+            limits.upsertShadow(schema, key, count, until, System.currentTimeMillis());
         }
 
     private static BusinessFailure unavailable() {

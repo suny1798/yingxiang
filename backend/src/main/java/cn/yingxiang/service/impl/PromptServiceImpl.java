@@ -7,6 +7,7 @@ import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.manager.FixtureTokenTransport;
 import cn.yingxiang.config.RuntimePolicy;
 import cn.yingxiang.mapper.MigrationAccounts;
+import cn.yingxiang.mapper.PromptMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
@@ -35,6 +36,8 @@ public class PromptServiceImpl implements PromptService {
 
     private final JdbcTemplate jdbc;
 
+    private final PromptMapper prompts;
+
     private final MigrationAccounts accounts;
 
     private final JsonMapper json;
@@ -57,9 +60,9 @@ public class PromptServiceImpl implements PromptService {
 
     private final FixtureTokenTransport transport;
 
-    public PromptServiceImpl(JdbcTemplate jdbc, MigrationAccounts accounts, PlatformTransactionManager manager,
-                             Environment env, JsonMapper json) {
-            this.jdbc = jdbc; this.accounts = accounts; this.json = json;
+    public PromptServiceImpl(JdbcTemplate jdbc, PromptMapper prompts, MigrationAccounts accounts,
+                             PlatformTransactionManager manager, Environment env, JsonMapper json) {
+            this.jdbc = jdbc; this.prompts = prompts; this.accounts = accounts; this.json = json;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M16 prompt");
             transaction = new TransactionTemplate(manager);
             transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -129,9 +132,8 @@ public class PromptServiceImpl implements PromptService {
                 failure = "validation";
                 ClientTokenValidator.validate(token, MODEL, origin, 15, key, System.currentTimeMillis());
                 failure = "persistence";
-                transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                        + "usage_attempts SET state='issued',updated_at=? WHERE id=? AND scene='prompt'",
-                        System.currentTimeMillis(), attemptId));
+                transaction.executeWithoutResult(status -> prompts.markIssued(schema, attemptId,
+                        System.currentTimeMillis()));
                 return MigrationSupport.body("apiKey", token.get("apiKey").asString(),
                         "expiresAt", token.get("expiresAt").asString(), "durationSec", 15);
             } catch (RuntimeException error) {
@@ -139,9 +141,8 @@ public class PromptServiceImpl implements PromptService {
                         : failure.equals("request") ? "UPSTREAM_CONNECTION" : failure.equals("validation")
                         ? "INVALID_TOKEN_RESPONSE" : "PERSISTENCE_FAILED";
                 try {
-                    transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                                    + "usage_attempts SET observation=?,updated_at=? WHERE id=? AND scene='prompt' AND state='unknown' AND observation IS NULL",
-                            json.writeValueAsString(Map.of("tokenFailure", code)), System.currentTimeMillis(), attemptId));
+                    transaction.executeWithoutResult(status -> prompts.recordFailure(schema, attemptId,
+                            json.writeValueAsString(Map.of("tokenFailure", code)), System.currentTimeMillis()));
                 } catch (RuntimeException ignored) {
                     // 诊断写入失败不改变unknown与预算保留。
                 }
@@ -154,21 +155,18 @@ public class PromptServiceImpl implements PromptService {
             transaction.executeWithoutResult(status -> {
                 if (paused()) throw new BusinessFailure("SERVICE_PAUSED", "该功能已暂停新生成，请稍后再试。", 503);
                 MigrationAccounts.User user = accounts.require(hashed);
-                if (!jdbc.queryForList("SELECT id FROM " + schema + "usage_attempts WHERE id=?", attemptId).isEmpty()) {
+                if (!prompts.attemptIds(schema, attemptId).isEmpty()) {
                     throw new BusinessFailure("PROMPT_ATTEMPT_SPENT", "这个连接已申请，请核查状态，不要重复提交。", 409);
                 }
                 Map<String, Object> ready = ready(user.id());
                 if (!Boolean.TRUE.equals(ready.get("available"))) {
                     throw new BusinessFailure("PROMPT_LIMIT", String.valueOf(ready.get("message")), 409);
                 }
-                jdbc.update("INSERT INTO " + schema + "budget_campaigns(scene,created_at) VALUES ('prompt',?) ON CONFLICT (scene) DO NOTHING",
-                        System.currentTimeMillis());
-                jdbc.queryForList("SELECT scene FROM " + schema + "budget_campaigns WHERE scene='prompt' FOR UPDATE");
+                prompts.ensureCampaign(schema, System.currentTimeMillis());
+                prompts.lockCampaign(schema);
                 long now = System.currentTimeMillis();
-                jdbc.update("INSERT INTO " + schema + "usage_attempts(id,user_id,scene,seconds,state,created_at) "
-                        + "VALUES (?,?,'prompt',15,'unknown',?)", attemptId, user.id(), now);
-                jdbc.update("INSERT INTO " + schema + "budget_reservations(id,scene,user_id,micro_usd,lease_until,created_at) "
-                        + "VALUES (?,'prompt',?,?,?,?)", attemptId, user.id(), RISK_MICRO, now + 45_000, now);
+                prompts.insertAttempt(schema, attemptId, user.id(), now);
+                prompts.insertReservation(schema, attemptId, user.id(), RISK_MICRO, now + 45_000, now);
             });
         }
 
@@ -180,10 +178,8 @@ public class PromptServiceImpl implements PromptService {
             if (userId != null && unlimitedUsers.contains(username(userId))) {
                 return MigrationSupport.body("available", true, "message", "实时编辑已就绪，可手动开始。");
             }
-            List<Map<String, Object>> attempts = jdbc.queryForList("SELECT * FROM " + schema
-                    + "usage_attempts WHERE scene='prompt' ORDER BY created_at,id");
-            List<Map<String, Object>> reservations = jdbc.queryForList("SELECT * FROM " + schema
-                    + "budget_reservations WHERE scene='prompt' ORDER BY created_at,id");
+            List<Map<String, Object>> attempts = prompts.attempts(schema);
+            List<Map<String, Object>> reservations = prompts.reservations(schema);
             long now = System.currentTimeMillis();
             for (var attempt : attempts) {
                 if (!"unknown".equals(attempt.get("state"))) continue;
@@ -222,9 +218,9 @@ public class PromptServiceImpl implements PromptService {
         }
 
     private boolean paused() {
-            var rows = jdbc.queryForList("SELECT value FROM " + schema + "admin_settings WHERE key='services'");
-            if (rows.isEmpty()) return false;
-            JsonNode settings = json.readTree((String) rows.getFirst().get("value"));
+            String setting = prompts.servicesSetting(schema);
+            if (setting == null) return false;
+            JsonNode settings = json.readTree(setting);
             JsonNode prompt = settings.get("prompt");
             return prompt != null && prompt.isBoolean() && prompt.asBoolean();
         }
@@ -233,9 +229,8 @@ public class PromptServiceImpl implements PromptService {
             return transaction.execute(status -> {
                 byte[] bytes = new byte[32];
                 new SecureRandom().nextBytes(bytes);
-                jdbc.update("INSERT INTO " + schema + "scene_access(scene,value) VALUES ('prompt',?) ON CONFLICT (scene) DO NOTHING",
-                        HexFormat.of().formatHex(bytes));
-                return jdbc.queryForObject("SELECT value FROM " + schema + "scene_access WHERE scene='prompt'", String.class);
+                prompts.ensureSceneAccess(schema, HexFormat.of().formatHex(bytes));
+                return prompts.sceneAccess(schema);
             });
         }
 }

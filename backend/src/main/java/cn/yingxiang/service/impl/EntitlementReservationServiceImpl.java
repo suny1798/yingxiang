@@ -1,6 +1,7 @@
 package cn.yingxiang.service.impl;
 
 import cn.yingxiang.service.EntitlementReservationService;
+import cn.yingxiang.mapper.EntitlementMapper;
 import cn.yingxiang.exception.BusinessFailure;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
@@ -19,12 +20,15 @@ public class EntitlementReservationServiceImpl implements EntitlementReservation
 
     private final JdbcTemplate jdbc;
 
+    private final EntitlementMapper entitlements;
+
     private final TransactionTemplate transaction;
 
     private final String schema;
 
-    public EntitlementReservationServiceImpl(JdbcTemplate jdbc, PlatformTransactionManager manager, Environment env) {
-            this.jdbc = jdbc;
+    public EntitlementReservationServiceImpl(JdbcTemplate jdbc, EntitlementMapper entitlements,
+                                             PlatformTransactionManager manager, Environment env) {
+            this.jdbc = jdbc; this.entitlements = entitlements;
             String value = env.getRequiredProperty("migration.db-schema");
             if (!value.matches("yingxiang_migration(?:_it_[a-f0-9]{12})?")) throw new IllegalArgumentException("Invalid quota schema");
             schema = '"' + value + '"' + ".";
@@ -38,29 +42,23 @@ public class EntitlementReservationServiceImpl implements EntitlementReservation
             validate(attemptId, seconds);
             try {
                 transaction.executeWithoutResult(status -> {
-                    Boolean paused = jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM " + schema
-                            + "admin_settings WHERE key='services' AND (value::jsonb -> 'studio')='true'::jsonb)", Boolean.class);
-                    if (Boolean.TRUE.equals(paused)) throw new BusinessFailure("SERVICE_PAUSED", "该功能已暂停新生成，请稍后再试。", 503);
-                    var users = jdbc.queryForList("SELECT u.id,s.expires_at FROM " + schema + "users u JOIN " + schema
-                            + "auth_sessions s ON s.user_id=u.id WHERE s.hash=? AND u.disabled=0 FOR UPDATE OF u,s", hashed == null ? "" : hashed);
+                    if (entitlements.paused(schema)) throw new BusinessFailure("SERVICE_PAUSED", "该功能已暂停新生成，请稍后再试。", 503);
+                    var users = entitlements.lockSession(schema, hashed == null ? "" : hashed);
                     // 等待行锁期间会话可能到期；取得锁后再按当前时间判断。
                     if (users.isEmpty() || ((Number) users.getFirst().get("expires_at")).longValue() <= System.currentTimeMillis()) {
                         throw new BusinessFailure("LOGIN_REQUIRED", "请先登录后继续。", 401);
                     }
                     String userId = (String) users.getFirst().get("id");
-                    if (!jdbc.queryForList("SELECT id FROM " + schema + "usage_attempts WHERE id=?", attemptId).isEmpty()) throw spent();
-                    var grants = jdbc.queryForList("SELECT id FROM " + schema + "entitlement_grants WHERE user_id=? AND seconds=? "
-                            + "AND environment='real_usage' AND total>reserved+used+revoked ORDER BY id LIMIT 1 FOR UPDATE", userId, seconds);
+                    if (!entitlements.attemptIds(schema, attemptId).isEmpty()) throw spent();
+                    var grants = entitlements.availableGrant(schema, userId, seconds);
                     if (grants.isEmpty()) throw unavailableDuration(seconds);
-                    String grantId = (String) grants.getFirst().get("id");
-                    int changed = jdbc.update("UPDATE " + schema + "entitlement_grants SET reserved=reserved+1 WHERE id=? "
-                            + "AND user_id=? AND environment='real_usage' AND total>reserved+used+revoked", grantId, userId);
+                    String grantId = grants.getFirst();
+                    int changed = entitlements.reserveGrant(schema, grantId, userId);
                     if (changed != 1) throw unavailableDuration(seconds);
                     long now = System.currentTimeMillis();
-                    jdbc.update("INSERT INTO " + schema + "entitlement_entries(id,grant_id,operation_key,kind,quantity,created_at) VALUES (?,?,?,'reserve',1,?)",
-                            UUID.randomUUID().toString(), grantId, "reserve:" + attemptId, now);
-                    jdbc.update("INSERT INTO " + schema + "usage_attempts(id,user_id,grant_id,scene,seconds,state,account_state,created_at) "
-                            + "VALUES (?,?,?,'studio',?,'unknown','review',?)", attemptId, userId, grantId, seconds, now);
+                    entitlements.insertEntry(schema, UUID.randomUUID().toString(), grantId, "reserve:" + attemptId,
+                            "reserve", 1, now);
+                    entitlements.insertAttempt(schema, attemptId, userId, grantId, seconds, now);
                 });
             } catch (DataIntegrityViolationException error) {
                 // 同attempt跨账号并发由主键／唯一operation_key兜底，整个预留回滚。
@@ -75,19 +73,16 @@ public class EntitlementReservationServiceImpl implements EntitlementReservation
         public boolean confirmIssued(String attemptId) {
             validateId(attemptId);
             return Boolean.TRUE.equals(transaction.execute(status -> {
-                var rows = jdbc.queryForList("SELECT grant_id,user_id,account_state FROM " + schema
-                        + "usage_attempts WHERE id=? AND scene='studio' FOR UPDATE", attemptId);
-                if (rows.isEmpty() || rows.getFirst().get("grant_id") == null) throw BusinessFailure.unavailable();
-                var attempt = rows.getFirst();
+                var attempt = entitlements.lockAttempt(schema, attemptId);
+                if (attempt == null || attempt.get("grant_id") == null) throw BusinessFailure.unavailable();
                 if ("used".equals(attempt.get("account_state"))) return false;
-                int changed = jdbc.update("UPDATE " + schema + "entitlement_grants SET reserved=reserved-1,used=used+1 "
-                                + "WHERE id=? AND user_id=? AND environment='real_usage' AND reserved>0",
-                        attempt.get("grant_id"), attempt.get("user_id"));
+                int changed = entitlements.consumeGrant(schema, (String) attempt.get("grant_id"),
+                        (String) attempt.get("user_id"));
                 if (changed != 1) throw BusinessFailure.unavailable();
                 long now = System.currentTimeMillis();
-                jdbc.update("INSERT INTO " + schema + "entitlement_entries(id,grant_id,operation_key,kind,quantity,created_at) VALUES (?,?,?,'consume',1,?)",
-                        UUID.randomUUID().toString(), attempt.get("grant_id"), "consume:" + attemptId, now);
-                jdbc.update("UPDATE " + schema + "usage_attempts SET state='issued',account_state='used',updated_at=? WHERE id=?", now, attemptId);
+                entitlements.insertEntry(schema, UUID.randomUUID().toString(), (String) attempt.get("grant_id"),
+                        "consume:" + attemptId, "consume", 1, now);
+                entitlements.markIssued(schema, attemptId, now);
                 return true;
             }));
         }

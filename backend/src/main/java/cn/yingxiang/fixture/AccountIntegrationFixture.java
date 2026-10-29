@@ -3,6 +3,7 @@ package cn.yingxiang.fixture;
 import cn.yingxiang.manager.ConnectionProbe;
 import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.service.EntitlementReservationService;
+import cn.yingxiang.mapper.EntitlementMapper;
 import cn.yingxiang.service.impl.EntitlementReservationServiceImpl;
 import cn.yingxiang.manager.SchemaOperations;
 import tools.jackson.databind.json.JsonMapper;
@@ -79,7 +80,15 @@ public final class AccountIntegrationFixture {
                         var dataSource = SchemaOperations.dataSource(config, false);
                         var env = new org.springframework.core.env.StandardEnvironment();
                         env.getPropertySources().addFirst(new org.springframework.core.env.MapPropertySource("quota-fixture", Map.of("migration.db-schema", target)));
+                        var configuration = new com.baomidou.mybatisplus.core.MybatisConfiguration();
+                        configuration.setMapUnderscoreToCamelCase(true);
+                        configuration.addMapper(EntitlementMapper.class);
+                        configuration.setEnvironment(new org.apache.ibatis.mapping.Environment("fixture",
+                                new org.apache.ibatis.transaction.jdbc.JdbcTransactionFactory(), dataSource));
+                        var factory = new com.baomidou.mybatisplus.core.MybatisSqlSessionFactoryBuilder().build(configuration);
+                        var session = factory.openSession(true);
                         var service = new EntitlementReservationServiceImpl(new org.springframework.jdbc.core.JdbcTemplate(dataSource),
+                                session.getMapper(EntitlementMapper.class),
                                 new org.springframework.jdbc.datasource.DataSourceTransactionManager(dataSource), env);
                         if (action.equals("quota-reserve")) {
                             service.reserve((String) body.get("hashed"), (String) body.get("attemptId"), ((Number) body.get("seconds")).intValue());

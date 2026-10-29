@@ -3,6 +3,7 @@ package cn.yingxiang.service.impl;
 import cn.yingxiang.service.AdministrationService;
 import cn.yingxiang.common.MigrationSupport;
 import cn.yingxiang.exception.BusinessFailure;
+import cn.yingxiang.mapper.AdminMapper;
 import cn.yingxiang.mapper.MigrationAccounts;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,6 +37,8 @@ public class AdministrationServiceImpl implements AdministrationService {
 
     private final JdbcTemplate jdbc;
 
+    private final AdminMapper admin;
+
     private final MigrationAccounts accounts;
 
     private final PaymentsService payments;
@@ -50,10 +53,10 @@ public class AdministrationServiceImpl implements AdministrationService {
 
     private final Environment env;
 
-    public AdministrationServiceImpl(JdbcTemplate jdbc, MigrationAccounts accounts, ObjectProvider<PaymentsService> payments,
-                                     ObjectProvider<VideoService> video,
+    public AdministrationServiceImpl(JdbcTemplate jdbc, AdminMapper admin, MigrationAccounts accounts,
+                                     ObjectProvider<PaymentsService> payments, ObjectProvider<VideoService> video,
                                      PlatformTransactionManager manager, Environment env, JsonMapper json) {
-            this.jdbc = jdbc; this.accounts = accounts; this.payments = payments.getIfAvailable();
+            this.jdbc = jdbc; this.admin = admin; this.accounts = accounts; this.payments = payments.getIfAvailable();
             this.video = video.getIfAvailable(); this.json = json; this.env = env;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M13 admin");
             transaction = new TransactionTemplate(manager);
@@ -89,8 +92,7 @@ public class AdministrationServiceImpl implements AdministrationService {
                             ? Boolean.parseBoolean(env.getProperty("migration.studio-fixture-enabled", "false"))
                             : scene.equals("video") && video != null && video.configured();
                     long reserved = 0;
-                    for (var row : jdbc.queryForList("SELECT coalesce(sum(micro_usd),0) AS total FROM " + schema
-                            + "budget_reservations WHERE scene=?", scene)) reserved += MigrationSupport.number(row, "total");
+                    for (var row : admin.budgetReserved(schema, scene)) reserved += MigrationSupport.number(row, "total");
                     Object budget = scene.equals("video") && video != null ? video.budgetMicro() / 1_000_000.0 : null;
                     Object maximum = scene.equals("video") && video != null ? video.maximum() : null;
                     services.add(MigrationSupport.body("scene", scene, "configured", configured, "paused", paused(scene),
@@ -204,10 +206,10 @@ public class AdministrationServiceImpl implements AdministrationService {
     public Map<String, Object> userChange(String hashed, String ident, JsonNode body) {
             Map<String, Object> input = validateMutation(body, "user");
             return mutate(hashed, "user.update", ident, input, (actor, value) -> {
-                var row = jdbc.queryForList("SELECT role,disabled FROM " + schema + "users WHERE id=? FOR UPDATE", ident);
-                if (row.isEmpty()) throw new BusinessFailure("NOT_FOUND", "账号不存在。", 404);
-                String role = (String) row.getFirst().get("role");
-                boolean disabled = MigrationSupport.number(row.getFirst(), "disabled") != 0;
+                Map<String, Object> row = admin.lockUser(schema, ident);
+                if (row == null) throw new BusinessFailure("NOT_FOUND", "账号不存在。", 404);
+                String role = (String) row.get("role");
+                boolean disabled = MigrationSupport.number(row, "disabled") != 0;
                 String nextRole = (String) value.get("role");
                 boolean nextDisabled = (Boolean) value.get("disabled");
                 if (ident.equals(actor.id()) && (!nextRole.equals("admin") || nextDisabled)) {
@@ -218,9 +220,9 @@ public class AdministrationServiceImpl implements AdministrationService {
                         throw new BusinessFailure("LAST_ADMIN", "至少保留一名可用管理员。", 409);
                     }
                 }
-                jdbc.update("UPDATE " + schema + "users SET role=?,disabled=? WHERE id=?", nextRole, nextDisabled ? 1 : 0, ident);
+                admin.updateUser(schema, ident, nextRole, nextDisabled ? 1 : 0);
                 if (nextDisabled || !nextRole.equals(role)) {
-                    jdbc.update("DELETE FROM " + schema + "auth_sessions WHERE user_id=?", ident);
+                    admin.deleteSessions(schema, ident);
                 }
                 return MigrationSupport.body("before", Map.of("role", role, "disabled", disabled),
                         "after", Map.of("role", nextRole, "disabled", nextDisabled));
@@ -234,9 +236,7 @@ public class AdministrationServiceImpl implements AdministrationService {
                 int seconds = (Integer) value.get("seconds");
                 int delta = (Integer) value.get("delta");
                 if (delta == 0) throw new BusinessFailure("INVALID_REQUEST", "调整次数不能为0。", 400);
-                List<Map<String, Object>> rows = jdbc.queryForList("SELECT id,total,reserved,used,revoked FROM " + schema
-                        + "entitlement_grants WHERE user_id=? AND seconds=? AND environment='real_usage' ORDER BY id FOR UPDATE",
-                        ident, seconds);
+                List<Map<String, Object>> rows = admin.lockGrants(schema, ident, seconds);
                 long before = 0;
                 for (var row : rows) {
                     before += MigrationSupport.number(row, "total") - MigrationSupport.number(row, "reserved")
@@ -253,10 +253,10 @@ public class AdministrationServiceImpl implements AdministrationService {
                                 - MigrationSupport.number(row, "revoked"));
                         if (quantity > 0) {
                             String grantId = (String) row.get("id");
-                            jdbc.update("UPDATE " + schema + "entitlement_grants SET revoked=revoked+? WHERE id=?", quantity, grantId);
-                            jdbc.update("INSERT INTO " + schema + "entitlement_entries(id,grant_id,operation_key,kind,quantity,created_at) "
-                                            + "VALUES (?,?,?,'revoke',?,?)", MigrationSupport.uuid(), grantId,
-                                    "admin-revoke:" + value.get("requestId") + ":" + grantId, quantity, System.currentTimeMillis());
+                            admin.revoke(schema, grantId, quantity);
+                            admin.insertRevokeEntry(schema, MigrationSupport.uuid(), grantId,
+                                    "admin-revoke:" + value.get("requestId") + ":" + grantId, quantity,
+                                    System.currentTimeMillis());
                         }
                         remaining -= quantity;
                         if (remaining == 0) break;
@@ -292,9 +292,8 @@ public class AdministrationServiceImpl implements AdministrationService {
                     }
                     after = MigrationSupport.body("enabled", enabled, "zh", zh, "en", en);
                 }
-                jdbc.update("DELETE FROM " + schema + "admin_settings WHERE key=?", key);
-                jdbc.update("INSERT INTO " + schema + "admin_settings(key,value,version) VALUES (?,?,?)", key,
-                        json.writeValueAsString(after), before.version() + 1);
+                admin.deleteSetting(schema, key);
+                admin.insertSetting(schema, key, json.writeValueAsString(after), before.version() + 1);
                 return MigrationSupport.body("before", before.value(), "after", after);
             });
         }
@@ -303,10 +302,8 @@ public class AdministrationServiceImpl implements AdministrationService {
                                            java.util.function.BiFunction<MigrationAccounts.User, Map<String, Object>, Map<String, Object>> callback) {
             return transaction.execute(status -> {
                 MigrationAccounts.User actor = requireAdmin(hashed);
-                var old = jdbc.queryForList("SELECT actor_id,action,target,changes FROM " + schema
-                        + "admin_audit WHERE request_id=?", input.get("requestId"));
-                if (!old.isEmpty()) {
-                    var row = old.getFirst();
+                Map<String, Object> row = admin.auditByRequest(schema, (String) input.get("requestId"));
+                if (row != null) {
                     Map<String, Object> changes = json.readValue((String) row.get("changes"), Map.class);
                     if (!actor.id().equals(row.get("actor_id")) || !action.equals(row.get("action"))
                             || !target.equals(row.get("target")) || !input.equals(changes.get("input"))) {
@@ -318,9 +315,9 @@ public class AdministrationServiceImpl implements AdministrationService {
                 Map<String, Object> stored = new LinkedHashMap<>();
                 stored.put("input", input);
                 stored.putAll(changes);
-                jdbc.update("INSERT INTO " + schema + "admin_audit(id,request_id,actor_id,action,target,reason,changes,created_at) "
-                                + "VALUES (?,?,?,?,?,?,?,?)", MigrationSupport.uuid(), input.get("requestId"), actor.id(),
-                        action, target, input.get("reason"), json.writeValueAsString(stored), System.currentTimeMillis());
+                admin.insertAudit(schema, MigrationSupport.uuid(), (String) input.get("requestId"), actor.id(),
+                        action, target, (String) input.get("reason"), json.writeValueAsString(stored),
+                        System.currentTimeMillis());
                 return Map.of("accepted", true);
             });
         }
@@ -407,9 +404,8 @@ public class AdministrationServiceImpl implements AdministrationService {
     private record Setting(Map<String, Object> value, int version) {}
 
     private Setting setting(String key) {
-            var rows = jdbc.queryForList("SELECT value,version FROM " + schema + "admin_settings WHERE key=?", key);
-            if (rows.isEmpty()) return new Setting(Map.of(), 0);
-            var row = rows.getFirst();
+            Map<String, Object> row = admin.setting(schema, key);
+            if (row == null) return new Setting(Map.of(), 0);
             Map<String, Object> value;
             try {
                 value = json.readValue((String) row.get("value"), Map.class);
@@ -432,9 +428,7 @@ public class AdministrationServiceImpl implements AdministrationService {
         }
 
     private List<Map<String, Object>> durations(String userId) {
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT seconds,sum(total-revoked) AS quota,"
-                    + "sum(total-reserved-used-revoked) AS remaining FROM " + schema
-                    + "entitlement_grants WHERE user_id=? AND environment='real_usage' GROUP BY seconds", userId);
+            List<Map<String, Object>> rows = admin.balances(schema, userId);
             List<Map<String, Object>> result = new ArrayList<>();
             for (int seconds : List.of(15, 30, 60)) {
                 var row = rows.stream().filter(item -> MigrationSupport.number(item, "seconds") == seconds)

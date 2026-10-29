@@ -1,6 +1,7 @@
 package cn.yingxiang.manager;
 
 import cn.yingxiang.common.MigrationSupport;
+import cn.yingxiang.mapper.UploadMapper;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -17,11 +18,12 @@ import java.util.Map;
 @Profile("local")
 public class UploadGate {
     private final JdbcTemplate jdbc;
+    private final UploadMapper uploads;
     private final TransactionTemplate transaction;
     private final String schema;
 
-    public UploadGate(JdbcTemplate jdbc, PlatformTransactionManager manager, Environment env) {
-        this.jdbc = jdbc;
+    public UploadGate(JdbcTemplate jdbc, UploadMapper uploads, PlatformTransactionManager manager, Environment env) {
+        this.jdbc = jdbc; this.uploads = uploads;
         this.schema = MigrationSupport.quotedSchema(env);
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -31,23 +33,13 @@ public class UploadGate {
 
     public Lease acquire(String id, String owner, long leaseMs) {
         long now = System.currentTimeMillis();
-        Long generation = transaction.execute(status -> {
-            List<Map<String, Object>> rows = jdbc.queryForList("INSERT INTO " + schema
-                            + "upload_slots(id,owner,lease_generation,lease_until,updated_at) VALUES (?,?,1,?,?) "
-                            + "ON CONFLICT(id) DO UPDATE SET owner=excluded.owner,"
-                            + "lease_generation=upload_slots.lease_generation+1,lease_until=excluded.lease_until,"
-                            + "updated_at=excluded.updated_at WHERE upload_slots.lease_until<? "
-                            + "RETURNING lease_generation",
-                    id, owner, now + leaseMs, now, now);
-            return rows.isEmpty() ? null : MigrationSupport.number(rows.getFirst(), "lease_generation");
-        });
+        Long generation = transaction.execute(status -> uploads.acquire(schema, id, owner, now + leaseMs, now));
         return generation == null ? null : new Lease(id, owner, generation);
     }
 
     public void release(Lease lease) {
         if (lease == null) return;
-        jdbc.update("DELETE FROM " + schema + "upload_slots WHERE id=? AND owner=? AND lease_generation=?",
-                lease.id, lease.owner, lease.generation);
+        uploads.release(schema, lease.id, lease.owner, lease.generation);
     }
 
     public final class Lease implements AutoCloseable {

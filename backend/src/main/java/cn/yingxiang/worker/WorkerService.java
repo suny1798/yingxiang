@@ -1,6 +1,7 @@
 package cn.yingxiang.worker;
 
 import cn.yingxiang.manager.StoragePort;
+import cn.yingxiang.mapper.WorkerMapper;
 import cn.yingxiang.common.MigrationSupport;
 import cn.yingxiang.config.RuntimePolicy;
 import cn.yingxiang.manager.Mp4;
@@ -56,6 +57,7 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     public record Job(String id, String state, String providerId, long expiresAt) {}
 
     private final JdbcTemplate jdbc;
+    private final WorkerMapper workers;
     private final StoragePort storage;
     private final JsonMapper json;
     private final TransactionTemplate transaction;
@@ -74,9 +76,9 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     private Environment environment;
     private Thread thread;
 
-    public WorkerService(JdbcTemplate jdbc, StoragePort storage, PlatformTransactionManager manager,
+    public WorkerService(JdbcTemplate jdbc, WorkerMapper workers, StoragePort storage, PlatformTransactionManager manager,
                          Environment env, JsonMapper json) {
-        this.jdbc = jdbc; this.storage = storage; this.environment = env; this.json = json;
+        this.jdbc = jdbc; this.workers = workers; this.storage = storage; this.environment = env; this.json = json;
         this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M17 worker");
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -166,30 +168,10 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
         transaction.executeWithoutResult(status -> {
             long now = System.currentTimeMillis();
             // 只从已有供应商编号的视频任务补建作品；不生成、不重POST。
-            jdbc.update("INSERT INTO " + schema + "works(id,user_id,kind,source_id,title,state,mime,extension,bytes,chunks,"
-                    + "duration_ms,created_at,updated_at,error_code,retries,favorite) "
-                    + "SELECT gen_random_uuid()::text,j.user_id,'video',j.id,coalesce(h.title,'视频换装'),'waiting',"
-                    + "'video/mp4','mp4',0,0,j.seconds_milli,j.created_at,? ,NULL,0,0 "
-                    + "FROM " + schema + "video_jobs j LEFT JOIN " + schema + "video_history h ON h.job_id=j.id "
-                    + "WHERE j.provider_id IS NOT NULL AND j.state IN ('pending','processing','completed') "
-                    + "ON CONFLICT (kind,source_id) DO NOTHING", now);
-            jdbc.update("INSERT INTO " + schema + "background_tasks(id,type,user_id,resource_id,dedupe_key,state,attempts,"
-                    + "max_attempts,next_run_at,created_at,updated_at) "
-                    + "SELECT gen_random_uuid()::text,'video-save',w.user_id,w.id,'video-save:'||w.id,'pending',0,?,?,?,? "
-                    + "FROM " + schema + "works w WHERE w.kind='video' AND w.state IN ('waiting','saving') "
-                    + "ON CONFLICT (dedupe_key) DO UPDATE SET state='pending',attempts=0,next_run_at=excluded.next_run_at,"
-                    + "last_error_code=NULL,lease_owner=NULL,lease_until=NULL,updated_at=excluded.updated_at "
-                    + "WHERE " + schema + "background_tasks.state IN ('succeeded','failed','cancelled')",
-                    maxAttempts, now, now, now);
-            jdbc.update("INSERT INTO " + schema + "background_tasks(id,type,user_id,resource_id,dedupe_key,state,attempts,"
-                    + "max_attempts,next_run_at,created_at,updated_at) "
-                    + "SELECT gen_random_uuid()::text,'cleanup',w.user_id,w.id,'cleanup:'||w.id,'pending',0,1,?,?,? "
-                    + "FROM " + schema + "works w WHERE w.state='deleted' ON CONFLICT (dedupe_key) DO NOTHING",
-                    now, now, now);
-            jdbc.update("UPDATE " + schema + "background_tasks SET state='failed',"
-                    + "last_error_code=coalesce(last_error_code,'ATTEMPTS_EXHAUSTED'),lease_owner=NULL,lease_until=NULL,"
-                    + "updated_at=? WHERE state IN ('pending','running') AND attempts>=max_attempts "
-                    + "AND (lease_until IS NULL OR lease_until<?)", now, now);
+            workers.createVideoWorks(schema, now);
+            workers.enqueueVideoSave(schema, maxAttempts, now);
+            workers.enqueueCleanup(schema, now);
+            workers.failExhausted(schema, now);
             expireCaptures(now);
         });
     }
@@ -197,24 +179,13 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     /** M18：超过120秒无新片段的capturing作品按既有规则部分收尾。 */
     private void expireCaptures(long now) {
         long cutoff = now - captureTimeoutMs;
-        List<Map<String, Object>> rows = jdbc.queryForList("SELECT id,user_id,chunks FROM " + schema
-                + "works WHERE state='capturing' AND updated_at<? ORDER BY updated_at,id LIMIT 32", cutoff);
-        for (Map<String, Object> row : rows) {
+        for (Map<String, Object> row : workers.capturingWorks(schema, cutoff)) {
             String id = (String) row.get("id");
             long chunks = MigrationSupport.number(row, "chunks");
-            int updated = jdbc.update("UPDATE " + schema + "works SET state=?,error_code=?,updated_at=? "
-                            + "WHERE id=? AND state='capturing' AND updated_at<?",
-                    chunks > 0 ? "saving" : "failed", chunks > 0 ? "PARTIAL_CAPTURE" : "CAPTURE_EMPTY",
-                    now, id, cutoff);
+            int updated = workers.expireCapture(schema, id, chunks > 0 ? "saving" : "failed",
+                    chunks > 0 ? "PARTIAL_CAPTURE" : "CAPTURE_EMPTY", now, cutoff);
             if (updated == 1 && chunks > 0) {
-                jdbc.update("INSERT INTO " + schema + "background_tasks(id,type,user_id,resource_id,dedupe_key,state,"
-                                + "attempts,max_attempts,next_run_at,created_at,updated_at) "
-                                + "VALUES (gen_random_uuid()::text,'capture-finish',?,?,'capture-finish:'||?,"
-                                + "'pending',0,?,?,?,?) ON CONFLICT (dedupe_key) DO UPDATE SET state='pending',"
-                                + "attempts=0,next_run_at=excluded.next_run_at,lease_owner=NULL,lease_until=NULL,"
-                                + "updated_at=excluded.updated_at WHERE " + schema + "background_tasks.state IN "
-                                + "('succeeded','failed','cancelled')",
-                        row.get("user_id"), id, id, maxAttempts, now, now, now);
+                workers.enqueueCaptureFinish(schema, (String) row.get("user_id"), id, maxAttempts, now);
             }
         }
     }
@@ -222,18 +193,12 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     private Task claim() {
         long now = System.currentTimeMillis();
         return transaction.execute(status -> {
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM " + schema + "background_tasks "
-                    + "WHERE state IN ('pending','running') AND attempts<max_attempts AND next_run_at<=? "
-                    + "AND (lease_until IS NULL OR lease_until<?) ORDER BY next_run_at,id LIMIT 1 FOR UPDATE SKIP LOCKED",
-                    now, now);
-            if (rows.isEmpty()) return null;
-            Task task = task(rows.getFirst());
+            Map<String, Object> row = workers.claimTask(schema, now);
+            if (row == null) return null;
+            Task task = task(row);
             long generation = task.generation() + 1;
-            int updated = jdbc.update("UPDATE " + schema + "background_tasks SET state='running',lease_owner=?,"
-                            + "lease_until=?,lease_generation=?,attempts=attempts+1,updated_at=? "
-                            + "WHERE id=? AND lease_generation=? AND state IN ('pending','running') "
-                            + "AND (lease_until IS NULL OR lease_until<?)",
-                    workerId, now + leaseMs, generation, now, task.id(), task.generation(), now);
+            int updated = workers.markRunning(schema, workerId, now + leaseMs, generation, now,
+                    task.id(), task.generation());
             if (updated != 1) return null;
             return new Task(task.id(), task.type(), task.userId(), task.resourceId(), task.dedupeKey(), "running",
                     task.attempts() + 1, task.maxAttempts(), generation);
@@ -289,8 +254,7 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
             if (!ident.equals(job.providerId()) || !Set.of("pending", "processing", "completed", "failed").contains(state)) {
                 throw new IllegalStateException();
             }
-            jdbc.update("UPDATE " + schema + "video_jobs SET state=? WHERE id=? AND state IN ('pending','processing')",
-                    state, job.id());
+            workers.updateVideoState(schema, job.id(), state);
             reschedule(task, 200L, null, true);
         } catch (Exception error) {
             reschedule(task, work.retries() > 0 ? 10_000L : 2_000L, "STATUS_UNAVAILABLE");
@@ -357,13 +321,9 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     private boolean publish(Task task, Work work, Path temporary, long bytes) {
         Boolean published = transaction.execute(status -> {
             long now = System.currentTimeMillis();
-            List<Map<String, Object>> leases = jdbc.queryForList("SELECT lease_generation FROM " + schema
-                    + "background_tasks WHERE id=? AND lease_owner=? AND lease_generation=? AND state='running' "
-                    + "AND lease_until>? FOR UPDATE", task.id(), workerId, task.generation(), now);
-            if (leases.isEmpty()) return false;
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT state FROM " + schema
-                    + "works WHERE id=? FOR UPDATE", work.id());
-            if (rows.isEmpty() || !Set.of("waiting", "saving").contains((String) rows.getFirst().get("state"))) {
+            if (workers.lockLease(schema, task.id(), workerId, task.generation(), now).isEmpty()) return false;
+            String state = workers.lockWorkState(schema, work.id());
+            if (state == null || !Set.of("waiting", "saving").contains(state)) {
                 return false;
             }
             try {
@@ -372,11 +332,9 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
             } catch (IOException error) {
                 throw new IllegalStateException(error);
             }
-            jdbc.update("UPDATE " + schema + "works SET state='ready',bytes=?,error_code=?,updated_at=? WHERE id=?",
-                    bytes, "REFERENCE_SAVE_FAILED".equals(work.errorCode()) ? "REFERENCE_SAVE_FAILED" : null, now, work.id());
-            jdbc.update("UPDATE " + schema + "background_tasks SET state='succeeded',last_error_code=NULL,"
-                    + "lease_owner=NULL,lease_until=NULL,updated_at=? WHERE id=? AND lease_generation=?",
-                    now, task.id(), task.generation());
+            workers.markWorkReady(schema, work.id(), bytes,
+                    "REFERENCE_SAVE_FAILED".equals(work.errorCode()) ? "REFERENCE_SAVE_FAILED" : null, now);
+            workers.markTaskSucceeded(schema, task.id(), task.generation(), now);
             return true;
         });
         return Boolean.TRUE.equals(published);
@@ -388,9 +346,8 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
             failWork(work, code);
             completeTask(task, "failed", code);
         } else {
-            transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                    + "works SET state='saving',retries=?,updated_at=? WHERE id=? AND state IN ('waiting','saving')",
-                    retries, System.currentTimeMillis(), work.id()));
+            transaction.executeWithoutResult(status -> workers.markWorkSaving(schema, work.id(), retries,
+                    System.currentTimeMillis()));
             reschedule(task, retryMs, code);
         }
     }
@@ -400,6 +357,8 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
         if (work == null) { completeTask(task, "cancelled", null); return; }
         if (work.state().equals("deleted")) { removeFiles(work); completeTask(task, "cancelled", null); return; }
         if (!work.state().equals("saving")) { completeTask(task, "succeeded", null); return; }
+        long renewNow = System.currentTimeMillis();
+        workers.renewLease(schema, task.id(), workerId, task.generation(), renewNow + leaseMs, renewNow);
         Path directory;
         Path temporary;
         Path target;
@@ -425,26 +384,18 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
         }
         Boolean done = transaction.execute(status -> {
             long now = System.currentTimeMillis();
-            List<Map<String, Object>> leases = jdbc.queryForList("SELECT lease_generation FROM " + schema
-                    + "background_tasks WHERE id=? AND lease_owner=? AND lease_generation=? AND state='running' "
-                    + "AND lease_until>? FOR UPDATE", task.id(), workerId, task.generation(), now);
-            if (leases.isEmpty()) return false;
-            List<Map<String, Object>> rows = jdbc.queryForList("SELECT state FROM " + schema
-                    + "works WHERE id=? FOR UPDATE", work.id());
-            if (rows.isEmpty() || !"saving".equals(rows.getFirst().get("state"))) return false;
+            if (workers.lockLease(schema, task.id(), workerId, task.generation(), now).isEmpty()) return false;
+            if (!"saving".equals(workers.lockWorkState(schema, work.id()))) return false;
             try {
                 Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException error) {
                 throw new IllegalStateException(error);
             }
-            jdbc.update("UPDATE " + schema + "works SET state='ready',error_code=?,updated_at=? WHERE id=?",
-                    work.errorCode(), now, work.id());
+            workers.markWorkReadySimple(schema, work.id(), work.errorCode(), now);
             for (int index = 0; index < work.chunks(); index++) {
                 try { storage.delete(directory.resolve(String.format("chunk-%06d", index))); } catch (IOException ignored) { }
             }
-            jdbc.update("UPDATE " + schema + "background_tasks SET state='succeeded',last_error_code=NULL,"
-                    + "lease_owner=NULL,lease_until=NULL,updated_at=? WHERE id=? AND lease_generation=?",
-                    now, task.id(), task.generation());
+            workers.markTaskSucceeded(schema, task.id(), task.generation(), now);
             return true;
         });
         if (!Boolean.TRUE.equals(done)) {
@@ -474,9 +425,8 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     }
 
     private void failWork(Work work, String code) {
-        transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                + "works SET state='failed',error_code=?,updated_at=? WHERE id=? AND state IN ('waiting','saving')",
-                code, System.currentTimeMillis(), work.id()));
+        transaction.executeWithoutResult(status -> workers.markWorkFailed(schema, work.id(), code,
+                System.currentTimeMillis()));
     }
 
     private void reschedule(Task task, long delay, String code) {
@@ -485,24 +435,23 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
 
     private void reschedule(Task task, long delay, String code, boolean resetAttempts) {
         long now = System.currentTimeMillis();
-        transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema + "background_tasks SET "
-                        + "state='pending',next_run_at=?,last_error_code=?,lease_owner=NULL,lease_until=NULL,updated_at=?"
-                        + (resetAttempts ? ",attempts=0" : "") + " WHERE id=? AND lease_generation=? AND state='running'",
-                now + delay, code, now, task.id(), task.generation()));
+        transaction.executeWithoutResult(status -> {
+            if (resetAttempts) {
+                workers.rescheduleTaskReset(schema, task.id(), task.generation(), now + delay, code, now);
+            } else {
+                workers.rescheduleTask(schema, task.id(), task.generation(), now + delay, code, now);
+            }
+        });
     }
 
     private void completeTask(Task task, String state, String code) {
         long now = System.currentTimeMillis();
-        jdbc.update("UPDATE " + schema + "background_tasks SET state=?,last_error_code=?,lease_owner=NULL,"
-                        + "lease_until=NULL,updated_at=? WHERE id=? AND lease_generation=? AND state='running'",
-                state, code, now, task.id(), task.generation());
+        workers.completeTask(schema, task.id(), task.generation(), state, code, now);
     }
 
     private Work work(String id) {
-        List<Map<String, Object>> rows = jdbc.queryForList("SELECT id,user_id,kind,source_id,state,extension,bytes,"
-                + "chunks,retries,error_code FROM " + schema + "works WHERE id=?", id);
-        if (rows.isEmpty()) return null;
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = workers.work(schema, id);
+        if (row == null) return null;
         return new Work((String) row.get("id"), (String) row.get("user_id"), (String) row.get("kind"),
                 (String) row.get("source_id"), (String) row.get("state"), (String) row.get("extension"),
                 MigrationSupport.number(row, "bytes"), (int) MigrationSupport.number(row, "chunks"),
@@ -510,19 +459,23 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     }
 
     private Job job(String id) {
-        List<Map<String, Object>> rows = jdbc.queryForList("SELECT id,state,provider_id,expires_at FROM " + schema
-                + "video_jobs WHERE id=?", id);
-        if (rows.isEmpty()) return null;
-        Map<String, Object> row = rows.getFirst();
+        Map<String, Object> row = workers.job(schema, id);
+        if (row == null) return null;
         return new Job((String) row.get("id"), (String) row.get("state"), (String) row.get("provider_id"),
                 MigrationSupport.number(row, "expires_at"));
     }
 
     private static Task task(Map<String, Object> row) {
-        return new Task((String) row.get("id"), (String) row.get("type"), (String) row.get("user_id"),
-                (String) row.get("resource_id"), (String) row.get("dedupe_key"), (String) row.get("state"),
+        return new Task((String) value(row, "id", "id"), (String) value(row, "type", "type"),
+                (String) value(row, "user_id", "userId"), (String) value(row, "resource_id", "resourceId"),
+                (String) value(row, "dedupe_key", "dedupeKey"), (String) value(row, "state", "state"),
                 (int) MigrationSupport.number(row, "attempts"), (int) MigrationSupport.number(row, "max_attempts"),
                 MigrationSupport.number(row, "lease_generation"));
+    }
+
+    private static Object value(Map<String, Object> row, String snake, String camel) {
+        Object value = row.get(snake);
+        return value != null ? value : row.get(camel);
     }
 
     private static boolean validMp4(Path path) throws IOException {

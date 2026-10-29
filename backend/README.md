@@ -26,7 +26,9 @@ JSON响应统一为 `{code,data,message,requestId,reason}`：成功 `code=0`、`
 
 2026-10-29按要求增加通用依赖并固定版本：`mybatis-plus-spring-boot4-starter:3.5.18`（Boot 4 对应启动器；旧的 `mybatis-plus-boot-starter` 面向 Boot 2/3，未使用）、`cn.hutool:hutool-all:5.8.48`、`com.github.ben-manes.caffeine:caffeine`（3.2.4，由 Boot BOM 管理）。
 
-MyBatis-Plus 已用于账号与作品模块：`model/entity/User`、`mapper/UserMapper`、`mapper/AccountQueryMapper`、`mapper/WorksMapper`。Mapper 保留原显式 SQL 与 `${schema}` 参数，未使用会丢失动态 schema 的 BaseMapper 默认 CRUD；账号会话、限流原语、作品创建/分片/状态/参考图/删除已迁移。作品列表的动态搜索与排序、视频、提示词、管理、权益与 Worker 仍使用 JdbcTemplate，按第二批迁移。Caffeine 尚未接入缓存，Hutool 尚未在业务代码中使用。
+MyBatis-Plus 已覆盖主要业务 SQL：账号（`UserMapper`、`AccountQueryMapper`、`AccountAuthMapper`）、作品（`WorksMapper`）、视频（`VideoMapper`）、Worker（`WorkerMapper`）、提示词（`PromptMapper`）、权益（`EntitlementMapper`）、限流影子／闸门（`RateLimitMapper`）、管理（`AdminMapper`）、支付（`PaymentMapper`）、Studio 替身（`StudioMapper`）与上传槽（`UploadMapper`）。Mapper 保留原显式 SQL 与 `${schema}` 参数，未使用会丢失动态 schema 的 BaseMapper 默认 CRUD；`ON CONFLICT`、`FOR UPDATE`、`SKIP LOCKED`、条件更新与租约语义保持不变。
+
+仍保留 `JdbcTemplate` 的只有动态 SQL 与探活：作品／用户／记录／审计的搜索排序分页、支付动态查单、`Readiness` 的 `SELECT 1` 与 `MigrationSupport` 的 schema 检查。Caffeine 尚未接入缓存，Hutool 尚未在业务代码中使用。
 
 配置入口：
 

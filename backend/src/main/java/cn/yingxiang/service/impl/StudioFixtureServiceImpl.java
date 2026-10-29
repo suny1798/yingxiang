@@ -7,6 +7,7 @@ import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.manager.FixtureTokenTransport;
 import cn.yingxiang.config.RuntimePolicy;
 import cn.yingxiang.mapper.AccountReader;
+import cn.yingxiang.mapper.StudioMapper;
 import jakarta.annotation.PreDestroy;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
@@ -33,6 +34,8 @@ public class StudioFixtureServiceImpl implements StudioFixtureService {
 
     private final JdbcTemplate jdbc;
 
+    private final StudioMapper studio;
+
     private final TransactionTemplate transaction;
 
     private final EntitlementReservationService reservations;
@@ -49,9 +52,10 @@ public class StudioFixtureServiceImpl implements StudioFixtureService {
 
     private final String key;
 
-    public StudioFixtureServiceImpl(JdbcTemplate jdbc, PlatformTransactionManager manager, Environment env,
-                                    EntitlementReservationService reservations, AccountReader accounts, JsonMapper json) throws java.io.IOException {
-            this.jdbc = jdbc; this.reservations = reservations; this.accounts = accounts; this.json = json;
+    public StudioFixtureServiceImpl(JdbcTemplate jdbc, StudioMapper studio, PlatformTransactionManager manager,
+                                    Environment env, EntitlementReservationService reservations, AccountReader accounts,
+                                    JsonMapper json) throws java.io.IOException {
+            this.jdbc = jdbc; this.studio = studio; this.reservations = reservations; this.accounts = accounts; this.json = json;
             schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "studio");
             key = RuntimePolicy.runtime(env) ? env.getRequiredProperty("migration.studio-key") : "synthetic-studio-permanent-key";
             transaction = new TransactionTemplate(manager);
@@ -124,20 +128,20 @@ public class StudioFixtureServiceImpl implements StudioFixtureService {
                     throw new BusinessFailure("INVALID_REQUEST", "观测数值无效。", 400);
             }
             transaction.executeWithoutResult(status -> {
-                var rows = jdbc.queryForList("SELECT state,observation FROM " + schema + "usage_attempts WHERE id=? AND user_id=? AND scene='studio' FOR UPDATE", id.asString(), userId);
-                if (rows.isEmpty() || "reserved".equals(rows.getFirst().get("state"))) throw new BusinessFailure("ATTEMPT_NOT_FOUND", "没有可归属的测试记录。", 409);
-                if (rows.getFirst().get("observation") instanceof String value && !value.isEmpty()) return;
+                Map<String, Object> row = studio.lockAttempt(schema, id.asString(), userId);
+                if (row == null || "reserved".equals(row.get("state"))) throw new BusinessFailure("ATTEMPT_NOT_FOUND", "没有可归属的测试记录。", 409);
+                if (row.get("observation") instanceof String value && !value.isEmpty()) return;
                 var observation = json.createObjectNode();
                 for (String field : List.of("firstFrameMs", "localTracksEnded", "outcome", "providerReportedSeconds")) observation.set(field, body.get(field));
-                jdbc.update("UPDATE " + schema + "usage_attempts SET observation=?,outcome=?,state=?,updated_at=? WHERE id=?", json.writeValueAsString(observation), outcome.asString(),
-                        "issued".equals(rows.getFirst().get("state")) ? "finished" : rows.getFirst().get("state"), System.currentTimeMillis(), id.asString());
+                studio.observe(schema, id.asString(), json.writeValueAsString(observation), outcome.asString(),
+                        "issued".equals(row.get("state")) ? "finished" : (String) row.get("state"), System.currentTimeMillis());
             });
         }
 
     private boolean paused() {
-            var rows = jdbc.queryForList("SELECT value FROM " + schema + "admin_settings WHERE key='services'");
-            if (rows.isEmpty()) return false;
-            JsonNode settings = json.readTree((String) rows.getFirst().get("value"));
+            String setting = studio.servicesSetting(schema);
+            if (setting == null) return false;
+            JsonNode settings = json.readTree(setting);
             if (!settings.isObject()) throw BusinessFailure.unavailable();
             JsonNode studio = settings.get("studio");
             return studio != null && studio.isBoolean() && studio.asBoolean();
@@ -146,8 +150,8 @@ public class StudioFixtureServiceImpl implements StudioFixtureService {
     private String nonce() {
             return transaction.execute(status -> {
                 byte[] bytes = new byte[32]; new SecureRandom().nextBytes(bytes);
-                jdbc.update("INSERT INTO " + schema + "scene_access(scene,value) VALUES ('studio',?) ON CONFLICT (scene) DO NOTHING", HexFormat.of().formatHex(bytes));
-                return jdbc.queryForObject("SELECT value FROM " + schema + "scene_access WHERE scene='studio'", String.class);
+                studio.ensureSceneAccess(schema, HexFormat.of().formatHex(bytes));
+                return studio.sceneAccess(schema);
             });
         }
 

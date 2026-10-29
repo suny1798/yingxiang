@@ -36,14 +36,14 @@ def check(condition, label):
     COUNT += 1
 
 
-def parse(response):
-    body = response[2]
+def parse(value):
+    body = value[2] if isinstance(value, tuple) else value
     if not body:
         return None
-    value = json.loads(body)
-    if isinstance(value, dict) and value.get('code') == 0:
-        return value.get('data')
-    return value
+    payload = json.loads(body)
+    if isinstance(payload, dict) and payload.get('code') == 0:
+        return payload.get('data')
+    return payload
 
 
 def fixture(action, schema, payload=None):
@@ -265,7 +265,7 @@ def main():
     try:
         api, request = start_api(schema, storage, stub.port)
         check(request('GET', '/api/works?kind=video', cookie=ALICE)[0] == 200, 'works before worker')
-        check(json.loads(request('GET', '/api/works?kind=video', cookie=ALICE)[2])['total'] == 0,
+        check(parse(request('GET', '/api/works?kind=video', cookie=ALICE))['total'] == 0,
               'no works before worker claims')
 
         worker = start_worker(schema, storage, stub.port, 'm17-worker-a')

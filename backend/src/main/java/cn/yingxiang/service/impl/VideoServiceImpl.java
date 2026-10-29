@@ -7,6 +7,7 @@ import cn.yingxiang.manager.Multipart;
 import cn.yingxiang.config.RuntimePolicy;
 import cn.yingxiang.manager.Mp4;
 import cn.yingxiang.mapper.MigrationAccounts;
+import cn.yingxiang.mapper.VideoMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.env.Environment;
@@ -43,6 +44,8 @@ public class VideoServiceImpl implements VideoService {
 
     private final JdbcTemplate jdbc;
 
+    private final VideoMapper videos;
+
     private final MigrationAccounts accounts;
 
     private final RateLimitService rateLimit;
@@ -71,9 +74,9 @@ public class VideoServiceImpl implements VideoService {
 
     private final AtomicBoolean busy = new AtomicBoolean();
 
-    public VideoServiceImpl(JdbcTemplate jdbc, MigrationAccounts accounts, RateLimitService rateLimit,
+    public VideoServiceImpl(JdbcTemplate jdbc, VideoMapper videos, MigrationAccounts accounts, RateLimitService rateLimit,
                             PlatformTransactionManager manager, Environment env, JsonMapper json) {
-            this.jdbc = jdbc; this.accounts = accounts; this.rateLimit = rateLimit; this.env = env; this.json = json;
+            this.jdbc = jdbc; this.videos = videos; this.accounts = accounts; this.rateLimit = rateLimit; this.env = env; this.json = json;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M14 video");
             transaction = new TransactionTemplate(manager);
             transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -117,10 +120,10 @@ public class VideoServiceImpl implements VideoService {
         }
 
     private boolean paused() {
-            var rows = jdbc.queryForList("SELECT value FROM " + schema + "admin_settings WHERE key='services'");
-            if (rows.isEmpty()) return false;
+            String setting = videos.servicesSetting(schema);
+            if (setting == null) return false;
             try {
-                JsonNode settings = json.readTree((String) rows.getFirst().get("value"));
+                JsonNode settings = json.readTree(setting);
                 JsonNode video = settings.get("video");
                 return video != null && video.isBoolean() && video.asBoolean();
             } catch (RuntimeException error) {
@@ -133,8 +136,7 @@ public class VideoServiceImpl implements VideoService {
             List<Job> rows = allJobs();
             boolean active = rows.stream().anyMatch(job -> !Set.of("completed", "failed").contains(job.state()));
             long remaining = budgetMicro - rows.stream().mapToLong(Job::microUsd).sum();
-            Set<String> archived = new LinkedHashSet<>(jdbc.queryForList(
-                    "SELECT job_id FROM " + schema + "video_history WHERE archived=1", String.class));
+            Set<String> archived = new LinkedHashSet<>(videos.archivedJobIds(schema));
             boolean allowed = userId == null ? allowedUsers.isEmpty() : allowed(userId);
             boolean available = allowed && enabled && remaining >= USD_PER_SECOND_MICRO && rows.size() < maximum && !active;
             String message;
@@ -158,16 +160,11 @@ public class VideoServiceImpl implements VideoService {
         }
 
     public Map<String, Object> history(String userId, boolean archived, int page, int size) {
-            int total = count("SELECT count(*) FROM " + schema + "video_jobs j LEFT JOIN " + schema
-                    + "video_history h ON h.job_id=j.id WHERE j.user_id=? AND coalesce(h.archived,0)=?",
-                    userId, archived ? 1 : 0);
+            int total = videos.historyCount(schema, userId, archived ? 1 : 0);
             int pages = Math.max(1, (total + size - 1) / size);
             int actual = Math.min(Math.max(1, page), pages);
             List<Map<String, Object>> items = new ArrayList<>();
-            for (var row : jdbc.queryForList("SELECT j.*,h.title,h.archived FROM " + schema + "video_jobs j LEFT JOIN "
-                    + schema + "video_history h ON h.job_id=j.id WHERE j.user_id=? AND coalesce(h.archived,0)=? "
-                    + "ORDER BY j.created_at DESC,j.id DESC LIMIT ? OFFSET ?", userId, archived ? 1 : 0, size,
-                    (actual - 1) * size)) {
+            for (var row : videos.history(schema, userId, archived ? 1 : 0, size, (actual - 1) * size)) {
                 Job job = job(row);
                 items.add(historyView(job, (String) row.get("title"), MigrationSupport.number(row, "archived") == 1));
             }
@@ -194,16 +191,13 @@ public class VideoServiceImpl implements VideoService {
             if (archivedNode != null && archivedNode.asBoolean() && !Set.of("completed", "failed").contains(job.state())) {
                 throw new BusinessFailure("VIDEO_HISTORY_ACTIVE", "任务完成或失败后才可归档，待核查任务请先确认状态。", 409);
             }
-            var previous = jdbc.queryForList("SELECT title,archived FROM " + schema + "video_history WHERE job_id=?", ident);
+            Map<String, Object> previous = videos.historyEntry(schema, ident);
             String title = titleNode != null ? titleNode.asString().strip()
-                    : previous.isEmpty() ? "视频换装" : (String) previous.getFirst().get("title");
+                    : previous == null ? "视频换装" : (String) previous.get("title");
             boolean archived = archivedNode != null ? archivedNode.asBoolean()
-                    : !previous.isEmpty() && MigrationSupport.number(previous.getFirst(), "archived") == 1;
+                    : previous != null && MigrationSupport.number(previous, "archived") == 1;
             long now = System.currentTimeMillis();
-            jdbc.update("INSERT INTO " + schema + "video_history(job_id,title,archived,updated_at) VALUES (?,?,?,?) "
-                            + "ON CONFLICT (job_id) DO UPDATE SET title=excluded.title,archived=excluded.archived,"
-                            + "updated_at=excluded.updated_at",
-                    ident, title, archived ? 1 : 0, now);
+            videos.upsertHistory(schema, ident, title, archived ? 1 : 0, now);
             return historyView(job, title, archived);
         }
 
@@ -286,8 +280,8 @@ public class VideoServiceImpl implements VideoService {
     private Reservation reserve(String userId, String ident, double seconds) {
             long estimate = (long) Math.ceil(seconds) * USD_PER_SECOND_MICRO;
             return transaction.execute(status -> {
-                var rows = jdbc.queryForList("SELECT id,disabled FROM " + schema + "users WHERE id=?", userId);
-                if (rows.isEmpty() || MigrationSupport.number(rows.getFirst(), "disabled") != 0) {
+                Map<String, Object> user = videos.user(schema, userId);
+                if (user == null || MigrationSupport.number(user, "disabled") != 0) {
                     throw new BusinessFailure("LOGIN_REQUIRED", "请先登录后继续。", 401);
                 }
                 if (paused() || !configured() || !allowed(userId)) {
@@ -298,10 +292,9 @@ public class VideoServiceImpl implements VideoService {
                     if (!existing.userId().equals(userId)) throw new BusinessFailure("VIDEO_NOT_FOUND", "找不到这个视频任务。", 404);
                     return new Reservation(existing, false);
                 }
-                jdbc.update("INSERT INTO " + schema + "budget_campaigns(scene,created_at) VALUES ('video',?) ON CONFLICT (scene) DO NOTHING",
-                        System.currentTimeMillis());
+                videos.ensureCampaign(schema, System.currentTimeMillis());
                 // 串行化同一场景的预算预留，避免两进程同时通过上限检查。
-                jdbc.queryForList("SELECT scene FROM " + schema + "budget_campaigns WHERE scene='video' FOR UPDATE");
+                videos.lockCampaign(schema);
                 List<Job> jobs = allJobs();
                 if (jobs.stream().anyMatch(job -> !Set.of("completed", "failed").contains(job.state()))) {
                     throw new BusinessFailure("VIDEO_IN_PROGRESS", "请等待现有任务完成或核查，不要重复提交。", 409);
@@ -313,11 +306,9 @@ public class VideoServiceImpl implements VideoService {
                 long now = System.currentTimeMillis();
                 Job job = new Job(ident, userId, "unknown", now, now + RESULT_WINDOW_MS,
                         (long) Math.ceil(seconds * 1000), estimate, null, null);
-                jdbc.update("INSERT INTO " + schema + "video_jobs(id,user_id,state,created_at,expires_at,seconds_milli,micro_usd) "
-                        + "VALUES (?,?,?,?,?,?,?)", job.id(), job.userId(), job.state(), job.createdAt(), job.expiresAt(),
+                videos.insertJob(schema, job.id(), job.userId(), job.state(), job.createdAt(), job.expiresAt(),
                         job.secondsMilli(), job.microUsd());
-                jdbc.update("INSERT INTO " + schema + "budget_reservations(id,scene,user_id,micro_usd,lease_until,created_at) "
-                        + "VALUES (?,?,?,?,?,?)", ident, "video", userId, estimate, job.expiresAt(), now);
+                videos.insertReservation(schema, ident, userId, estimate, job.expiresAt(), now);
                 return new Reservation(job, true);
             });
         }
@@ -328,7 +319,7 @@ public class VideoServiceImpl implements VideoService {
                 long now = System.currentTimeMillis();
                 boolean check = job.providerId() != null && Set.of("pending", "processing").contains(job.state())
                         && now < job.expiresAt() && now - (job.checkedAt() == null ? 0 : job.checkedAt()) >= 3000;
-                if (check) jdbc.update("UPDATE " + schema + "video_jobs SET checked_at=? WHERE id=?", now, ident);
+                if (check) videos.touchChecked(schema, ident, now);
                 return new Poll(job, check);
             });
         }
@@ -339,14 +330,14 @@ public class VideoServiceImpl implements VideoService {
                 if (job == null) throw BusinessFailure.unavailable();
                 if (Set.of("pending", "processing").contains(job.state())
                         && !(job.state().equals("processing") && state.equals("pending"))) {
-                    jdbc.update("UPDATE " + schema + "video_jobs SET state=? WHERE id=?", state, ident);
+                    videos.updateState(schema, ident, state);
                 }
             });
         }
 
     private void bind(String ident, Map<String, Object> value) {
-            transaction.executeWithoutResult(status -> jdbc.update("UPDATE " + schema
-                    + "video_jobs SET provider_id=?,state=? WHERE id=?", value.get("job_id"), value.get("status"), ident));
+            transaction.executeWithoutResult(status -> videos.bindProvider(schema, ident,
+                    (String) value.get("job_id"), (String) value.get("status")));
         }
 
     private Job own(String userId, String ident) {
@@ -357,13 +348,13 @@ public class VideoServiceImpl implements VideoService {
 
     private List<Job> allJobs() {
             List<Job> jobs = new ArrayList<>();
-            for (var row : jdbc.queryForList("SELECT * FROM " + schema + "video_jobs ORDER BY created_at,id")) jobs.add(job(row));
+            for (var row : videos.allJobs(schema)) jobs.add(job(row));
             return jobs;
         }
 
     private Job find(String ident) {
-            var rows = jdbc.queryForList("SELECT * FROM " + schema + "video_jobs WHERE id=?", ident);
-            return rows.isEmpty() ? null : job(rows.getFirst());
+            Map<String, Object> row = videos.job(schema, ident);
+            return row == null ? null : job(row);
         }
 
     private static Job job(Map<String, Object> row) {
