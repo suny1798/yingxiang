@@ -1,4 +1,5 @@
 import { shallowRef, onMounted, onUnmounted, watch } from 'vue';
+import { envelopeData, envelopeMessage } from '../lib/api-response';
 import { accountCoordinator,sessionScope } from './runtime';
 import { SandboxCheckout } from '../lib/sandbox-checkout';
 import { notify } from '../lib/notices';
@@ -12,8 +13,8 @@ export function useSandboxCheckout() {
       let value;
       try { value=await response.json(); } catch { throw new Error('支付服务暂不可用。'); }
       if (!value || typeof value!=='object' || Array.isArray(value)) throw new Error('支付服务暂不可用。');
-      if (!response.ok) throw new Error(typeof value?.error?.message==='string'?value.error.message:'支付服务暂不可用。');
-      return value;
+      if (!response.ok) throw new Error(envelopeMessage(value) ?? '支付服务暂不可用。');
+      return envelopeData(value);
     },
     userId:()=>accountCoordinator.getSnapshot().account?.user?.id,
     identityEpoch:()=>sessionScope.state.epoch,

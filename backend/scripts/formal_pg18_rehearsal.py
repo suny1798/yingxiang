@@ -53,7 +53,7 @@ def main():
    db.execute("GRANT CREATE ON DATABASE postgres TO yingxiang_migrator")
   config=temp/"migration.yml";flyway_yaml(config,port,migration_password,"yingxiang_migration")
   config.write_text(config.read_text().replace('username: "postgres"','username: "yingxiang_migrator"'))
-  result=subprocess.run(["java","-Dloader.main=cn.yingxiang.bootstrap.SchemaOperations","-cp",str(ROOT/"target/yingxiang-backend-0.1.0.jar"),"org.springframework.boot.loader.launch.PropertiesLauncher","migrate",str(config)],cwd=ROOT,capture_output=True,timeout=90)
+  result=subprocess.run(["java","-Dloader.main=cn.yingxiang.manager.SchemaOperations","-cp",str(ROOT/"target/yingxiang-backend-0.1.0.jar"),"org.springframework.boot.loader.launch.PropertiesLauncher","migrate",str(config)],cwd=ROOT,capture_output=True,timeout=90)
   check(result.returncode==0,"PG18 Flyway V1-V3 by migration role")
   raw=build(temp/"raw")
   with sqlite3.connect(raw/"yingxiang.sqlite3") as db:

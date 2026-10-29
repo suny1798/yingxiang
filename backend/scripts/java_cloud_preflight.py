@@ -6,7 +6,7 @@ def main():
  p=argparse.ArgumentParser();p.add_argument("--file",type=Path,default=Path("config/application-local.yml"));args=p.parse_args()
  root=Path(__file__).resolve().parents[1]
  result=subprocess.run(["java","-Duser.language=en","-Dlogback.configurationFile=migration-probe-logback.xml",
-   "-Dloader.main=cn.yingxiang.bootstrap.CloudPreflight","-cp",str(root/"target/yingxiang-backend-0.1.0.jar"),
+   "-Dloader.main=cn.yingxiang.manager.CloudPreflight","-cp",str(root/"target/yingxiang-backend-0.1.0.jar"),
    "org.springframework.boot.loader.launch.PropertiesLauncher",str(args.file.resolve())],cwd=root,capture_output=True,timeout=45)
  try:
   report=json.loads(result.stdout)

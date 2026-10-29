@@ -1,4 +1,5 @@
 import { onMounted, onUnmounted, shallowRef } from 'vue';
+import { envelopeData, envelopeMessage } from '../lib/api-response';
 import { inspectVideo } from '../lib/video/mp4';
 import { prepareVideo } from '../lib/video/prepare';
 import type { VideoJobView, VideoServiceView } from '../lib/video/policy';
@@ -9,8 +10,8 @@ import { VideoJobs, type VideoJobsPlatform } from './video-jobs';
 
 async function json<T>(response: Response): Promise<T> {
   const value = await response.json();
-  if (!response.ok) throw new Error(value.error?.message ?? '操作未完成，请稍后重试。');
-  return value as T;
+  if (!response.ok) throw new Error(envelopeMessage(value) ?? '操作未完成，请稍后重试。');
+  return envelopeData<T>(value);
 }
 
 const browserPlatform: VideoJobsPlatform = {

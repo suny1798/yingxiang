@@ -1,4 +1,5 @@
 import { computed, onMounted, onUnmounted, shallowRef, watch } from 'vue';
+import { envelopeData } from '../lib/api-response';
 import { CameraPreviewSession } from '../lib/media/camera-preview-session';
 import { LocalCamera } from '../lib/media/local-camera';
 import { RemotePreview } from '../lib/media/remote-preview';
@@ -42,7 +43,7 @@ export function usePromptSession() {
     try {
       const response = await fetch('/api/prompt/status', { cache: 'no-store', signal });
       if (!response.ok) throw new Error();
-      const value = await response.json() as PromptStatus;
+      const value = envelopeData<PromptStatus>(await response.json());
       if (!signal?.aborted) { status.value = { available: value.available, message: value.message }; statusError.value = null; }
     } catch { if (!signal?.aborted) statusError.value = '暂时无法读取编辑服务，请刷新状态。'; }
   }

@@ -13,4 +13,5 @@ export const PUBLIC_CONFIG = {
   features: { camera: true, realtime: false, invitations: false, promptEditing: false },
 } as const;
 
-export interface ApiError { error: { code: string; message: string; retryable: boolean }; requestId: string }
+/** 后端统一错误包络：code 为通用码，reason 保留细分业务原因。 */
+export interface ApiError { code: number; data: null; message: string; requestId?: string | null; reason?: string | null }

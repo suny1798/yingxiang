@@ -12,6 +12,14 @@ M25后保留的Python资料只服务于Java迁移、PG导入核对与历史恢�
 
 本手册中标注“历史”的FastAPI／Alembic／`scripts.ops`／`scripts.migration_contracts`／`java_account_contracts` 等命令已随M25退役，不能执行；对应实现和报告保存在Git标签与 `docs/reports/`。依赖已裁剪为 `requirements.in`／`requirements.lock.txt` 中的 pytest、psycopg 与 python-dotenv。
 
+## 代码分层与统一响应（2026-10-29）
+
+后端已从扁平 `bootstrap` 包迁为 `controller/service/mapper/manager/config/common/exception/worker/fixture`，唯一启动类为 `cn.yingxiang.YingxiangApplication`。通用基础代码位于 `common` 与 `exception`：`BaseResponse`、`ResultUtils`、`PageRequest`、`DeleteRequest`、`ErrorCode`、`BusinessException`、`ThrowUtils`、`GlobalExceptionHandler`、`CorsConfig`。
+
+JSON响应统一为 `{code,data,message,requestId,reason}`：成功 `code=0`、`data` 为原业务对象；失败使用通用错误码，`reason` 保留细分原因，HTTP状态保留原语义。作品视频、参考图、下载与视频准备结果等二进制响应不包装。新增接口应抛 `BusinessException` 交给全局处理器，不再手写错误JSON。
+
+命令行工具的完整类名已同步为 `cn.yingxiang.fixture.AccountIntegrationFixture`、`cn.yingxiang.manager.SchemaOperations`、`cn.yingxiang.manager.CloudPreflight`、`cn.yingxiang.manager.ConnectionProbe`。旧的 `cn.yingxiang.bootstrap.*` 主类路径不再存在。
+
 ## Java项目配置与启动
 
 已按用户指定的picture可运行项目适配，使用当前JDK21／Spring Boot4.1.2。Maven引入 `spring-boot-starter-jdbc` 与 `spring-boot-starter-data-redis`，由Spring自动装配Hikari数据源、RedisConnectionFactory与StringRedisTemplate；PG驱动42.7.14与Lettuce7.5.2.RELEASE由Boot BOM管理。

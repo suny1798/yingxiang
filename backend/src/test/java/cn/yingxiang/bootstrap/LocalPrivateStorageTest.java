@@ -1,5 +1,7 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.exception.BusinessFailure;
+import cn.yingxiang.manager.LocalPrivateStorage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.mock.env.MockEnvironment;
@@ -39,9 +41,9 @@ class LocalPrivateStorageTest {
         LocalPrivateStorage storage = storage();
         for (String value : new String[]{"..", "../etc", "not-a-uuid"}) {
             assertThatThrownBy(() -> storage.directory(value, UUID.randomUUID().toString()))
-                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("WORK_NOT_FOUND"));
+                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("WORK_NOT_FOUND"));
             assertThatThrownBy(() -> storage.directory(UUID.randomUUID().toString(), value))
-                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("WORK_NOT_FOUND"));
+                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("WORK_NOT_FOUND"));
         }
         assertThatThrownBy(() -> new LocalPrivateStorage(new MockEnvironment().withProperty("migration.storage-root", "relative/path")))
                 .isInstanceOf(IllegalStateException.class);

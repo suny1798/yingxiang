@@ -1,5 +1,6 @@
 /** 分片顺序上传独立于页面；每次写入都绑定录制发起账号，绝不归入后来登录的账号。 */
 import type { WorkPromptState } from './api-schema';
+import { envelopeData, envelopeMessage } from './api-response';
 export interface RecordingSink {
   start(mime: string): void;
   chunk(blob: Blob): void;
@@ -26,17 +27,17 @@ export class WorkUpload implements RecordingSink {
   constructor(private owner: string, private kind: 'realtime' | 'edit', private seconds: number,
     private publish: (value: SaveSnapshot) => void, private request: typeof fetch = (input, init) => fetch(input, init)) {}
 
-  private async call(path: string, body?: BodyInit, type = 'application/json', method = 'POST') {
+  private async call<T = unknown>(path: string, body?: BodyInit, type = 'application/json', method = 'POST'): Promise<T> {
     for (let attempt = 0; ; attempt++) {
       try {
         const response = await this.request(path, { method, headers: { 'Content-Type': type, 'X-Work-Owner': this.owner }, body,
           signal: AbortSignal.timeout(120_000), cache: 'no-store' });
         if (!response.ok) {
           const value = await response.json().catch(() => null);
-          const error = Object.assign(new Error(value?.error?.message ?? '作品保存未完成，请到我的作品查看状态。'), { status: response.status });
+          const error = Object.assign(new Error(envelopeMessage(value) ?? '作品保存未完成，请到我的作品查看状态。'), { status: response.status });
           throw error;
         }
-        return await response.json();
+        return envelopeData<T>(await response.json());
       } catch (error) {
         const status = (error as { status?: number }).status;
         if (attempt >= 1 || (status && status < 500)) throw error;
@@ -101,10 +102,10 @@ export class WorkUpload implements RecordingSink {
         await this.chain;
         await this.call(`/api/works/${this.id}/complete`, JSON.stringify({ referenceFailed: this.referenceFailed, promptsFailed: this.promptsFailed, interrupted: this.interrupted, durationMs: Math.min(this.seconds * 1000, Date.now() - this.began) }));
         for (let count = 0; count < 30; count++) {
-          const item = await this.call(`/api/works/${this.id}`, undefined, 'application/json', 'GET');
+          const item = await this.call<{ state: string; message?: string }>(`/api/works/${this.id}`, undefined, 'application/json', 'GET');
           if (item.state === 'failed') throw new Error(item.message ?? '作品保存未完成。');
           if (item.state === 'ready') {
-            this.publish({ phase: 'saved', message: item.message, id: this.id });
+            this.publish({ phase: 'saved', message: item.message ?? null, id: this.id });
             if (typeof window !== 'undefined') window.dispatchEvent(new Event('yingxiang:works-changed'));
             return;
           }

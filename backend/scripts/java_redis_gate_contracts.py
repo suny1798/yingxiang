@@ -38,10 +38,20 @@ def check(condition, label):
     COUNT += 1
 
 
+def parse(response):
+    body = response[2]
+    if not body:
+        return None
+    value = json.loads(body)
+    if isinstance(value, dict) and value.get('code') == 0:
+        return value.get('data')
+    return value
+
+
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:
@@ -378,7 +388,7 @@ def main():
         second = request('POST', '/api/account/login', headers=wrong,
                          body=json.dumps({'username': 'm19_alice', 'password': 'wrong-password'}).encode())
         check(first[0] == 401, 'old window allows one more attempt')
-        check(second[0] == 429 and json.loads(second[2])['error']['code'] == 'RATE_LIMITED',
+        check(second[0] == 429 and parse(second[2])['reason'] == 'RATE_LIMITED',
               'old window limit enforced atomically')
         check(int(redis('GET', 'yingxiang:migration:test:rate:auth:m19_alice')) == 11,
               'redis count advanced from imported floor')
@@ -390,7 +400,7 @@ def main():
         holder = fixture('upload-acquire' , schema, {'owner': 'fixture-holder', 'leaseMs': 30000})
         check(holder.get('acquired') is True, 'fixture holds global upload slot')
         busy = prepare(request)
-        check(busy[0] == 503 and json.loads(busy[2])['error']['code'] == 'VIDEO_BUSY',
+        check(busy[0] == 503 and parse(busy[2])['reason'] == 'VIDEO_BUSY',
               'global upload slot blocks second process')
         fixture('upload-release', schema, {'owner': 'fixture-holder'})
         fixture('rate-limit-clear', schema, {'key': 'video-prepare:global'})
@@ -413,16 +423,16 @@ def main():
         down_checkout = request('POST', '/api/payments/checkout', cookie=ALICE,
                                 headers={'Content-Type': 'application/json'},
                                 body=json.dumps({'sku': 'credits-v1-light', 'requestId': '77777777-7777-4777-8777-777777777777'}).encode())
-        check(down_login[0] == 503 and json.loads(down_login[2])['error']['code'] == 'RATE_LIMIT_UNAVAILABLE',
+        check(down_login[0] == 503 and parse(down_login[2])['reason'] == 'RATE_LIMIT_UNAVAILABLE',
               'redis down closes login')
-        check(down_checkout[0] == 503 and json.loads(down_checkout[2])['error']['code'] == 'RATE_LIMIT_UNAVAILABLE',
+        check(down_checkout[0] == 503 and parse(down_checkout[2])['reason'] == 'RATE_LIMIT_UNAVAILABLE',
               'redis down closes new paid entry')
         check(prepare(request)[0] == 503, 'redis down closes new generation')
         check(request('GET', '/api/works', cookie=ALICE)[0] == 200, 'authenticated works read continues')
         check(request('GET', '/api/video/jobs/' + JOB_READ, cookie=ALICE)[0] == 200,
               'submitted video status continues')
         prompt = request('GET', '/api/prompt/status', cookie=SUNY)
-        check(prompt[0] == 200 and json.loads(prompt[2])['available'] is True,
+        check(prompt[0] == 200 and parse(prompt[2])['available'] is True,
               'suny unlimited status not converted to rate limit')
         worker = start_worker(schema, storage, stub.port)
         wait_for(lambda: works(schema).get(JOB_WORK, {}).get('state') == 'ready',
@@ -443,13 +453,13 @@ def main():
         time.sleep(2)
         redis('DEL', 'yingxiang:migration:test:rate:video-prepare:global')
         lost = prepare(request)
-        check(lost[0] == 503 and json.loads(lost[2])['error']['code'] == 'RATE_LIMIT_UNAVAILABLE',
+        check(lost[0] == 503 and parse(lost[2])['reason'] == 'RATE_LIMIT_UNAVAILABLE',
               'redis restart with lost keys does not open entry')
         fixture('rate-limit-clear', schema, {'key': 'video-prepare:global'})
         check(prepare(request)[0] == 400, 'cleared shadow opens a new window explicitly')
         redis('DEL', 'yingxiang:migration:test:rate:video-prepare:global')
         evicted = prepare(request)
-        check(evicted[0] == 503 and json.loads(evicted[2])['error']['code'] == 'RATE_LIMIT_UNAVAILABLE',
+        check(evicted[0] == 503 and parse(evicted[2])['reason'] == 'RATE_LIMIT_UNAVAILABLE',
               'evicted key with active shadow stays closed')
         fixture('rate-limit-clear', schema, {'key': 'video-prepare:global'})
         check(prepare(request)[0] == 400, 'explicit shadow reset opens again')

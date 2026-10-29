@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onUnmounted,ref,watch } from 'vue';
 import type { WorkPromptHistory } from '../lib/api-schema';
+import { envelopeData } from '../lib/api-response';
 import { t } from './preferences';
 import s from '../components/site/works-page.module.css';
 const props=defineProps<{id:string;owner:string;saving:boolean}>();
@@ -12,7 +13,7 @@ async function read(){
   try{
     const response=await fetch(`/api/works/${props.id}/prompts`,{cache:'no-store',signal:current.signal,headers:{'X-Work-Owner':props.owner}});
     if(!response.ok)throw new Error();
-    const data=await response.json() as WorkPromptHistory;
+    const data=envelopeData<WorkPromptHistory>(await response.json());
     if(!current.signal.aborted)result.value={key:expected,data};
   }catch{ if(!current.signal.aborted)result.value={key:expected,error:true}; }
 }

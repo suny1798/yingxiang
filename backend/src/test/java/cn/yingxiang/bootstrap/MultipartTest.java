@@ -1,5 +1,9 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.service.VideoService;
+import cn.yingxiang.exception.BusinessFailure;
+import cn.yingxiang.manager.Multipart;
+import cn.yingxiang.manager.Mp4;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -43,16 +47,16 @@ class MultipartTest {
 
     @Test void rejectsMissingBoundaryWrongDispositionAndDuplicateNames() {
         assertThatThrownBy(() -> Multipart.parse(body("x"), "multipart/form-data"))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_VIDEO_UPLOAD"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_VIDEO_UPLOAD"));
         assertThatThrownBy(() -> Multipart.parse(body("x"), "multipart/form-data; boundary=" + "a".repeat(201)))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_VIDEO_UPLOAD"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_VIDEO_UPLOAD"));
         String duplicate = "--b\r\nContent-Disposition: form-data; name=\"data\"\r\n\r\nx\r\n"
                 + "--b\r\nContent-Disposition: form-data; name=\"data\"\r\n\r\ny\r\n--b--\r\n";
         assertThatThrownBy(() -> Multipart.parse(duplicate.getBytes(StandardCharsets.ISO_8859_1), "multipart/form-data; boundary=b"))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_VIDEO_UPLOAD"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_VIDEO_UPLOAD"));
         String wrong = "--b\r\nContent-Disposition: attachment; name=\"data\"\r\n\r\nx\r\n--b--\r\n";
         assertThatThrownBy(() -> Multipart.parse(wrong.getBytes(StandardCharsets.ISO_8859_1), "multipart/form-data; boundary=b"))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_VIDEO_UPLOAD"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_VIDEO_UPLOAD"));
     }
 
     @Test void parsesRealSizedVideoPart() throws Exception {

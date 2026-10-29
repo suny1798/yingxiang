@@ -10,7 +10,7 @@
 
 实时编辑新作品同时保存本轮已同步的用户提示词组合，可在视频右侧“本次提示词”按序回看；未发送草稿不保存，旧作品没有留存的提示词不能补回。记录与视频同属私有用户作品目录，删除作品时一并清除。提示词只在本人详情接口读取，不写日志；该提示词记录不进行数据库迁移。
 
-当前实际架构为 **Vue 3/Vite静态前端＋Nginx同源入口＋Java API／Worker＋云PG／Redis**。浏览器仍访问同源 `/api/*`；Nginx转发8792 Java，账号、订单、权益、预算和长期密钥统一由后端管理。迁移与实际验证见 [迁移验收报告](docs/reports/2026-10-24-FastAPI与SQLite架构迁移.md)。
+当前实际架构为 **Vue 3/Vite静态前端＋Nginx同源入口＋Java API／Worker＋云PG／Redis**。浏览器仍访问同源 `/api/*`；Nginx转发8792 Java，账号、订单、权益、预算和长期密钥统一由后端管理。2026-10-29已完成Java分层（controller／service／mapper／manager／config／common／exception／worker）与统一响应 `{code,data,message,requestId,reason}`，前端同批适配，详见[开发任务与验收](docs/05-开发任务与验收.md)与[后端说明](backend/README.md)。迁移与实际验证见 [迁移验收报告](docs/reports/2026-10-24-FastAPI与SQLite架构迁移.md)。
 
 **当前架构（2026-10-27确认，M22／M25落地）**：前端采用 **Vue 3＋Vite＋TypeScript**，正式工程只在 `frontend/`；后端采用 Java／Spring Boot 模块化单体与独立 Java Worker，云 PostgreSQL 为单一主库，Redis承载限流。选型背景见[业务扩展与工程架构选型](docs/15-业务扩展与工程架构选型.md)，迁移按[前后端技术与架构迁移执行方案](docs/16-前后端技术与架构迁移执行方案.md)推进，实际工作包状态见[开发任务与验收](docs/05-开发任务与验收.md)。M22已完成切流，M25已移除旧Next／FastAPI运行时；PostgreSQL实例条件变化时先记录选型变更，再调整方言与测试，不同时使用两套业务主库。
 

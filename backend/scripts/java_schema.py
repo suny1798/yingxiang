@@ -14,7 +14,7 @@ def main():
     try:
         result = subprocess.run([
             'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-            '-Dloader.main=cn.yingxiang.bootstrap.SchemaOperations', '-cp', str(backend / 'target/yingxiang-backend-0.1.0.jar'),
+            '-Dloader.main=cn.yingxiang.manager.SchemaOperations', '-cp', str(backend / 'target/yingxiang-backend-0.1.0.jar'),
             'org.springframework.boot.loader.launch.PropertiesLauncher', args.action, str(args.file.resolve()),
         ], cwd=backend, capture_output=True, timeout=45)
         report = json.loads(result.stdout.decode('utf-8'))

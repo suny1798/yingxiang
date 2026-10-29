@@ -1,5 +1,8 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.service.PaymentsService;
+import cn.yingxiang.exception.BusinessFailure;
+import cn.yingxiang.manager.StripeGateway;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -30,7 +33,7 @@ class PaymentsProductTest {
         assertThat(product.seconds()).isNull();
         assertThat(product.templateVersion()).isEqualTo("credits-v1");
         assertThatThrownBy(() -> PaymentsService.product("credits-v1-unknown"))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_SKU"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_SKU"));
     }
 
     @Test void buildsCheckoutSnapshotWithoutRealPaymentLinks() {

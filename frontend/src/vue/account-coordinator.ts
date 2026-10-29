@@ -1,4 +1,5 @@
 import type { AccountView } from '../lib/account';
+import { envelopeData, envelopeMessage } from '../lib/api-response';
 import { SessionScope } from './session-scope';
 import type { IdentitySignal,IdentitySignals } from './identity-signals';
 
@@ -64,7 +65,7 @@ export class AccountCoordinator {
           this.publish({account:anonymous,error:null});return anonymous;
         }
         if(!response.ok)throw new Error(readError);
-        const account=accountValue(await response.json());
+        const account=accountValue(envelopeData(await response.json()));
         if(!this.active||operation!==this.revision||!this.scope.current(token))return null;
         const previous=this.snapshot.account?.user;
         const roleChanged=!!previous&&previous.id===account.user?.id&&(previous.role??'user')!==(account.user.role??'user');
@@ -97,7 +98,7 @@ export class AccountCoordinator {
         ...(body?{headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{})});
       if(!response.ok){
         let message=operationError;
-        try {const value=await response.json();if(typeof value?.error?.message==='string'&&value.error.message.length<=500)message=value.error.message;}catch{}
+        try {const text=envelopeMessage(await response.json());if(typeof text==='string'&&text.length<=500)message=text;}catch{}
         throw new AccountOperationError(message);
       }
       if(!this.active)throw new Error(operationError);

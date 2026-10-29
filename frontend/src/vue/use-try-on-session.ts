@@ -1,4 +1,5 @@
 import { computed,onMounted,onUnmounted,shallowRef,watch } from 'vue';
+import { envelopeData } from '../lib/api-response';
 import { CameraPreviewSession } from '../lib/media/camera-preview-session';
 import { LocalCamera } from '../lib/media/local-camera';
 import { RemotePreview } from '../lib/media/remote-preview';
@@ -21,7 +22,7 @@ export function useTryOnSession() {
     try {
       const response = await fetch('/api/studio/status', { cache: 'no-store', signal: current.signal });
       if (!response.ok) throw new Error();
-      const value = await response.json() as StudioStatus;
+      const value = envelopeData<StudioStatus>(await response.json());
       if (!current.signal.aborted) { status.value = value; readinessError.value = null; }
     } catch { if (!current.signal.aborted) readinessError.value = '暂时无法读取换装服务，请刷新页面。'; }
   }

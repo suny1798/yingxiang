@@ -46,7 +46,7 @@ def main():
         result = subprocess.run([
             'java', '-Duser.language=en', '-Duser.country=US',
             '-Dlogback.configurationFile=migration-probe-logback.xml',
-            '-Dloader.main=cn.yingxiang.bootstrap.ConnectionProbe', '-cp', str(jar),
+            '-Dloader.main=cn.yingxiang.manager.ConnectionProbe', '-cp', str(jar),
             'org.springframework.boot.loader.launch.PropertiesLauncher', str(config),
         ], cwd=backend, capture_output=True, timeout=45)
         # 固定分类及字段白名单；不转发原始异常、stderr或未知诊断属性。

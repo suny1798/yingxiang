@@ -1,5 +1,8 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.controller.StudioFixtureController;
+import cn.yingxiang.service.StudioFixtureService;
+import cn.yingxiang.config.OfflineBoundary;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -38,9 +41,9 @@ class OfflineBoundaryTest {
 
     @Test void processHealthDoesNotClaimBusinessReadiness() throws Exception {
         mvc.perform(get("/api/internal/live").contextPath("/api").header("Host", HOST))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.status").value("ok"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.data.status").value("ok"));
         mvc.perform(get("/api/internal/ready").contextPath("/api").header("Host", HOST))
-                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.ready").value(false));
+                .andExpect(status().isServiceUnavailable()).andExpect(jsonPath("$.data.ready").value(false));
     }
 
     @Test void localProfileAllowsNormalDirectBackendRequests() throws Exception {
@@ -64,7 +67,7 @@ class OfflineBoundaryTest {
                                     .contextPath("/api").header("Host", HOST).header("Origin", ORIGIN)
                                     .header("Cookie", "session=synthetic-untrusted"))
                             .andExpect(status().isServiceUnavailable())
-                            .andExpect(jsonPath("$.error.code").value("SERVICE_DISABLED"))
+                            .andExpect(jsonPath("$.reason").value("SERVICE_DISABLED"))
                             .andExpect(header().string("Cache-Control", "no-store"))
                             .andExpect(header().string("X-Content-Type-Options", "nosniff"))
                             .andExpect(header().doesNotExist("Set-Cookie"))

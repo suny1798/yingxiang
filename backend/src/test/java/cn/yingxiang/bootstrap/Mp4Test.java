@@ -1,5 +1,6 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.manager.Mp4;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;

@@ -119,37 +119,37 @@ try {
 
   // API匿名边界：只读GET／HEAD，不登录、不写库。
   const me = await http('/api/account/me');
-  check(me.status === 200 && JSON.parse(text(me)).user === null, '匿名本人视图为空');
+  check(me.status === 200 && JSON.parse(text(me)).data.user === null, '匿名本人视图为空');
   check(me.headers['cache-control'] === 'no-store', '本人接口不缓存');
   check(me.headers['x-content-type-options'] === 'nosniff', '私有响应nosniff');
   const cookieMe = await http('/api/account/me', { headers: { Cookie: 'yingxiang_session=synthetic-invalid' } });
-  check(cookieMe.status === 200 && JSON.parse(text(cookieMe)).user === null, '无效Cookie仍按匿名处理');
+  check(cookieMe.status === 200 && JSON.parse(text(cookieMe)).data.user === null, '无效Cookie仍按匿名处理');
   const goodOrigin = await http('/api/account/me', { headers: { Origin: origin.origin } });
   check(goodOrigin.status === 200, '同源Origin可读');
   const badOrigin = await http('/api/account/me', { headers: { Origin: 'http://forged.invalid' } });
-  check(badOrigin.status === 403 && JSON.parse(text(badOrigin)).error.code === 'ORIGIN_REJECTED', '伪造Origin被拒');
+  check(badOrigin.status === 403 && JSON.parse(text(badOrigin)).reason === 'ORIGIN_REJECTED', '伪造Origin被拒');
   for (const path of ['/api/works', '/api/payments/orders', '/api/admin/overview', '/api/video/history']) {
     const value = await http(path);
     check(value.status === 401, `${path} 匿名401`);
     check(value.headers['cache-control'] === 'no-store', `${path} 不缓存`);
   }
   const videoJobs = await http('/api/video/jobs');
-  check(videoJobs.status === 200 ? JSON.parse(text(videoJobs)).available === false : videoJobs.status === 401, '匿名视频任务不泄露数据');
+  check(videoJobs.status === 200 ? JSON.parse(text(videoJobs)).data.available === false : videoJobs.status === 401, '匿名视频任务不泄露数据');
   const announcement = await http('/api/site/announcement');
-  check(announcement.status === 200 && typeof JSON.parse(text(announcement)).enabled === 'boolean', '公告公开读取');
+  check(announcement.status === 200 && typeof JSON.parse(text(announcement)).data.enabled === 'boolean', '公告公开读取');
   const payments = await http('/api/payments/status');
-  const paymentStatus = JSON.parse(text(payments));
+  const paymentStatus = JSON.parse(text(payments)).data;
   check(payments.status === 200 && typeof paymentStatus.testEnabled === 'boolean' && paymentStatus.liveEnabled === false, '正式购买关闭（liveEnabled=false）');
   const announcementHead = await http('/api/site/announcement', { method: 'HEAD' });
   check(announcementHead.status === 200 && announcementHead.body.length === 0, 'API HEAD无正文');
   const wrongMethod = await http('/api/account/me', { method: 'PUT' });
-  check(wrongMethod.status === 405 && JSON.parse(text(wrongMethod)).error.code === 'METHOD_NOT_ALLOWED', '不支持的方法405');
+  check(wrongMethod.status === 405 && JSON.parse(text(wrongMethod)).reason === 'METHOD_NOT_ALLOWED', '不支持的方法405');
   const options = await http('/api/account/me', { method: 'OPTIONS' });
   check(options.status === 204 && String(options.headers.allow).includes('GET'), 'OPTIONS返回允许方法');
   const getOnPost = await http('/api/account/login');
-  check(getOnPost.status === 404 && JSON.parse(text(getOnPost)).error.code === 'NOT_FOUND', 'POST接口不接受GET且不泄露');
+  check(getOnPost.status === 404 && JSON.parse(text(getOnPost)).reason === 'NOT_FOUND', 'POST接口不接受GET且不泄露');
   const unknownApi = await http('/api/synthetic-not-found');
-  check(unknownApi.status === 404 && JSON.parse(text(unknownApi)).error.code === 'NOT_FOUND', '未知API保留上游404 JSON');
+  check(unknownApi.status === 404 && JSON.parse(text(unknownApi)).reason === 'NOT_FOUND', '未知API保留上游404 JSON');
   check(!unknownApi.body.equals(shell), '未知API不落入SPA');
   const forgedHost = await http('/pricing', { headers: { Host: 'forged.invalid' } });
   check(forgedHost.status === 403, '伪造Host被入口拒绝');

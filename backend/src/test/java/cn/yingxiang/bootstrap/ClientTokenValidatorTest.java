@@ -1,5 +1,6 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.manager.ClientTokenValidator;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;

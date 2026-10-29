@@ -40,6 +40,16 @@ def check(condition, label):
     COUNT += 1
 
 
+def parse(response):
+    body = response[2]
+    if not body:
+        return None
+    value = json.loads(body)
+    if isinstance(value, dict) and value.get('code') == 0:
+        return value.get('data')
+    return value
+
+
 def atom(kind, value):
     return struct.pack('>I4s', len(value) + 8, kind) + value
 
@@ -80,7 +90,7 @@ def with_audio(data):
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:
@@ -264,7 +274,7 @@ def phase_media(request):
     with_audio_bytes = with_audio(original)
     image = png_bytes()
     status = request('GET', '/api/video/jobs')
-    check(status[0] == 200 and json.loads(status[2])['jobs'] == [] and json.loads(status[2])['available'] is True,
+    check(status[0] == 200 and parse(status[2])['jobs'] == [] and parse(status[2])['available'] is True,
           'anonymous video status')
     prepared = request('POST', '/api/video/prepare', headers={'Content-Type': 'video/mp4'}, body=with_audio_bytes)
     check(prepared[0] == 200 and prepared[1]['x-video-audio-removed'] == '1', 'prepare removes audio')
@@ -302,8 +312,8 @@ def main():
             attempt = str(uuid4())
             response = request('POST', '/api/video/jobs', cookie=ALICE,
                                headers={'Content-Type': content_type, 'X-Video-Attempt': attempt}, body=body)
-            check(response[0] == 200 and json.loads(response[2])['state'] == 'pending', 'submit job ' + str(index))
-            job = json.loads(response[2])
+            check(response[0] == 200 and parse(response[2])['state'] == 'pending', 'submit job ' + str(index))
+            job = parse(response[2])
             check(abs(job['estimateUsd'] - 0.04 * math.ceil(job['seconds'])) < 1e-9, 'estimate uses ceil seconds')
             if index == 0:
                 check(stub.posts == 1 and stub.requests[0]['path'] == '/v1/jobs/lucy-vton-3.6', 'provider submit once')
@@ -312,12 +322,12 @@ def main():
                       'provider multipart fields')
                 repeat = request('POST', '/api/video/jobs', cookie=ALICE,
                                  headers={'Content-Type': content_type, 'X-Video-Attempt': attempt}, body=body)
-                check(repeat[0] == 200 and json.loads(repeat[2])['id'] == job['id'] and stub.posts == 1,
+                check(repeat[0] == 200 and parse(repeat[2])['id'] == job['id'] and stub.posts == 1,
                       'repeat attempt no repost')
             fixture('video-reset-check', schema_a, {'jobId': attempt})
             stub.status(job_state(schema_a, attempt)['providerId'], 'completed')
             polled = request('GET', '/api/video/jobs/' + attempt, cookie=ALICE)
-            check(polled[0] == 200 and json.loads(polled[2])['state'] == 'completed', 'poll completed ' + str(index))
+            check(polled[0] == 200 and parse(polled[2])['state'] == 'completed', 'poll completed ' + str(index))
             attempts.append(attempt)
         check(request('GET', '/api/video/jobs/' + attempts[0], cookie=BOB)[0] == 404, 'foreign job hidden')
         content = request('GET', '/api/video/jobs/' + attempts[0] + '/content', cookie=ALICE)
@@ -326,16 +336,16 @@ def main():
               .startswith('attachment'), 'download disposition')
         limited = request('POST', '/api/video/jobs', cookie=ALICE,
                           headers={'Content-Type': content_type, 'X-Video-Attempt': str(uuid4())}, body=body)
-        check(limited[0] == 409 and json.loads(limited[2])['error']['code'] == 'VIDEO_BUDGET_LIMIT', 'budget limit')
+        check(limited[0] == 409 and parse(limited[2])['reason'] == 'VIDEO_BUDGET_LIMIT', 'budget limit')
         overview = request('GET', '/api/admin/overview', cookie=ADMIN)
-        video = [service for service in json.loads(overview[2])['services'] if service['scene'] == 'video'][0]
+        video = [service for service in parse(overview[2])['services'] if service['scene'] == 'video'][0]
         check(overview[0] == 200 and video['configured'] is True and video['budgetUsd'] == 2.0
               and video['maxRequests'] == 6 and video['requests'] == 5 and video['reservedUsd'] > 1.7,
               'admin video status')
         listing = request('GET', '/api/video/jobs', cookie=ALICE)
-        check(listing[0] == 200 and len(json.loads(listing[2])['jobs']) == 5, 'own jobs list')
+        check(listing[0] == 200 and len(parse(listing[2])['jobs']) == 5, 'own jobs list')
         other = request('GET', '/api/video/jobs', cookie=BOB)
-        check(other[0] == 200 and json.loads(other[2])['jobs'] == [], 'other user sees no jobs')
+        check(other[0] == 200 and parse(other[2])['jobs'] == [], 'other user sees no jobs')
         stop_java(process)
         processes.remove(process)
         fixture('cleanup', schema_a)
@@ -352,23 +362,23 @@ def main():
         unknown_attempt = str(uuid4())
         unknown = request('POST', '/api/video/jobs', cookie=ALICE,
                           headers={'Content-Type': content_type, 'X-Video-Attempt': unknown_attempt}, body=body)
-        check(unknown[0] == 200 and json.loads(unknown[2])['state'] == 'unknown', 'provider failure keeps unknown')
+        check(unknown[0] == 200 and parse(unknown[2])['state'] == 'unknown', 'provider failure keeps unknown')
         check(stub.posts == posts_before + 1, 'failed provider post attempted once')
         retry = request('POST', '/api/video/jobs', cookie=ALICE,
                         headers={'Content-Type': content_type, 'X-Video-Attempt': unknown_attempt}, body=body)
-        check(retry[0] == 200 and json.loads(retry[2])['state'] == 'unknown' and stub.posts == posts_before + 1,
+        check(retry[0] == 200 and parse(retry[2])['state'] == 'unknown' and stub.posts == posts_before + 1,
               'unknown not reposted')
         stub.fail_next = False
         blocked = request('POST', '/api/video/jobs', cookie=ALICE,
                           headers={'Content-Type': content_type, 'X-Video-Attempt': str(uuid4())}, body=body)
-        check(blocked[0] == 409 and json.loads(blocked[2])['error']['code'] == 'VIDEO_IN_PROGRESS', 'unknown blocks new job')
+        check(blocked[0] == 409 and parse(blocked[2])['reason'] == 'VIDEO_IN_PROGRESS', 'unknown blocks new job')
         posts_before_restart = stub.posts
         stop_java(process)
         processes.remove(process)
         process, request = start_java(schema_b, stub.port, 5, 3)
         processes.append(process)
         after = request('GET', '/api/video/jobs', cookie=ALICE)
-        check(after[0] == 200 and json.loads(after[2])['available'] is False, 'unknown survives restart')
+        check(after[0] == 200 and parse(after[2])['available'] is False, 'unknown survives restart')
         check(json.loads(request('GET', '/api/video/jobs/' + unknown_attempt, cookie=ALICE)[2])['state'] == 'unknown',
               'unknown state persisted')
         check(stub.posts == posts_before_restart, 'no repost after restart')

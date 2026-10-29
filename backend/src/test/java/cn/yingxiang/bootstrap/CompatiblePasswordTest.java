@@ -1,5 +1,8 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.common.CompatiblePassword;
+import cn.yingxiang.exception.BusinessFailure;
+import cn.yingxiang.service.AccountAuthService;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 import java.util.List;

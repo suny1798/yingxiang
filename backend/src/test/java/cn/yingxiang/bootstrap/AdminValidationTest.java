@@ -1,5 +1,7 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.exception.BusinessFailure;
+import cn.yingxiang.service.AdministrationService;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -20,7 +22,7 @@ class AdminValidationTest {
     private static void rejects(String value, String message) {
         assertThatThrownBy(() -> AdministrationService.validateMutation(body(value), "user"))
                 .isInstanceOfSatisfying(BusinessFailure.class, error -> {
-                    assertThat(error.code).isEqualTo("INVALID_REQUEST");
+                    assertThat(error.getCode()).isEqualTo("INVALID_REQUEST");
                     assertThat(error.getMessage()).isEqualTo(message);
                 });
     }
@@ -55,10 +57,10 @@ class AdminValidationTest {
         assertThat(input).containsEntry("seconds", 30).containsEntry("delta", -2);
         assertThatThrownBy(() -> AdministrationService.validateMutation(
                 body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"补充权益\",\"seconds\":45,\"delta\":1}"), "quota"))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_REQUEST"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_REQUEST"));
         assertThatThrownBy(() -> AdministrationService.validateMutation(
                 body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"补充权益\",\"seconds\":15,\"delta\":1000001}"), "quota"))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_REQUEST"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_REQUEST"));
     }
 
     @Test void keepsNullFieldsForIdempotentComparison() {
@@ -78,7 +80,7 @@ class AdminValidationTest {
                 "{\"requestId\":\"" + REQUEST + "\",\"reason\":\"暂停服务\",\"version\":0,\"paused\":{\"studio\":1,\"video\":false,\"prompt\":false}}",
                 "{\"requestId\":\"" + REQUEST + "\",\"reason\":\"发布公告\",\"version\":0,\"enabled\":true,\"zh\":\"" + "长".repeat(241) + "\",\"en\":\"x\"}"}) {
             assertThatThrownBy(() -> AdministrationService.validateMutation(body(value), "settings"))
-                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_REQUEST"));
+                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_REQUEST"));
         }
     }
 }

@@ -36,7 +36,7 @@ def check(condition, label):
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:
@@ -123,7 +123,13 @@ def body_json(value):
 
 
 def parse(response):
-    return json.loads(response[2]) if response[2] else None
+    body = response[2]
+    if not body:
+        return None
+    value = json.loads(body)
+    if isinstance(value, dict) and value.get('code') == 0:
+        return value.get('data')
+    return value
 
 
 def main():
@@ -150,10 +156,10 @@ def main():
         check(call('GET', '/api/works')[0] == 401, 'works require login')
         no_owner = call('POST', '/api/works', cookie=ALICE, headers={'Content-Type': 'application/json'},
                         body=body_json({'id': str(uuid4()), 'kind': 'realtime', 'mime': 'video/mp4', 'seconds': 15, 'ownerId': ALICE_ID}))
-        check(no_owner[0] == 409 and parse(no_owner)['error']['code'] == 'WORK_OWNER_CHANGED', 'owner header required')
+        check(no_owner[0] == 409 and parse(no_owner)['reason'] == 'WORK_OWNER_CHANGED', 'owner header required')
         wrong_owner = call('POST', '/api/works', cookie=ALICE, headers=owner,
                            body=body_json({'id': str(uuid4()), 'kind': 'realtime', 'mime': 'video/mp4', 'seconds': 15, 'ownerId': BOB_ID}))
-        check(wrong_owner[0] == 400 and parse(wrong_owner)['error']['code'] == 'INVALID_WORK', 'owner id must match')
+        check(wrong_owner[0] == 400 and parse(wrong_owner)['reason'] == 'INVALID_WORK', 'owner id must match')
         invalid = call('POST', '/api/works', cookie=ALICE, headers=owner,
                        body=body_json({'id': 'not-a-uuid', 'kind': 'realtime', 'mime': 'video/mp4', 'seconds': 15, 'ownerId': ALICE_ID}))
         check(invalid[0] == 400, 'work id validated')
@@ -248,7 +254,7 @@ def main():
             response = call('POST', f'/api/works/{limit_work}/references/{uuid4()}', cookie=ALICE, headers=ref_headers, body=image)
             check(response[0] == 200, 'reference ' + str(index))
         over = call('POST', f'/api/works/{limit_work}/references/{uuid4()}', cookie=ALICE, headers=ref_headers, body=image)
-        check(over[0] == 409 and parse(over)['error']['code'] == 'REFERENCE_LIMIT', 'reference limit')
+        check(over[0] == 409 and parse(over)['reason'] == 'REFERENCE_LIMIT', 'reference limit')
 
         # 空录像、部分保存、参考图失败
         empty_id = str(uuid4())

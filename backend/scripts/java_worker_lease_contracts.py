@@ -38,7 +38,7 @@ def check(condition, label):
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:

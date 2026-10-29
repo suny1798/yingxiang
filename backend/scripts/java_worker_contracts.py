@@ -36,10 +36,20 @@ def check(condition, label):
     COUNT += 1
 
 
+def parse(response):
+    body = response[2]
+    if not body:
+        return None
+    value = json.loads(body)
+    if isinstance(value, dict) and value.get('code') == 0:
+        return value.get('data')
+    return value
+
+
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:
@@ -316,7 +326,7 @@ def main():
 
         api, request = start_api(schema, storage, stub.port)
         detail = request('GET', f"/api/works/{after['id']}", cookie=ALICE)
-        check(detail[0] == 200 and json.loads(detail[2])['state'] == 'ready', 'API sees worker result after restart')
+        check(detail[0] == 200 and parse(detail[2])['state'] == 'ready', 'API sees worker result after restart')
     finally:
         if worker is not None:
             stop(worker)

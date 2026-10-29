@@ -1,5 +1,7 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.exception.BusinessFailure;
+import cn.yingxiang.manager.StripeGateway;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -33,18 +35,18 @@ class PaymentsSignatureTest {
     @Test void rejectsTamperedPayload() {
         assertThatThrownBy(() -> StripeGateway.verifySignature("{}".getBytes(StandardCharsets.UTF_8),
                 signature(NOW, PAYLOAD), SECRET, NOW))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_SIGNATURE"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_SIGNATURE"));
     }
 
     @Test void rejectsStaleTimestampBeyondTolerance() {
         assertThatThrownBy(() -> StripeGateway.verifySignature(PAYLOAD, signature(NOW, PAYLOAD), SECRET, NOW + 301))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_SIGNATURE"));
+                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_SIGNATURE"));
     }
 
     @Test void rejectsMissingOrMalformedHeader() {
         for (String header : new String[]{null, "", "t=abc,v1=00", "v1=" + "0".repeat(64), "t=" + NOW}) {
             assertThatThrownBy(() -> StripeGateway.verifySignature(PAYLOAD, header, SECRET, NOW))
-                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.code).isEqualTo("INVALID_SIGNATURE"));
+                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_SIGNATURE"));
         }
     }
 }

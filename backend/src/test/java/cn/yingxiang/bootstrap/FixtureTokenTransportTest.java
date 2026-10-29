@@ -1,5 +1,6 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.manager.FixtureTokenTransport;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;

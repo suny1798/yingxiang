@@ -44,7 +44,7 @@ def check(condition, label):
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:
@@ -215,7 +215,12 @@ def json_body(value):
 
 def parse(response):
     body = response[2]
-    return json.loads(body) if body else None
+    if not body:
+        return None
+    value = json.loads(body)
+    if isinstance(value, dict) and value.get('code') == 0:
+        return value.get('data')
+    return value
 
 
 def main():
@@ -273,15 +278,15 @@ def main():
         check(call('GET', '/api/payments/orders', cookie=ALICE_COOKIE, headers={'Origin': 'https://evil.invalid'})[0] == 403, 'orders origin check')
         no_origin = request('POST', '/api/payments/checkout', cookie=ALICE_COOKIE,
                             headers={'Host': HOST, 'Content-Type': 'application/json'}, body=json_body({}))
-        check(no_origin[0] == 403 and json.loads(no_origin[2])['error']['code'] == 'ORIGIN_REJECTED', 'checkout origin first')
+        check(no_origin[0] == 403 and json.loads(no_origin[2])['reason'] == 'ORIGIN_REJECTED', 'checkout origin first')
         check(call('POST', '/api/payments/checkout', cookie=ALICE_COOKIE,
                    headers={'Content-Type': 'text/plain'}, body=b'{}')[0] == 415, 'checkout content type')
         invalid = call('POST', '/api/payments/checkout', cookie=ALICE_COOKIE, headers={'Content-Type': 'application/json'},
                        body=json_body({'requestId': str(uuid4()), 'sku': 'tryon-v1-99-1'}))
-        check(invalid[0] == 400 and parse(invalid)['error']['code'] == 'INVALID_SKU', 'invalid sku')
+        check(invalid[0] == 400 and parse(invalid)['reason'] == 'INVALID_SKU', 'invalid sku')
         invalid = call('POST', '/api/payments/checkout', cookie=ALICE_COOKIE, headers={'Content-Type': 'application/json'},
                        body=json_body({'requestId': 'bad', 'sku': 'tryon-v1-15-1'}))
-        check(invalid[0] == 400 and parse(invalid)['error']['code'] == 'INVALID_REQUEST', 'invalid request id')
+        check(invalid[0] == 400 and parse(invalid)['reason'] == 'INVALID_REQUEST', 'invalid request id')
 
         # 订单：创建、复用、完成、幂等、查单
         request_id = str(uuid4())
@@ -302,7 +307,7 @@ def main():
         check(repeat[0] == 200 and parse(repeat)['orderId'] == order_id and stub.creates == 1, 'same request reuses order')
         conflict = call('POST', '/api/payments/checkout', cookie=ALICE_COOKIE,
                         headers={'Content-Type': 'application/json'}, body=json_body({'requestId': request_id, 'sku': 'tryon-v1-30-1'}))
-        check(conflict[0] == 409 and parse(conflict)['error']['code'] == 'PAYMENT_CONFLICT', 'same request different sku')
+        check(conflict[0] == 409 and parse(conflict)['reason'] == 'PAYMENT_CONFLICT', 'same request different sku')
 
         listing = call('GET', '/api/payments/orders', cookie=ALICE_COOKIE)
         check(listing[0] == 200 and parse(listing)['orders'][0]['state'] == 'pending', 'orders list')
@@ -326,11 +331,11 @@ def main():
         replay = call('POST', '/api/payments/webhook', headers={'Stripe-Signature': sign(payload)}, body=payload)
         check(replay[0] == 200 and len(state()['grants']) == len(snapshot['grants']), 'webhook replay idempotent')
         bad = call('POST', '/api/payments/webhook', headers={'Stripe-Signature': 't=1,v1=' + '0' * 64}, body=payload)
-        check(bad[0] == 400 and parse(bad)['error']['code'] == 'INVALID_SIGNATURE', 'bad signature rejected')
+        check(bad[0] == 400 and parse(bad)['reason'] == 'INVALID_SIGNATURE', 'bad signature rejected')
         live = dict(event, livemode=True)
         live_payload = json_body(live)
         live_response = call('POST', '/api/payments/webhook', headers={'Stripe-Signature': sign(live_payload)}, body=live_payload)
-        check(live_response[0] == 400 and parse(live_response)['error']['code'] == 'WRONG_ACCOUNT_MODE', 'live event rejected')
+        check(live_response[0] == 400 and parse(live_response)['reason'] == 'WRONG_ACCOUNT_MODE', 'live event rejected')
 
         paid_again = call('POST', '/api/payments/checkout', cookie=ALICE_COOKIE,
                           headers={'Content-Type': 'application/json'}, body=json_body({'requestId': request_id, 'sku': 'tryon-v1-15-5'}))
@@ -370,7 +375,7 @@ def main():
                           'data': {'object': {'id': mismatch_session}}}
         mismatch_payload = json_body(mismatch_event)
         rejected = call('POST', '/api/payments/webhook', headers={'Stripe-Signature': sign(mismatch_payload)}, body=mismatch_payload)
-        check(rejected[0] == 409 and parse(rejected)['error']['code'] == 'PAYMENT_MISMATCH', 'amount mismatch rejected')
+        check(rejected[0] == 409 and parse(rejected)['reason'] == 'PAYMENT_MISMATCH', 'amount mismatch rejected')
         check([o for o in state()['orders'] if o['id'] == mismatch['orderId']][0]['state'] == 'pending', 'mismatch did not fulfil')
         stub.complete(mismatch_session, amount=1290)
         check(call('POST', '/api/payments/webhook', headers={'Stripe-Signature': sign(mismatch_payload)}, body=mismatch_payload)[0] == 200,
@@ -397,7 +402,7 @@ def main():
             check(response[0] == 200, 'carol checkout ' + str(index))
         limited = call('POST', '/api/payments/checkout', cookie=CAROL_COOKIE, headers={'Content-Type': 'application/json'},
                        body=json_body({'requestId': str(uuid4()), 'sku': 'tryon-v1-15-1'}))
-        check(limited[0] == 429 and parse(limited)['error']['code'] == 'RATE_LIMITED', 'checkout rate limit')
+        check(limited[0] == 429 and parse(limited)['reason'] == 'RATE_LIMITED', 'checkout rate limit')
         check(len(state('m13_carol')['orders']) == 10, 'rate limited request left no order')
 
         # 管理：身份、概览、分页、角色、权益、设置、公告、审计
@@ -434,11 +439,11 @@ def main():
         conflict_body = dict(promote_body, role='user')
         conflict_admin = call('POST', '/api/admin/users/22222222-2222-4222-8222-222222222222', cookie=ADMIN_COOKIE,
                               headers={'Content-Type': 'application/json'}, body=json_body(conflict_body))
-        check(conflict_admin[0] == 409 and parse(conflict_admin)['error']['code'] == 'REQUEST_CONFLICT', 'admin request conflict')
+        check(conflict_admin[0] == 409 and parse(conflict_admin)['reason'] == 'REQUEST_CONFLICT', 'admin request conflict')
         self_lock = call('POST', '/api/admin/users/44444444-4444-4444-8444-444444444444', cookie=ADMIN_COOKIE,
                          headers={'Content-Type': 'application/json'},
                          body=json_body({'requestId': str(uuid4()), 'reason': '自我锁定', 'role': 'user', 'disabled': False}))
-        check(self_lock[0] == 409 and parse(self_lock)['error']['code'] == 'ADMIN_SELF_LOCK', 'admin self lock')
+        check(self_lock[0] == 409 and parse(self_lock)['reason'] == 'ADMIN_SELF_LOCK', 'admin self lock')
         no_origin_admin = call('POST', '/api/admin/users/22222222-2222-4222-8222-222222222222', cookie=ADMIN_COOKIE,
                                headers={'Content-Type': 'application/json', 'Origin': 'https://evil.invalid'},
                                body=json_body(promote_body))
@@ -462,7 +467,7 @@ def main():
         too_much = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/quota', cookie=ADMIN_COOKIE,
                         headers={'Content-Type': 'application/json'},
                         body=json_body({'requestId': str(uuid4()), 'reason': '过度回收', 'seconds': 30, 'delta': -100}))
-        check(too_much[0] == 409 and parse(too_much)['error']['code'] == 'INSUFFICIENT_AVAILABLE', 'quota insufficient')
+        check(too_much[0] == 409 and parse(too_much)['reason'] == 'INSUFFICIENT_AVAILABLE', 'quota insufficient')
         zero = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/quota', cookie=ADMIN_COOKIE,
                     headers={'Content-Type': 'application/json'},
                     body=json_body({'requestId': str(uuid4()), 'reason': '零调整', 'seconds': 30, 'delta': 0}))
@@ -480,7 +485,7 @@ def main():
         stale = call('POST', '/api/admin/settings/services', cookie=ADMIN_COOKIE,
                      headers={'Content-Type': 'application/json'},
                      body=json_body(dict(pause, requestId=str(uuid4()))))
-        check(stale[0] == 409 and parse(stale)['error']['code'] == 'SETTINGS_CONFLICT', 'settings stale version')
+        check(stale[0] == 409 and parse(stale)['reason'] == 'SETTINGS_CONFLICT', 'settings stale version')
         announcement = {'requestId': str(uuid4()), 'reason': '发布维护公告', 'version': 0,
                         'enabled': True, 'zh': '今晚维护', 'en': 'Maintenance tonight'}
         announced = call('POST', '/api/admin/settings/announcement', cookie=ADMIN_COOKIE,
@@ -510,7 +515,7 @@ def main():
         blocked = maintenance_request('POST', '/api/payments/checkout', cookie=ALICE_COOKIE,
                                       headers={'Host': HOST, 'Origin': ORIGIN, 'Content-Type': 'application/json'},
                                       body=json_body({'requestId': str(uuid4()), 'sku': 'tryon-v1-15-1'}))
-        check(blocked[0] == 503 and json.loads(blocked[2])['error']['code'] == 'MAINTENANCE', 'maintenance blocks writes')
+        check(blocked[0] == 503 and json.loads(blocked[2])['reason'] == 'MAINTENANCE', 'maintenance blocks writes')
         readable = maintenance_request('GET', '/api/admin/overview', cookie=ADMIN_COOKIE, headers={'Host': HOST, 'Origin': ORIGIN})
         check(readable[0] == 200, 'maintenance keeps reads')
         stop_java(maintenance_process)

@@ -1,5 +1,7 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.manager.SchemaOperations;
+import cn.yingxiang.mapper.AccountReader;
 import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;

@@ -1,5 +1,6 @@
 import { onMounted,onUnmounted,shallowRef } from 'vue';
 import type { WorkItem,WorkPage } from '../lib/api-schema';
+import { envelopeData, envelopeMessage } from '../lib/api-response';
 import { notify } from '../lib/notices';
 import { t } from './preferences';
 import { sessionScope } from './runtime';
@@ -7,8 +8,8 @@ import { WorksIndex,type WorksPlatform } from './works-index';
 
 async function json<T>(response: Response): Promise<T> {
   const value = await response.json();
-  if (!response.ok) throw new Error(value.error?.message ?? '作品暂时无法读取，请稍后重试。');
-  return value as T;
+  if (!response.ok) throw new Error(envelopeMessage(value) ?? '作品暂时无法读取，请稍后重试。');
+  return envelopeData<T>(value);
 }
 
 const browserPlatform: WorksPlatform = {

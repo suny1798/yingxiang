@@ -34,7 +34,7 @@ def main():
 def runtime_check(temp,config,dsn):
     import psycopg, http.client
     jar=ROOT/"target/yingxiang-backend-0.1.0.jar"
-    command=["java","-Dloader.main=cn.yingxiang.bootstrap.SchemaOperations","-cp",str(jar),"org.springframework.boot.loader.launch.PropertiesLauncher","migrate",str(config)]
+    command=["java","-Dloader.main=cn.yingxiang.manager.SchemaOperations","-cp",str(jar),"org.springframework.boot.loader.launch.PropertiesLauncher","migrate",str(config)]
     result=subprocess.run(command,cwd=temp,capture_output=True)
     assert result.returncode==0,"runtime schema migration"
     with psycopg.connect(dsn) as db:

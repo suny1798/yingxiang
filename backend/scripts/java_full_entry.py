@@ -51,7 +51,7 @@ def iso_after(seconds):
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:
@@ -300,7 +300,13 @@ def json_body(value):
 
 
 def parse(response):
-    return json.loads(response[2]) if response[2] else None
+    body = response[2]
+    if not body:
+        return None
+    value = json.loads(body)
+    if isinstance(value, dict) and value.get('code') == 0:
+        return value.get('data')
+    return value
 
 
 def png_bytes():
@@ -398,8 +404,8 @@ def main():
         health = call('GET', '/api/v1/health')
         check(health[0] == 200 and parse(health)['application'] == 'yingxiang', 'legacy health')
         legacy = call('POST', '/api/v1/access/redeem', headers={'Content-Type': 'application/json'}, body=b'{}')
-        check(legacy[0] == 503 and parse(legacy)['error']['code'] == 'SERVICE_DISABLED', 'legacy sessions stay disabled')
-        check(call('GET', '/api/not-real')[0] == 404 and parse(call('GET', '/api/not-real'))['error']['code'] == 'NOT_FOUND',
+        check(legacy[0] == 503 and parse(legacy)['reason'] == 'SERVICE_DISABLED', 'legacy sessions stay disabled')
+        check(call('GET', '/api/not-real')[0] == 404 and parse(call('GET', '/api/not-real'))['reason'] == 'NOT_FOUND',
               'unknown api 404 json')
         check(call('GET', '/api/internal/ready')[0] == 200 and parse(call('GET', '/api/internal/ready'))['role'] == 'api', 'Java dependency readiness succeeds')
         check(call('GET', '/api/account/me')[0] == 200, 'anonymous me through nginx')

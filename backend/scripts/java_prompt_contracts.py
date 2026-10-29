@@ -43,7 +43,7 @@ def check(condition, label):
 def fixture(action, schema, payload=None):
     result = subprocess.run([
         'java', '-Duser.language=en', '-Duser.country=US', '-Dlogback.configurationFile=migration-probe-logback.xml',
-        '-Dloader.main=cn.yingxiang.bootstrap.AccountIntegrationFixture', '-cp', str(JAR),
+        '-Dloader.main=cn.yingxiang.fixture.AccountIntegrationFixture', '-cp', str(JAR),
         'org.springframework.boot.loader.launch.PropertiesLauncher', action, str(CONFIG), schema,
     ], cwd=BACKEND, input=json.dumps(payload or {}).encode(), capture_output=True, timeout=60)
     try:
@@ -172,7 +172,13 @@ def body_json(value):
 
 
 def parse(response):
-    return json.loads(response[2]) if response[2] else None
+    body = response[2]
+    if not body:
+        return None
+    value = json.loads(body)
+    if isinstance(value, dict) and value.get('code') == 0:
+        return value.get('data')
+    return value
 
 
 def main():
@@ -218,11 +224,11 @@ def main():
         check(state['attempts'][0]['state'] == 'issued' and state['reservations'][0]['microUsd'] == 300000, 'attempt issued and reserved')
         repeat = call('POST', '/api/prompt/token', cookie=ALICE,
                       headers={'Content-Type': 'application/json', 'X-Studio-Access': access}, body=body_json(payload))
-        check(repeat[0] == 409 and parse(repeat)['error']['code'] == 'PROMPT_ATTEMPT_SPENT', 'attempt id spent')
+        check(repeat[0] == 409 and parse(repeat)['reason'] == 'PROMPT_ATTEMPT_SPENT', 'attempt id spent')
         limited = call('POST', '/api/prompt/token', cookie=ALICE,
                        headers={'Content-Type': 'application/json', 'X-Studio-Access': access},
                        body=body_json({**payload, 'attemptId': str(uuid4())}))
-        check(limited[0] == 409 and parse(limited)['error']['code'] == 'PROMPT_LIMIT', 'session limit')
+        check(limited[0] == 409 and parse(limited)['reason'] == 'PROMPT_LIMIT', 'session limit')
 
         stub.fail_next = True
         posts_before = stub.posts
@@ -230,7 +236,7 @@ def main():
         unknown_payload = {'attemptId': str(uuid4()), 'consentVersion': CONSENT, 'durationSec': 15}
         unknown = call('POST', '/api/prompt/token', cookie=ALICE,
                        headers={'Content-Type': 'application/json', 'X-Studio-Access': access}, body=body_json(unknown_payload))
-        check(unknown[0] == 503 and parse(unknown)['error']['code'] == 'PROMPT_TOKEN_UNKNOWN', 'unknown token result')
+        check(unknown[0] == 503 and parse(unknown)['reason'] == 'PROMPT_TOKEN_UNKNOWN', 'unknown token result')
         state = fixture('prompt-state', schema, {'username': 'm16_alice'})
         attempt = [item for item in state['attempts'] if item['id'] == unknown_payload['attemptId']][0]
         check(attempt['state'] == 'unknown' and json.loads(attempt['observation'])['tokenFailure'] == 'UPSTREAM_CONNECTION',
@@ -238,7 +244,7 @@ def main():
         check(stub.posts == posts_before + 1, 'single failed token request')
         retry = call('POST', '/api/prompt/token', cookie=ALICE,
                      headers={'Content-Type': 'application/json', 'X-Studio-Access': access}, body=body_json(unknown_payload))
-        check(retry[0] == 409 and parse(retry)['error']['code'] == 'PROMPT_ATTEMPT_SPENT', 'unknown not retried')
+        check(retry[0] == 409 and parse(retry)['reason'] == 'PROMPT_ATTEMPT_SPENT', 'unknown not retried')
         stub.fail_next = False
         waiting = call('GET', '/api/prompt/status', cookie=ALICE)
         check(parse(waiting)['available'] is False and '保留预算占用' in parse(waiting)['message'], 'unknown wait window')
@@ -275,10 +281,10 @@ def main():
               'prompt idempotent')
         conflict = call('POST', f'/api/works/{edit_id}/prompts/1', cookie=ALICE, headers=owner,
                         body=body_json({'atMs': 500, 'instructions': ['不同']}))
-        check(conflict[0] == 409 and parse(conflict)['error']['code'] == 'WORK_PROMPTS_CONFLICT', 'prompt conflict')
+        check(conflict[0] == 409 and parse(conflict)['reason'] == 'WORK_PROMPTS_CONFLICT', 'prompt conflict')
         order = call('POST', f'/api/works/{edit_id}/prompts/2', cookie=ALICE, headers=owner,
                      body=body_json({'atMs': 400, 'instructions': ['逆序']}))
-        check(order[0] == 409 and parse(order)['error']['code'] == 'WORK_PROMPTS_ORDER', 'prompt order')
+        check(order[0] == 409 and parse(order)['reason'] == 'WORK_PROMPTS_ORDER', 'prompt order')
         check(call('POST', f'/api/works/{edit_id}/prompts/2', cookie=ALICE, headers=owner,
                    body=body_json({'atMs': 600, 'instructions': []}))[0] == 400, 'empty instructions')
         check(call('POST', f'/api/works/{edit_id}/prompts/2', cookie=ALICE,

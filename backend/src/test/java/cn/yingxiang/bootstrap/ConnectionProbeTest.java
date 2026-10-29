@@ -1,5 +1,6 @@
 package cn.yingxiang.bootstrap;
 
+import cn.yingxiang.manager.ConnectionProbe;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

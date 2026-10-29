@@ -1,4 +1,5 @@
 import { onMounted,onUnmounted,shallowRef } from 'vue';
+import { envelopeData, envelopeMessage } from '../lib/api-response';
 import { notify } from '../lib/notices';
 import { SandboxOrders,type OrdersPlatform } from './orders';
 import { sessionScope } from './runtime';
@@ -10,8 +11,8 @@ async function request<T>(url: string, body: object | undefined, signal: AbortSi
   } catch { throw new Error(body ? '支付准备未完成，请到订单中核查。' : '支付服务暂不可用。'); }
   let value: unknown;
   try { value = await response.json(); } catch { throw new Error('支付服务暂不可用。'); }
-  if (!response.ok) throw new Error((value as { error?: { message?: string } } | null)?.error?.message ?? '支付服务暂不可用。');
-  return value as T;
+  if (!response.ok) throw new Error(envelopeMessage(value) ?? '支付服务暂不可用。');
+  return envelopeData<T>(value);
 }
 
 const browserPlatform: OrdersPlatform = {

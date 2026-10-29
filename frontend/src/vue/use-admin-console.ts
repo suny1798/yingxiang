@@ -1,4 +1,5 @@
 import { onMounted,onUnmounted,shallowRef,watch,type Ref } from 'vue';
+import { envelopeData, envelopeMessage } from '../lib/api-response';
 import { notify } from '../lib/notices';
 import { accountCoordinator } from './runtime';
 import { preferences } from './preferences';
@@ -13,8 +14,8 @@ export async function adminRequest<T>(path: string, body: unknown, signal: Abort
   } catch { throw new AdminRequestError('管理请求未完成。', 0); }
   let value: unknown;
   try { value = await response.json(); } catch { value = undefined; }
-  if (!response.ok) throw new AdminRequestError((value as { error?: { message?: string } } | undefined)?.error?.message ?? '管理请求未完成。', response.status);
-  return value as T;
+  if (!response.ok) throw new AdminRequestError(envelopeMessage(value) ?? '管理请求未完成。', response.status);
+  return envelopeData<T>(value);
 }
 
 export function useSay() {

@@ -1,4 +1,10 @@
 package cn.yingxiang.bootstrap;
+
+import cn.yingxiang.config.MigrationOrigin;
+import cn.yingxiang.common.MigrationSupport;
+import cn.yingxiang.config.RuntimePolicy;
+import cn.yingxiang.config.RuntimeRole;
+import cn.yingxiang.manager.Readiness;
 import java.net.URI;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
