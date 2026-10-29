@@ -29,12 +29,18 @@ def _parser() -> argparse.ArgumentParser:
         item = sub.add_parser(action)
         item.add_argument("--source", required=True)
         item.add_argument("--details", type=Path)
+    plan = sub.add_parser("formal-plan")
+    for field in ("source", "snapshot", "storage", "batch", "output"):
+        plan.add_argument("--"+field, required=True)
+    plan.add_argument("--offline", action="store_true")
+    plan.add_argument("--dsn-env", default="YINGXIANG_IMPORT_DSN")
     for action in ("import", "verify", "seal"):
         item = sub.add_parser(action)
         item.add_argument("--source", required=True)
         item.add_argument("--schema", required=True)
         item.add_argument("--storage", required=True)
         item.add_argument("--batch", required=True)
+        item.add_argument("--formal-plan", type=Path)
         item.add_argument("--dsn-env", default="YINGXIANG_IMPORT_DSN")
         item.add_argument("--details", type=Path)
         if action == "import":
@@ -70,8 +76,14 @@ def main(argv: list[str] | None = None) -> int:
         dsn = os.environ.get(args.dsn_env, "")
         if not dsn:
             raise UsageError("TARGET_DSN_MISSING")
+        if args.action == "formal-plan":
+            from .formal import create_plan
+            create_plan(source, Path(args.snapshot), Path(args.storage), args.batch, dsn,
+                        Path(args.output), offline=args.offline)
+            print(json.dumps({"ok":True,"mode":"formal-plan","databaseWrites":False}))
+            return 0
         target = Target(source, dsn, args.schema, args.storage, args.batch,
-                        rehearsal=bool(getattr(args, "rehearsal", False)))
+                        rehearsal=bool(getattr(args, "rehearsal", False)), formal_plan=args.formal_plan)
         try:
             if args.action == "import":
                 report = target.import_source()

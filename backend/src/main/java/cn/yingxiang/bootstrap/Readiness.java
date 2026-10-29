@@ -33,6 +33,9 @@ final class Readiness {
             if (env.getProperty("migration.works-enabled", Boolean.class, false)
                     || env.getProperty("migration.worker-enabled", Boolean.class, false)) {
                 Path root=Path.of(env.getRequiredProperty("migration.storage-root"));
+                if (Files.exists(root.resolve("INCOMPLETE"))
+                        || (root.getParent()!=null && Files.exists(root.getParent().resolve("INCOMPLETE"))))
+                    throw new IllegalStateException();
                 if (!Files.isDirectory(root) || Files.isSymbolicLink(root) || !Files.isReadable(root) || !Files.isWritable(root))
                     throw new IllegalStateException();
             }

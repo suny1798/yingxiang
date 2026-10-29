@@ -1,5 +1,12 @@
 # 模板不自动加载。PG/Redis连接继续用私有config/application-local.yml；不复制密钥。
 # 正式切换仍须M21/M22/G3；本文件不构成切流或费用授权。
+spring:
+  datasource:
+    # 正式运行必须覆盖为独立运行账号，不能沿用迁移账号。
+    username: ${YINGXIANG_RUNTIME_DB_USERNAME:}
+    password: ${YINGXIANG_RUNTIME_DB_PASSWORD:}
+    hikari:
+      read-only: false
 migration:
   runtime-enabled: true
   role: api                       # worker角色另设worker-enabled=true；自动无HTTP

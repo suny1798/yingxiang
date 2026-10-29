@@ -1,7 +1,6 @@
 """PostgreSQL 目标导入、核对、重复运行与私有卷复制。
 
-工具只接受隔离 schema（yingxiang_migration_it_<12hex>），不连接正式
-yingxiang_migration；最终停写导入由 M22 在独立授权下扩展。
+默认只接受隔离schema；正式schema必须提供绑定冻结快照与目标身份的计划。
 """
 from __future__ import annotations
 
@@ -68,8 +67,14 @@ class Batch:
 
 class Target:
     def __init__(self, source: Source, dsn: str, schema: str, storage: str | Path,
-                 batch_id: str, *, rehearsal: bool = False):
-        if not re.fullmatch(TARGET_SCHEMA_PATTERN, schema):
+                 batch_id: str, *, rehearsal: bool = False, formal_plan: Path | None = None):
+        plan = None
+        if formal_plan is not None:
+            from .formal import validate_plan
+            if schema != "yingxiang_migration" or rehearsal or os.environ.get("YINGXIANG_M21A_FAULT"):
+                raise TargetError("FORMAL_MODE_INVALID")
+            plan = validate_plan(formal_plan, source, Path(storage), batch_id)
+        elif not re.fullmatch(TARGET_SCHEMA_PATTERN, schema):
             raise TargetError("TARGET_SCHEMA_NOT_ISOLATED")
         if not batch_id or len(batch_id) > 120 or not re.fullmatch(r"[A-Za-z0-9._:-]+", batch_id):
             raise TargetError("BATCH_ID_INVALID")
@@ -84,7 +89,19 @@ class Target:
         try:
             self.conn = psycopg.connect(dsn, connect_timeout=10)
             self.conn.autocommit = True
+            if plan is not None:
+                from .formal import identity
+                if identity(self.conn) != plan["target"]:
+                    self.conn.close()
+                    raise TargetError("FORMAL_TARGET_IDENTITY_MISMATCH")
+            locked = self.conn.execute("SELECT pg_try_advisory_lock(hashtextextended(%s,0))",
+                                       ("yingxiang-import:" + schema,)).fetchone()[0]
+            if not locked:
+                self.conn.close()
+                raise TargetError("IMPORT_ALREADY_RUNNING")
         except psycopg.Error:
+            if hasattr(self, "conn"):
+                self.conn.close()
             raise TargetError("TARGET_UNAVAILABLE") from None
 
     def close(self) -> None:
