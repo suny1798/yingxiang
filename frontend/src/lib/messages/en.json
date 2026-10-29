@@ -1246,7 +1246,7 @@
   "作品操作未完成。": "The creation action did not finish.",
   "取消收藏": "Remove from favorites",
   "收藏作品": "Favorite creation",
-  "已收藏": "Favorited",
+  "已收藏": "Saved",
   "收藏": "Favorite",
   "已加入收藏，可通过“仅看收藏”找到它。": "Added to favorites. Find it with Favorites only.",
   "已取消收藏，作品仍保留在全部作品中。": "Removed from favorites. The creation remains in All creations.",
@@ -1491,5 +1491,17 @@
   "随机一组": "Surprise me",
   "随机衣装": "Random looks",
   "按当前筛选随机展示四行衣装": "Show four random rows from the current filters",
-  "回到顶部": "Back to top"
+  "回到顶部": "Back to top",
+  "衣装收藏筛选": "Outfit favorites filter",
+  "我的收藏": "My favorites",
+  "正在读取收藏…": "Loading favorites…",
+  "重新读取收藏": "Reload favorites",
+  "暂时无法读取衣装收藏，请重试。": "Could not load outfit favorites. Please retry.",
+  "收藏保存未确认，请重新读取收藏状态后再操作。": "Saving was not confirmed. Reload favorites before trying again.",
+  "还没有匹配的收藏衣装": "No matching favorites yet",
+  "打开衣装大图，点击收藏后就能在这里找到。": "Open a look and save it to find it here.",
+  "正在保存收藏…": "Saving favorite…",
+  "取消收藏衣装": "Remove outfit from favorites",
+  "收藏衣装": "Save outfit",
+  "登录后可查看账号收藏的衣装。": "Sign in to view the outfits saved to your account."
 }

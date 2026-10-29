@@ -112,10 +112,10 @@ INSERT_ORDER: tuple[str, ...] = (
     "works", "work_references",
 )
 
-# V1 未包含、由 V2/V3 新建的运行时/导入表；源 SQLite 没有对应数据。
+# V1 未包含、由 V2—V4 新建的运行时／导入／衣装收藏表；旧SQLite没有对应数据。
 TARGET_ONLY_TABLES = (
     "background_tasks", "rate_limit_shadows", "rate_limit_gates", "upload_slots",
-    "import_batches", "import_batch_objects",
+    "import_batches", "import_batch_objects", "garment_favorites",
 )
 
 EXPECTED_TARGET_TABLES = frozenset(TABLES) | frozenset(TARGET_ONLY_TABLES) | {"flyway_schema_history"}

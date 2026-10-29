@@ -113,3 +113,14 @@
 @media (min-width:1800px) { .grid { grid-template-columns:repeat(5,minmax(0,1fr)); } }
 @media (min-width:1051px) and (max-width:1270px) { .page { width:calc(100% - 72px); }.library { grid-template-columns:180px minmax(0,1fr); gap:25px; }.grid { grid-template-columns:repeat(3,minmax(0,1fr)); }.selectionBar { gap:14px; }.selectionIntro > span { display:none; } }
 @media (prefers-reduced-motion:reduce) { .page * { transition:none!important; scroll-behavior:auto!important; } }
+
+.collectionTabs { display:flex; gap:7px; margin-bottom:22px; }
+.collectionTabs button { border:1px solid transparent; border-radius:6px; padding:8px 14px; color:var(--muted); background:transparent; font-size:12px; }
+.collectionTabs button[aria-pressed=true] { border-color:var(--line); background:var(--surface); color:var(--accent); }
+.collectionTabs span { margin-left:5px; font-size:11px; }
+.favoriteStatus { font-size:12px; color:var(--muted); margin:0 0 16px; }
+.favoriteStatus button,.dialogActions p button { border:0; background:transparent; color:var(--accent); padding:0 4px; font-size:12px; }
+.favoriteBadge { position:absolute; left:12px; bottom:12px; padding:4px 8px; border-radius:5px; font-size:10px; color:#793d50; background:#fffefae8; pointer-events:none; }
+.favoriteButton { display:flex; align-items:center; justify-content:center; gap:8px; padding:11px 18px; border:1px solid var(--line); border-radius:7px; color:var(--accent); background:transparent; font-size:12px; }
+.favoriteButton[aria-pressed=true] { border-color:var(--accent); background:var(--accent-soft); }
+.favoriteButton span { font-size:19px; line-height:1; }

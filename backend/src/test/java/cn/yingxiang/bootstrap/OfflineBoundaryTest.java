@@ -127,7 +127,7 @@ class OfflineBoundaryTest {
         try (var stream = getClass().getResourceAsStream("/migration-api-routes.json")) {
             var catalog = json.readValue(stream, OfflineBoundary.Catalog.class);
             assertThat(catalog.sourceSha256()).isEqualTo(HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(source)));
-            assertThat(catalog.routes()).hasSize(44);
+            assertThat(catalog.routes()).hasSize(46);
             var paths = json.readTree(source).get("paths");
             for (var route : catalog.routes()) {
                 var operation = paths.get(route.path());

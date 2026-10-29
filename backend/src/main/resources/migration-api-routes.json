@@ -1,5 +1,5 @@
 {
-  "sourceSha256": "3b2d0c89947f7f18464e1d1b7dea12015bd1b4704db394bf6a7fd9fa26429b1c",
+  "sourceSha256": "3333c1ec91d419a3916146e489b5f47be3089dcc69f0a06db7abbff98de2b4e3",
   "routes": [
     {
       "path": "/api/admin/overview",
@@ -265,6 +265,18 @@
     },
     {
       "path": "/api/v1/sessions/{ident}/end",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/garments/favorites",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/garments/{id}/favorite",
       "methods": [
         "POST"
       ]

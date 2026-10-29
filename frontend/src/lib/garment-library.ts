@@ -38,6 +38,12 @@ export function shuffleLooks(items:readonly LibraryLook[],random= Math.random):L
   }
   return result;
 }
+/** 相邻两次进入至少首套不同；只记录公开ID，不保存账号或图片。 */
+export function freshLooks(items:readonly LibraryLook[],previousFirst:string|null,random=Math.random):LibraryLook[]{
+  const result=shuffleLooks(items,random);
+  if(result.length>1&&result[0]?.id===previousFirst)[result[0],result[1]]=[result[1]!,result[0]!];
+  return result;
+}
 /** 只读取本站已知素材。任一失败不交付半批；中止后不得向已离开的页面导入。 */
 export async function loadLookFiles(ids:readonly string[],signal:AbortSignal,request:typeof fetch=fetch):Promise<File[]> {
   return Promise.all(selectedLookIds(ids.join(',')).map(async id=>{

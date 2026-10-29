@@ -40,3 +40,6 @@ export type WorkChange = { "title"?: string | null; "action"?: "retry" | "delete
 export type UserChange = { "requestId": string; "reason": string; "role": "user" | "admin"; "disabled": boolean; };
 export type QuotaChange = { "requestId": string; "reason": string; "seconds": 15 | 30 | 60; "delta": number; };
 export type SettingsChange = { "requestId": string; "reason": string; "version": number; "paused"?: {  } | null; "enabled"?: boolean | null; "zh"?: string | null; "en"?: string | null; };
+export type GarmentFavoritesList = { "ids": Array<string>; };
+export type GarmentFavorite = { "id": string; "favorite": boolean; };
+export type GarmentFavoriteChange = { "favorite": boolean; };

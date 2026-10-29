@@ -36,7 +36,7 @@ def inspect(dsn,schema):
             row=connection.execute("SELECT count(*) FROM yingxiang_migration.import_batches WHERE status=%s",("sealed",)).fetchone()
             if row[0]!=1: raise TargetError("BACKUP_REQUIRES_SEALED_BATCH")
             tables=connection.execute("SELECT table_name FROM information_schema.tables WHERE table_schema=%s ORDER BY table_name",(schema,)).fetchall()
-            if {name for name, in tables}!=set(EXPECTED_TARGET_TABLES): raise TargetError("BACKUP_SCHEMA_INCOMPLETE")
+            if {name for name, in tables} not in (set(EXPECTED_TARGET_TABLES),set(EXPECTED_TARGET_TABLES)-{"garment_favorites"}): raise TargetError("BACKUP_SCHEMA_INCOMPLETE")
             result={}
             for name, in tables:
                 rows=connection.execute(f'SELECT * FROM "yingxiang_migration"."{name}"').fetchall()

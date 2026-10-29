@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { access,readFile } from 'node:fs/promises';
-import { colorTags,detailTags,filterLooks,garmentTags,libraryLooks,loadLookFiles,lookImage,selectedLookIds,shuffleLooks,tagLabels,toggleLook } from '../src/lib/garment-library';
+import { colorTags,detailTags,filterLooks,freshLooks,garmentTags,libraryLooks,loadLookFiles,lookImage,selectedLookIds,shuffleLooks,tagLabels,toggleLook } from '../src/lib/garment-library';
 
 test('966套素材ID唯一，标签全覆盖，缩略图和参考图齐全',async()=>{
   assert.equal(libraryLooks.length,966);
@@ -15,6 +15,13 @@ test('966套素材ID唯一，标签全覆盖，缩略图和参考图齐全',asyn
     assert.equal(bytes.toString('ascii',8,12),'WEBP');
   }));
   assert.equal(new Set(libraryLooks.slice(0,4).map(item=>item.season)).size,4);
+  const backendIds=(await readFile('../backend/src/main/resources/garment-library-ids.txt','utf8')).trim().split(/\r?\n/).sort();
+  assert.deepEqual(backendIds,libraryLooks.map(item=>item.id).sort());
+});
+test('新进入序列至少首套不同，且保持全量不重复',()=>{
+  const first=freshLooks(libraryLooks,null,()=>0);
+  const second=freshLooks(libraryLooks,first[0]!.id,()=>0);
+  assert.notEqual(first[0]!.id,second[0]!.id);assert.equal(new Set(second.map(item=>item.id)).size,966);
 });
 test('季节取并集、标签取交集，关键词支持中文英文及编号',()=>{
   const matches=filterLooks(libraryLooks,{seasons:['春','夏'],tags:['white','skirt'],search:''});

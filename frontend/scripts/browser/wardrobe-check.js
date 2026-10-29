@@ -114,6 +114,7 @@ async (page) => {
   await page.goto(origin+'/wardrobe');
   await page.route('**/assets/garments/thumb/SPR-0001.webp*',route=>route.fulfill({status:503,body:'unavailable'}));
   await page.reload();
+  await page.getByRole('searchbox',{name:'搜索衣装'}).fill('SPR-0001');
   await page.getByRole('button',{name:'重新加载',exact:true}).waitFor();
   check(true,'列表图片失败显示重试入口');
   await page.unroute('**/assets/garments/thumb/SPR-0001.webp*');

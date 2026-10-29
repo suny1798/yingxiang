@@ -34,6 +34,8 @@ with ThreadPoolExecutor(max_workers=4) as pool:
     results = list(pool.map(convert, manifest))
 catalog = {"labels": mapping["标签词典"], "items": [item for item, _ in results]}
 (root / "src/lib/garment-catalog.json").write_text(json.dumps(catalog, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+# Java仅保留公开ID白名单，随同一素材导入同步，防止接受不存在的服装。
+(root.parent / "backend/src/main/resources/garment-library-ids.txt").write_text("\n".join(item["id"] for item in catalog["items"]) + "\n", encoding="utf-8")
 provenance = {"source": mapping["来源"], "importDate": "2026-10-29", "count": len(results), "note": "用户指定本机衣装集；沿用源标签，不代表本站生成效果。仅供本机受控展示；公开发布前另核查素材使用许可。", "files": [entry for _, entry in results]}
 (target / "provenance.json").write_text(json.dumps(provenance, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 print(json.dumps({"count": len(results), "webpBytes": sum(p.stat().st_size for p in target.rglob("*.webp"))}))

@@ -47,6 +47,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
     private final boolean worksEnabled;
     private final boolean promptEnabled;
     private final boolean compatibilityEnabled;
+    private final boolean garmentFavoritesEnabled;
 
     @org.springframework.beans.factory.annotation.Autowired
     public OfflineBoundary(Environment env, JsonMapper json, MigrationOrigin origin) throws IOException {
@@ -63,6 +64,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         compatibilityEnabled = env.getProperty("migration.compatibility-enabled", Boolean.class, false);
         Set<String> profiles = Set.copyOf(Arrays.asList(env.getActiveProfiles().length == 0
                 ? env.getDefaultProfiles() : env.getActiveProfiles()));
+        garmentFavoritesEnabled=profiles.equals(Set.of("local"))&&accountReadEnabled;
         boolean readOnly = env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true);
         String schema = env.getProperty("migration.db-schema", "");
         boolean runtime = RuntimePolicy.runtime(env);
@@ -130,11 +132,12 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         boolean videoPath = videoEnabled && path.startsWith("/api/video/");
         boolean worksPath = worksEnabled && (path.equals("/api/works") || path.startsWith("/api/works/"));
         boolean promptPath = promptEnabled && path.startsWith("/api/prompt/");
+        boolean garmentPath=garmentFavoritesEnabled&&path.startsWith("/api/garments/");
         boolean compatibilityPath = compatibilityEnabled && path.startsWith("/api/v1/");
         boolean paymentPath = paymentsEnabled && path.startsWith("/api/payments/");
         boolean adminPath = adminEnabled && (path.startsWith("/api/admin/") || path.equals("/api/site/announcement"));
         if (maintenance && !safe && ((authEnabled && authPath) || ((studioFixtureEnabled || studioEnabled) && studioPath)
-                || paymentPath || adminPath || videoPath || worksPath || promptPath)) {
+                || paymentPath || adminPath || videoPath || worksPath || promptPath || garmentPath)) {
             error(request, response, 503, "MAINTENANCE", "服务维护中，请稍后再试。", requestId);
             return;
         }
@@ -145,7 +148,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
                 .forEach(route -> knownMethods.addAll(route.methods()));
         boolean methodMismatch = !knownMethods.isEmpty() && !knownMethods.contains(method);
         boolean protectedPath = path.equals("/api/account/me") || authPath || ((studioFixtureEnabled || studioEnabled) && studioPath)
-                || (adminPath && !path.equals("/api/site/announcement")) || videoPath || worksPath || promptPath;
+                || (adminPath && !path.equals("/api/site/announcement")) || videoPath || worksPath || promptPath || garmentPath;
         if (!paymentPath && !compatibilityPath && !methodMismatch) {
             boolean wrongHost = !origin.hostAllowed(request.getHeader("Host"))
                     || "cross-site".equals(request.getHeader("Sec-Fetch-Site"));
@@ -205,7 +208,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } else if ((studioFixtureEnabled || studioEnabled) && studioPath) {
             chain.doFilter(request, response);
-        } else if (paymentPath || adminPath || videoPath || worksPath || promptPath || compatibilityPath) {
+        } else if (paymentPath || adminPath || videoPath || worksPath || promptPath || compatibilityPath || garmentPath) {
             chain.doFilter(request, response);
         } else {
             error(request, response, 503, "SERVICE_DISABLED", "Java业务迁移尚未完成", requestId);
