@@ -310,3 +310,16 @@ Worker不提交生成、不读取正式库、不记录媒体或凭据；M18已�
 - Redis旧窗口以Lua原子取较大计数、较长TTL；重复导入不叠加。测试前置中已有较小Redis计数也须提升到旧库值。
 
 隔离全套回归：`./mvnw.cmd -q package`后运行`.venv/Scripts/python.exe -m scripts.runtime_closure_contracts`，自建并清理临时PG15／Redis6（Redis回环56379和容器名`yingxiang-m17-redis`须空闲），不读取本机密钥配置、不访问正式数据库或真实供应商。PG18验证、真实效果／账单和正式切流均未包含。
+
+
+## 正式导入计划与PG18联合恢复（M21-b）
+
+默认隔离schema限制保留；只有正式`yingxiang_migration`加`--formal-plan <私有计划>`才开放正式工具路径。`python -m ops formal-plan`要求已验证的`joint_snapshot`停写快照和对应恢复源，绑定源指纹／目标数据库与账号身份／卷／批次，2小时有效，原地覆盖计划被拒绝。此声明不能替代实际停写，正式导入不允许故障注入。所有导入／核对客户端持有同一schema会话锁，退出释放，避免并发初始化／发布媒体。
+
+命令及切流步骤见[M22检查表](../docs/migration/M22-正式切流检查表.md)。目标卷根含`users/`；Java的`migration.storage-root`必须设为该`users`目录，不能设成卷根。恢复目录有`INCOMPLETE`时readiness返回503，不能运行半成品。正式`application-runtime.example.yml`要求独立运行账号，不能继承迁移账号。
+
+- `python -m ops.pg_backup snapshot|verify|restore`：PG schema和媒体共同备份／校验／恢复；逐表行数与内容哈希、dump哈希与媒体哈希一致。写命令必须`--offline`，恢复目标必须新schema／新卷。原生`pg_dump`／`pg_restore`需安装与PG18兼容的官方工具，凭据通过环境变量传递，错误只回固定分类。
+- `python -m scripts.formal_pg18_rehearsal`：一次性官方PG18.0，32项正式导入／最小权限／Java会话与Range／联合恢复检查；不读写正式云库，不调用供应商。镜像固定摘要在脚本内。官方直连仓库路径用于绕开本机镜像源返回HTML的故障，不修改Docker全局配置。
+- `python -m scripts.java_cloud_preflight`：只读核查已配置PG版本、TLS、角色能力、Flyway版本及Redis TLS配置，不输出地址／账号／密钥／业务行，不进行DDL或数据迁移。
+
+本机最后核查：云PG180000连通，但连接未加密；Redis配置TLS关闭；当前账号不能创建角色，云schema仅V1，正式独立运行账号与备份恢复记录尚待提供。正式切流仍受G3资源条件限制，不能用隔离演练结果代替。
