@@ -77,4 +77,3 @@
 .dialogActions button { border:1px solid var(--line); padding:10px 16px; border-radius:23px; background:transparent; color:var(--muted); font-size:14px; }
 .dialogActions .confirmPay { display:inline-flex; align-items:center; gap:20px; background:var(--accent); border-color:var(--accent); color:var(--on-accent); }
 .dialogActions button:disabled { opacity:.5; cursor:default; }
-
