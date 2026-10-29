@@ -1,4 +1,4 @@
-.page { width:min(1600px,calc(100% - 112px)); margin:0 auto; padding-bottom:150px; }
+.page { width:min(1600px,calc(100% - 112px)); margin:0 auto; padding-bottom:32px; }
 .intro { display:grid; grid-template-columns:1fr 1.1fr; align-items:center; gap:70px; padding:48px 0 44px; border-bottom:1px solid var(--line); }
 .eyebrow { color:var(--accent); font-size:12px; letter-spacing:.06em; margin:0 0 18px; }
 .eyebrow span { color:var(--muted); margin-left:10px; font-size:11px; letter-spacing:.15em; }
@@ -78,7 +78,7 @@
 .empty > span { color:var(--accent); font-size:44px; }
 .empty h3 { font-size:20px; margin:12px 0 0; }
 .empty p { color:var(--muted); font-size:13px; margin:10px 0 22px; }
-.selectionBar { position:fixed; z-index:21; bottom:22px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:22px; width:min(1180px,calc(100% - 80px)); padding:16px 22px; border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:0 8px 40px #34212a17; }
+.selectionBar { position:sticky; z-index:21; bottom:22px; display:flex; align-items:center; gap:22px; width:min(1180px,calc(100vw - 80px)); margin:32px auto 0; padding:16px 22px; border:1px solid var(--line); border-radius:12px; background:var(--surface); box-shadow:0 8px 40px #34212a17; }
 .selectionIntro { display:flex; flex-direction:column; gap:4px; flex-shrink:0; }
 .selectionIntro strong { font-size:13px; font-weight:500; }
 .selectionIntro strong span { color:var(--accent); margin-left:8px; font-size:12px; }

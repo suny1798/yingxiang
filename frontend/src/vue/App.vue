@@ -11,6 +11,7 @@ import PreferenceControls from './PreferenceControls.vue';
 import SiteAnnouncement from './SiteAnnouncement.vue';
 import HeaderAccount from './HeaderAccount.vue';
 import AccountDialog from './AccountDialog.vue';
+import BackToTop from './BackToTop.vue';
 import { useAccountView } from './use-account';
 import { accountCoordinator,sessionScope } from './runtime';
 const {snapshot}=useAccountView(true);
@@ -46,6 +47,7 @@ const active=(path:string)=>route.path===path||(path!=='/'&&route.path.startsWit
       <p :class="s.footerNote">{{t('实时换装 · 视频换装 · 实时编辑')}}<br/>{{t('不采集音频；生成内容自动保存，可随时下载。')}}</p>
     </footer>
     <NoticeCenter />
+    <BackToTop />
     <AccountDialog v-if="sessionScope.state.loginOpen" />
   </div>
 </template>
