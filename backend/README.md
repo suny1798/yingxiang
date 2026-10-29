@@ -314,3 +314,9 @@ Worker不提交生成、不读取正式库、不记录媒体或凭据；M18已�
 - `python -m scripts.java_cloud_preflight`：只读核查已配置PG版本、TLS、角色能力、Flyway版本及Redis TLS配置，不输出地址／账号／密钥／业务行，不进行DDL或数据迁移。
 
 本机最后核查：云PG180000连通，但连接未加密；Redis配置TLS关闭；当前账号不能创建角色，云schema仅V1，正式独立运行账号与备份恢复记录尚待提供。正式切流仍受G3资源条件限制，不能用隔离演练结果代替。
+
+## 衣装账号收藏（2026-10-29，V4）
+
+当前云PG已追加V4 garment_favorites，公开素材ID按本人收藏，读／写为/api/garments/favorites和/api/garments/{id}/favorite；细节见docs/07及FR51／T53。未新增模型调用或改变已有作品收藏。PG联合备份支持V3／V4，并包括收藏表；旧SQLite导入目标清单已同步到V4。
+
+API／Worker已同批更新并ready通过；当前Jar由backups/M22-current.json的jar字段定位，启动命令见根README。Jar放在私有批次下，源码构建产物继续在target/，避免Windows运行文件锁与构建互相覆盖。71项JUnit、隔离云schema24项合同、实际浏览器19项和47项原衣装回归通过；实际证据见docs/05与本轮报告。隔离接口复核：先构建Jar，再运行.venv/Scripts/python.exe -m scripts.garment_favorites_contracts；只用临时受标记schema和合成会话，退出清理，不调用模型。浏览器合成账号脚本会临时写入并自动清理正式库测试账号，只在明确验收时使用。

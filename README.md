@@ -71,7 +71,7 @@ prototypes/ui-v1/  静态视觉设计参考
 | --- | --- |
 | / | 三场景介绍、原创概念插画轮播与创作入口（实时编辑为受控测试入口） |
 | /pricing | 15/30/60秒 × 1/5/10次拟定价格；正式购买关闭 |
-| /wardrobe | 966套衣装素材、多标签筛选、四行初始／两行滚动追加、随机四行及最多6套带入创作 |
+| /wardrobe | 966套衣装素材、进入自动随机、多标签筛选、四行／两行滚动、账号收藏及最多6套带入创作 |
 | /studio | 本机相机预览、多图衣橱、实时换装、全屏及当前帧截图 |
 | /studio/video | 本地视频预览、本人任务与后台自动保存、全屏及当前帧截图；本机按获批预算开放 |
 | /works | 本人生成视频及多张服装参考图，支持搜索、排序、收藏、分类、回放、下载、重命名与删除 |
@@ -98,7 +98,7 @@ npm run check
 npm run smoke:entry
 ```
 
-`npm run check` 包含生成类型漂移检查、Vue类型检查、208项浏览器媒体/界面逻辑测试及Vite生产构建（含7页预渲染）。`npm run smoke:entry` 对正在运行的8787做168项只读HTTP合同，不登录、不写库、不调用模型或支付。`npm run smoke` 检查本地 `dist` 静态预览，需要先构建。后端测试使用临时SQLite合成源、临时PG/Docker及替身；不能等同真实模型效果/费用验收。
+`npm run check` 包含生成类型漂移检查、Vue类型检查、214项浏览器媒体/界面逻辑测试及Vite生产构建（含7页预渲染）。`npm run smoke:entry` 对正在运行的8787做168项只读HTTP合同，不登录、不写库、不调用模型或支付。`npm run smoke` 检查本地 `dist` 静态预览，需要先构建。后端测试使用临时SQLite合成源、临时PG/Docker及替身；不能等同真实模型效果/费用验收。
 
 当前Java入口保留旧 `/api/v1/config`、`health` 与受控503语义，但readiness以 `src/` 的真实PG／Flyway／私有卷检查为准；旧SQLite PRAGMA检查已退役。后端断开返回受控503，不回退旧JSON写入。
 
@@ -153,10 +153,11 @@ npm run smoke:entry
 ```powershell
 cd backend
 $live = Get-Content backups/M22-current.json -Raw | ConvertFrom-Json
+$jar = if ($live.jar) { $live.jar } else { 'target/yingxiang-backend-0.1.0.jar' }
 # 终端一
-java -jar target/yingxiang-backend-0.1.0.jar "--spring.config.additional-location=file:$($live.runtime)"
+java -jar $jar "--spring.config.additional-location=file:$($live.runtime)"
 # 终端二（同样先读取$live）
-java -jar target/yingxiang-backend-0.1.0.jar "--spring.config.additional-location=file:$($live.worker)"
+java -jar $jar "--spring.config.additional-location=file:$($live.worker)"
 ```
 
 私有运行配置保存在当前迁移批次的backups目录，指针为backend/backups/M22-current.json；不要粘贴或提交这些文件。原config/application-local.yml仍保存现有云连接及维护默认值，直接用它启动不会自动开放业务。前端更新在frontend执行npm run build后按部署手册重载Nginx；当前开发用npm run dev仍默认隔离后端，不应误当正式8787入口。PG已有新写入，不能直接切回旧SQLite。
