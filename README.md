@@ -2,9 +2,9 @@
 
 **让想象，在眼前发生。**
 
-**当前运行（2026-10-29）**：已完成真实数据迁移，当前为 **Vue 3/Vite＋Nginx → Java/Spring Boot API＋独立Worker → 云PostgreSQL18／Redis**。访问 http://127.0.0.1:8787/ 。旧FastAPI已停止，SQLite与原作品目录只读保留；新增业务以PG和新私有卷为准。实际数据核对、CRUD与运行方式见[M22切流报告](docs/reports/2026-10-29-M22-真实云库迁移与Java接管.md)。下方早期Next／FastAPI资料为历史对照，不作为当前启动入口。
+**当前运行（2026-10-29）**：已完成真实数据迁移与旧实现退役，当前为 **Vue 3/Vite＋Nginx → Java/Spring Boot API＋独立Worker → 云PostgreSQL18／Redis**。访问 http://127.0.0.1:8787/ 。旧FastAPI、Alembic与Next前端已从工作区移除，完整历史保留在Git标签 `archive/pre-m25`（1436e7c）；SQLite与原作品目录只读保留，恢复工具见[后端说明](backend/README.md)。新增业务以PG和新私有卷为准。实际数据核对、CRUD与运行方式见[M22切流报告](docs/reports/2026-10-29-M22-真实云库迁移与Java接管.md)，退役清单见[M25报告](docs/reports/2026-10-29-M25-旧实现退役.md)。
 
-**当前前端运行说明（2026-10-29已归并主目录）**：本分支在 `frontend/` 增量接入Vue3／Vite，默认 `npm run dev` 为127.0.0.1:8791隔离预览，目前已迁 `/`、`/terms`、`/privacy`、`/help`、`/help/feedback`、`/pricing` 与公共导航／公告／偏好／404，已完成实际Nginx隔离入口HTTP及桌面验证；已接全站登录注册／退出与账号协调、个人中心三页及管理员无权门禁；/studio已接选图、本机相机预览、实时换装与分片保存，/studio/video已接视频提交与结果，/studio/edit已接提示词组合实时编辑，作品页已接列表与详情，订单与沙盒购买、管理控制台与公告已接；六个公开页在构建期预渲染并输出服务端title／description／分享标签，私有页保持SPA与noindex。**本机正式入口已于2026-10-28从Next切换为Vue静态构建**：8787由隔离Nginx提供静态文件并把 `/api` 转发8788 FastAPI，原Next源码、依赖锁与构建产物保留作回退（`legacy:dev`／`legacy:build`／`legacy:typecheck`／`legacy:smoke`）。切换证据与回退步骤见[M09-d报告](docs/reports/2026-10-28-M09-d-前端入口切换.md)，功能进度见[M09-c报告](docs/reports/2026-10-28-M09-c-公开页预渲染与服务端meta.md)，下方原运行资料继续保留作对照。
+**当前前端运行说明（2026-10-29）**：正式前端工程只在 `frontend/`，使用Vue3／Vite，默认 `npm run dev` 为127.0.0.1:8791隔离预览。已迁 `/`、`/terms`、`/privacy`、`/help`、`/help/feedback`、`/pricing`、全部账号页、三个创作页、作品页、订单与沙盒购买、管理控制台与公告；六个公开页在构建期预渲染并输出服务端title／description／分享标签，私有页保持SPA与noindex。8787由Nginx提供 `frontend/dist` 静态文件并把 `/api` 转发8792 Java；Next源码、React依赖与 `legacy:*` 脚本已在M25移除。入口证据见[M09-d报告](docs/reports/2026-10-28-M09-d-前端入口切换.md)，功能进度见[M09-c报告](docs/reports/2026-10-28-M09-c-公开页预渲染与服务端meta.md)。
 
 映想提供实时换装、视频换装和提示词实时编辑，三种创作的生成视频默认保存到“我的作品”。三个创作画面及作品详情另提供桌面全屏与当前帧 PNG 截图；截图仅本机主动导出，不上传、不自动入作品。我的作品支持标题搜索、最新/最早/名称排序及账号级收藏筛选。实时编辑已接入云端生成，支持在同一连接内添加、移除并同步完整提示词组合；用户于2026-10-26确认功能已实现，产品文案不再标为“仅交互预览”或“待接入”。当前仅测试账号suny开放视频与实时编辑，视频按原US$5/20次累计上限控制；suny的实时编辑按用户明确要求取消次数、累计预算及申请冷却限制。此状态不扩大其他账号权限，也不把首页概念图当作真实生成结果。视频换装此前的单次真实生成记录见[报告](docs/reports/2026-10-24-视频换装单次真实测试.md)。
 
@@ -12,7 +12,7 @@
 
 当前实际架构为 **Vue 3/Vite静态前端＋Nginx同源入口＋Java API／Worker＋云PG／Redis**。浏览器仍访问同源 `/api/*`；Nginx转发8792 Java，账号、订单、权益、预算和长期密钥统一由后端管理。迁移与实际验证见 [迁移验收报告](docs/reports/2026-10-24-FastAPI与SQLite架构迁移.md)。
 
-**后续重构方向（2026-10-27）**：用户已确认前端采用 **Vue 3＋Vite＋TypeScript**，正式工程继续维护在 `frontend/`；后端采用 Java／Spring Boot 模块化单体与独立 Java Worker，优先核查已有云 PostgreSQL 作为单一主库，并接入已有 Redis。选型背景见[业务扩展与工程架构选型](docs/15-业务扩展与工程架构选型.md)，后续迁移统一按[前后端技术与架构迁移执行方案](docs/16-前后端技术与架构迁移执行方案.md)推进，实际工作包状态见[开发任务与验收](docs/05-开发任务与验收.md)。这是后续目标与执行方案，当前入口为Vue／Nginx，业务服务与主库仍是FastAPI／SQLite；尚未切换云库或新增业务。PostgreSQL实例不满足条件时先记录选型变更，再调整方言与测试，不同时使用两套业务主库。
+**当前架构（2026-10-27确认，M22／M25落地）**：前端采用 **Vue 3＋Vite＋TypeScript**，正式工程只在 `frontend/`；后端采用 Java／Spring Boot 模块化单体与独立 Java Worker，云 PostgreSQL 为单一主库，Redis承载限流。选型背景见[业务扩展与工程架构选型](docs/15-业务扩展与工程架构选型.md)，迁移按[前后端技术与架构迁移执行方案](docs/16-前后端技术与架构迁移执行方案.md)推进，实际工作包状态见[开发任务与验收](docs/05-开发任务与验收.md)。M22已完成切流，M25已移除旧Next／FastAPI运行时；PostgreSQL实例条件变化时先记录选型变更，再调整方言与测试，不同时使用两套业务主库。
 
 已新增 [Java离线启动底座M10-a](docs/reports/2026-10-27-M10-a-Java启动底座.md)：工程位于原 `backend/`，Spring Boot4.1.2／JDK21／Maven Wrapper3.9.11，单独使用回环8792。它仅验证启动与HTTP边界，业务接口保持关闭，未切换当前应用；运行方式见[后端说明](backend/README.md)。Java已按picture现成工程接入JDBC／Redis Starter，默认local，接口统一 `/api`；PG（数据库名／用户名yingxiang）登录与只读查询、Redis认证／PING均通过；迁移schema已由Flyway V1创建，Java本人读取已通过合成PG对照，见[M10-b报告](docs/reports/2026-10-27-M10-b-Flyway与本人读取.md)及[配置修正记录](docs/reports/2026-10-27-M10-c-参考现成Java配置修正.md)。
 
@@ -20,7 +20,7 @@ Java账号写入已完成[M11合成验证](docs/reports/2026-10-27-M11-Java登�
 
 已完成[M12-a权益内部记账验证](docs/reports/2026-10-27-M12-a-权益原子预留与确认.md)及[M12-b Java替身签发／观测验证](docs/reports/2026-10-27-M12-b3-替身签发与观测闭环.md)：最后一次权益的跨JVM竞争、unknown保留、令牌严格校验与确认前崩溃安全。替身仅显式开关＋随机受标记临时schema可用，默认关闭；未开放真实供应商或切换前端入口。
 
-迁移方案现为 **2.0六阶段执行版**：按Brainstorm／Design／Plan／Execute／Verify／Ship组织每次迭代，以M00—M25行为切片推进；原22个技术工作包仅作覆盖映射。正式项目保留当前位置和同一Git仓库，运行隔离需要时使用临时worktree。2026-10-27已完成[M00基线核查](docs/reports/2026-10-27-M00-迁移基线核查.md)，在原目录建立 `codex/architecture-migration` 分支；源码／旧构建已归档，前端119项及构建通过。[M01](docs/reports/2026-10-27-M01-当前HTTP合同冻结.md)已冻结70个代表HTTP交互，[M02](docs/reports/2026-10-27-M02-联合恢复与环境准备.md)本地联合恢复／配置准备通过，最终后端完整130项通过。Java连接参数现维护在 `backend/config/application-local.yml`，M03本地前端条件就绪。尚未切换应用入口；已按功能分批创建本地提交，后续完成验证即提交，状态以05为准。
+迁移方案现为 **2.0六阶段执行版**：按Brainstorm／Design／Plan／Execute／Verify／Ship组织每次迭代，以M00—M25行为切片推进；原22个技术工作包仅作覆盖映射。正式项目保留当前位置和同一Git仓库，运行隔离需要时使用临时worktree。2026-10-27已完成[M00基线核查](docs/reports/2026-10-27-M00-迁移基线核查.md)，在原目录建立 `codex/architecture-migration` 分支；源码／旧构建已归档，前端119项及构建通过。[M01](docs/reports/2026-10-27-M01-当前HTTP合同冻结.md)已冻结70个代表HTTP交互，[M02](docs/reports/2026-10-27-M02-联合恢复与环境准备.md)本地联合恢复／配置准备通过。Java连接参数维护在 `backend/config/application-local.yml`；应用入口已于M22切换到Vue／Java，M25已退役旧实现。已按功能分批创建本地提交，状态以05为准。
 
 实时编辑新版组合界面已接入既有Lucy2.5会话：相机本地预览、提示词增删/分页、明确云端确认后主动开始、生成流显示及同连接完整组合更新。删除全部提示词会结束生成并显示相机原画。生成画面实际播放后开始最多15秒倒计时（连接等待另设30秒超时），仍仅suny测试账号；该账号可手动不限次测试，无累计预算或申请冷却拦截；替身验证不代表真实出画或增删效果已通过，详见FR31/T32及[组合接入报告](docs/reports/2026-10-25-实时编辑组合接入.md)。
 
@@ -28,47 +28,41 @@ Java账号写入已完成[M11合成验证](docs/reports/2026-10-27-M11-Java登�
 
 最新真实测试：2026-10-24执行获批的一次15秒连接，用户随后另手动开始一次；两次均未确认远端首帧，账单待核对。用户随后要求重启，**当前实时换装云端签发已恢复就绪**，历史/权益未重置；见[本轮测试报告](docs/reports/2026-10-24-迁移后15秒真实换装测试.md)。
 
-## 原FastAPI启动资料（历史回退对照，当前不运行）
+## 旧运行时退役（M25，2026-10-29）
 
-本机已安装隔离的 Python 3.13.17，SQLite 3.50.4；采用 DELETE/FULL，外键开启。前端仍使用 Node.js 22+。详细安装、备份与恢复命令见 [后端运行手册](backend/README.md)。
+Next.js/React前端与FastAPI/Alembic后端已从工作区移除；Git标签 `archive/pre-m25`（1436e7c）保留完整源码、依赖锁与构建配置。当前不再提供 `npx next start`、`npm run legacy:*`、`uvicorn app.main:create_app`、`python -m alembic` 或 `scripts.ops`。旧SQLite（`backend/data/yingxiang.sqlite3`）与媒体只读封存；联合恢复用 `scripts.joint_snapshot`，PG／媒体恢复用 `ops.pg_backup`，详见[后端说明](backend/README.md)。
 
-终端一：
-
-```powershell
-cd backend
-.venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8788 --workers 1 --no-access-log --no-proxy-headers --log-level warning
-```
-
-终端二（Vue静态入口，2026-10-28起）：
+前端当前构建与入口：
 
 ```powershell
 cd frontend
 npm ci
 npm run build            # Vite构建＋6页预渲染，产物在 dist/
-# 用隔离模板生成8787入口配置后启动Nginx（命令与路径见 frontend/deploy/README.md）
-# 模板：frontend/deploy/nginx.local.conf.template，端口8787，/api 转发127.0.0.1:8788
+# 8787 Nginx配置与启动见 frontend/deploy/README.md；/api 转发127.0.0.1:8792
 ```
 
 访问 [映想首页](http://127.0.0.1:8787/)。本机服务若已运行，不要再启动第二份。Python 命令在 backend/，npm 命令在 frontend/ 执行；根目录不使用 npm workspace。后端仅监听回环，不公开发布。
 
-需要回到Next入口时（回退，不改数据库）：停8787 Nginx后，在主工作区 `frontend/` 执行 `npx next start -p 8787`；开发对照为 `npm run legacy:dev`，重新构建为 `npm run legacy:build`。切换与回退细节见[M09-d报告](docs/reports/2026-10-28-M09-d-前端入口切换.md)。
-
-全新环境先按后端手册创建 venv、按哈希锁文件安装依赖、复制无密钥配置并显式执行 Alembic 初始化。**已有 data/ 数据库不要重复初始化、删库或重新发放额度。** 默认维护模式会拒绝业务写入；数据库不存在或版本不符不会静默创建空库。
+保留的Python环境只用于迁移与恢复工具：按 `requirements.lock.txt` 安装，旧库不要重复初始化、删库或重新发放额度。
 
 ## 目录与配置
 
 ```text
-frontend/          页面、浏览器媒体/SDK、同源转发、npm锁文件、前端测试
-backend/           FastAPI业务API、SQLite仓储、Alembic、依赖哈希锁及运维脚本
-backend/data/      私有数据库与迁移快照（忽略，不提交）
-docs/api/          导出的OpenAPI合同
+frontend/          Vue页面、浏览器媒体/SDK、Vite配置、Nginx模板、npm锁文件、前端测试
+backend/src/       Java/Spring Boot API与Worker
+backend/ops/       PG导入、核对、seal、PG/媒体联合备份
+backend/scripts/   Java合同、迁移演练、旧SQLite联合快照与恢复
+backend/data/      旧SQLite与媒体（只读封存，忽略，不提交）
+backend/backups/   私有运行配置、批次与备份（忽略，不提交）
+docs/api/          冻结的旧OpenAPI合同
+docs/migration/    迁移任务卡与检查表
 prototypes/ui-v1/  静态视觉设计参考
 ```
 
-- `frontend/.env.local` 仅保留页面/Node配置与 `YINGXIANG_API_ORIGIN=http://127.0.0.1:8788`。
-- `backend/.env` 保存模型/Stripe密钥、场景开关、预算、来源白名单、维护及数据路径。长期密钥不得放入 `NEXT_PUBLIC_*`。
-- 当前数据库为 `backend/data/yingxiang.sqlite3`，账号含加盐 scrypt 摘要及会话摘要，不保存明文密码/会话Cookie。Cookie 名称、7天有效期、旧密码与有效会话语义保留。
-- 原 `frontend/.cache` 已封存为历史，不再参与业务读写。停止通过修改其中 quotas/durationQuotas 维护权益；管理员可通过 `/admin` 调整实时换装可用次数，由短事务更新 grant 与唯一流水，并记录原因和审计。
+- `frontend/.env.example` 只说明隔离预览的 `MIGRATION_BACKEND_URL`；Vite设置 `envDir=false`，不读取业务dotenv，也不向浏览器注入服务端配置。
+- `backend/config/application-local.yml` 保存本机云连接；正式运行覆盖配置在 `backend/backups/M22-current.json` 指向的私有批次目录。长期密钥只在后端，不进入前端、日志或Git。
+- 当前业务主库为云PostgreSQL（`yingxiang_migration`），Redis承载限流；旧SQLite仅作历史恢复，不再接受写入。
+- 旧 `frontend/.cache` 含历史账号／创作JSON，已归档保留，不再参与业务读写。权益通过Java `/admin` 调整，不修改旧缓存或单独改计数。
 - 数据库和备份未做静态加密，应按敏感资料保护。备份为显式运维命令，尚无自动备份调度及已验证的生产容量/RPO/RTO。
 
 ## 页面与实际行为
@@ -95,26 +89,25 @@ Stripe 仅保留原沙盒门禁，正式购买恒关闭。沙盒订单与权益�
 ## 验证
 
 ```powershell
-# backend/
+# backend/；仅迁移/恢复工具测试（36项），不启动旧FastAPI
 .venv/Scripts/python.exe -m pytest
-.venv/Scripts/python.exe -m scripts.ops check
-.venv/Scripts/python.exe -m scripts.ops openapi
 # frontend/
 npm run api:types
 npm run check
-npm run smoke
+npm run smoke:entry
 ```
 
-`npm run check` 包含生成类型漂移检查、类型检查、浏览器媒体逻辑测试及生产构建。smoke 需要两个服务已启动。后端测试使用临时库、合成数据及供应商替身；不能等同真实模型效果/费用验收。
+`npm run check` 包含生成类型漂移检查、Vue类型检查、203项浏览器媒体/界面逻辑测试及Vite生产构建（含6页预渲染）。`npm run smoke:entry` 对正在运行的8787做155项只读HTTP合同，不登录、不写库、不调用模型或支付。`npm run smoke` 检查本地 `dist` 静态预览，需要先构建。后端测试使用临时SQLite合成源、临时PG/Docker及替身；不能等同真实模型效果/费用验收。
 
-`GET /api/v1/config` 与 `health` 保持旧合同；health 的 storageReady=false 是兼容字段，不是 SQLite readiness。后端直连 `/internal/ready` 才检查实际库/revision/PRAGMA。旧 `/api/v1` 会话、令牌和邀请码写接口继续503 SERVICE_DISABLED。后端断开返回受控503，不回退旧JSON写入。
+当前Java入口保留旧 `/api/v1/config`、`health` 与受控503语义，但readiness以 `src/` 的真实PG／Flyway／私有卷检查为准；旧SQLite PRAGMA检查已退役。后端断开返回受控503，不回退旧JSON写入。
 
 ## 项目资料
 
 - [项目开发流程](docs/00-项目开发流程.md)、[需求与页面基线](docs/02-需求基线与UI原型.md)、[开发任务与验收](docs/05-开发任务与验收.md)
 - [项目设计主文档](实时虚拟试衣网页项目设计文档.md)、[接口与实现](docs/07-接口契约与工程实现.md)、[UI视觉方案](docs/06-UI视觉设计方案.md)
-- [后续前后端迁移执行方案](docs/16-前后端技术与架构迁移执行方案.md)、[选型与业务扩展](docs/15-业务扩展与工程架构选型.md)
-- [原FastAPI／SQLite迁移计划（历史）](docs/13-FastAPI后端与SQLite完整迁移计划.md)、[当前后端运行及恢复](backend/README.md)、[原迁移验收](docs/reports/2026-10-24-FastAPI与SQLite架构迁移.md)
+- [前后端迁移执行方案](docs/16-前后端技术与架构迁移执行方案.md)、[选型与业务扩展](docs/15-业务扩展与工程架构选型.md)
+- [M22真实云库迁移与Java接管](docs/reports/2026-10-29-M22-真实云库迁移与Java接管.md)、[M25旧实现退役](docs/reports/2026-10-29-M25-旧实现退役.md)、[当前后端运行及恢复](backend/README.md)
+- [原FastAPI／SQLite迁移计划（历史）](docs/13-FastAPI后端与SQLite完整迁移计划.md)、[原迁移验收](docs/reports/2026-10-24-FastAPI与SQLite架构迁移.md)
 - [首次真实模型记录](docs/reports/2026-10-23-真实模型接入验证.md)、[视频接入](docs/reports/2026-10-23-视频换装接入.md)、[提示词接入](docs/reports/2026-10-23-提示词实时编辑接入.md)、[Stripe沙盒记录](docs/reports/2026-10-23-Stripe沙盒支付接入.md)
 
 本次只做架构迁移与无费用模型替身验证；首次真实出画、提示词连接失败及支付历史仍以原报告为准。后续继续真实效果集、设备、性能和费用核验，再准备受控内测。

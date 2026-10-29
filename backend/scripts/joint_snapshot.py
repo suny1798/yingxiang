@@ -8,10 +8,9 @@ import shutil
 import sqlite3
 import sys
 
-from app.db import REVISION
-
-
 FORMAT = 'yingxiang-joint-snapshot-v1'
+# 旧SQLite已冻结在revision 0006；退役FastAPI后不再从运行代码导入该常量。
+REVISION = '0006'
 
 
 def safe_root(value):

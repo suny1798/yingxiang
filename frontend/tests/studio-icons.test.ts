@@ -3,19 +3,22 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { studioIconShapes } from '../src/lib/studio/icon-paths';
 
-// npm test 在 frontend/ 执行；直接读取旧React图标源做机械对照，不修改对照实现。
-const source = readFileSync('src/components/studio/icon.tsx', 'utf8');
+// 旧React实现已在M25退役；这里冻结图标名清单，防止静默增删，并核对Vue渲染入口仍读取共享几何。
+const expected = ['arrow', 'camera', 'check', 'close', 'download', 'fullscreen', 'fullscreenExit', 'hanger', 'history', 'info', 'lock', 'mirror', 'search', 'snapshot', 'sort', 'star', 'sun', 'switch', 'upload'];
+const component = readFileSync('src/vue/StudioIcon.vue', 'utf8');
 
-test('共享图标几何与旧React实现逐项一致，未新增或漏掉图标名', () => {
-  const declared = (source.match(/export type IconName = ([^;]+);/)?.[1].match(/'[^']+'/g) ?? []).map((name) => name.slice(1, -1)).sort();
-  assert.deepEqual(declared, Object.keys(studioIconShapes).sort());
+test('图标名清单冻结，未新增或漏掉图标', () => {
+  assert.deepEqual(Object.keys(studioIconShapes).sort(), expected);
+});
+
+test('共享图标几何完整且由Vue组件渲染', () => {
+  assert.match(component, /studioIconShapes\[name\]/);
   for (const [name, shapes] of Object.entries(studioIconShapes)) {
-    assert.ok(new RegExp(`${name}:`).test(source), name);
+    assert.ok(shapes.length > 0, name);
     for (const shape of shapes) {
-      const markup = shape.kind === 'path' ? `d="${shape.d}"`
-        : shape.kind === 'circle' ? `cx="${shape.cx}" cy="${shape.cy}" r="${shape.r}"`
-          : `x="${shape.x}" y="${shape.y}" width="${shape.width}" height="${shape.height}" rx="${shape.rx}"`;
-      assert.ok(source.includes(markup), `${name} ${markup}`);
+      if (shape.kind === 'path') assert.match(shape.d, /^[Mm]/, `${name} path`);
+      else if (shape.kind === 'circle') assert.ok(shape.r > 0, `${name} circle`);
+      else assert.ok(shape.width > 0 && shape.height > 0, `${name} rect`);
     }
   }
 });

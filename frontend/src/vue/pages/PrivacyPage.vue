@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { t } from '../preferences';
-import s from '../../app/privacy/privacy.module.css';
+import s from '../../components/site/privacy.module.css';
 </script>
 
 <template>

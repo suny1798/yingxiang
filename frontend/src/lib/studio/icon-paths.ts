@@ -1,4 +1,4 @@
-/** 旧图标几何；React／Vue共用，形状与比较点逐项一致，不新增图标。 */
+/** 共享图标几何；仅Vue使用，形状与旧React实现逐项一致，不新增图标。 */
 export type StudioIconName = 'download' | 'arrow' | 'upload' | 'camera' | 'lock' | 'hanger' | 'check' | 'close' | 'info' | 'sun' | 'switch' | 'mirror' | 'history' | 'fullscreen' | 'fullscreenExit' | 'snapshot' | 'search' | 'sort' | 'star';
 
 export type StudioIconShape =

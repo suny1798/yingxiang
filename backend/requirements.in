@@ -1,11 +1,4 @@
-fastapi==0.161.1
-uvicorn==0.54.0
-pydantic==2.14.1
-SQLAlchemy==2.1.6
-alembic==1.20.1
-httpx==0.28.1
-stripe==16.0.0
-python-multipart==0.0.32
-python-dotenv==1.2.2
+# M25 后仅保留迁移、导入核对与恢复工具所需依赖；FastAPI 运行时已退役。
 pytest==9.1.1
 psycopg[binary]==3.2.10
+python-dotenv==1.2.2

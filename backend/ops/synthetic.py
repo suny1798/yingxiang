@@ -38,13 +38,12 @@ def build(root: Path) -> Path:
     if root.exists():
         raise FileExistsError(root)
     root.mkdir(parents=True)
-    from app.core import Settings
-    from scripts.ops import initialize
-
-    initialize(Settings(data_dir=root))
+    schema = Path(__file__).with_name("schema_v0006.sql").read_text(encoding="utf-8")
     database = root / "yingxiang.sqlite3"
     with sqlite3.connect(database) as db:
         db.execute("PRAGMA foreign_keys=ON")
+        db.executescript(schema)
+        db.execute("INSERT INTO alembic_version (version_num) VALUES ('0006')")
         _users(db)
         _accounts(db)
         _orders(db)

@@ -2,11 +2,7 @@
 
 关联M01、T51-C01／C03／C04／C05／C07，源schema revision0006。`http-fixtures.json`冻结当前FastAPI实现的70个代表HTTP交互、100项方法／路径清单和OpenAPI语义摘要；样本全部合成，供应商均为替身。
 
-```powershell
-# 在backend/执行；常规命令只核对，不改fixture
-.venv/Scripts/python.exe -m scripts.migration_contracts
-.venv/Scripts/python.exe -m pytest tests/test_migration_contract_v2.py
-```
+> M25后FastAPI运行时与捕获器 `scripts.migration_contracts`／`tests/test_migration_contract_v2.py` 已退役，本目录只读保留。需要复现历史捕获时从Git标签 `archive/pre-m25` 检出，不得用新实现失败后重新录制“通过”。
 
 捕获器只使用新临时库和用户目录，拦截Settings.load及HTTPX真实网络传输。Windows asyncio所需的回环IPC允许，外部socket连接拒绝。模型调用为一次进程内超时替身，Stripe为一次本地创建替身；两者均为合成计数，不代表真实调用／付款。
 

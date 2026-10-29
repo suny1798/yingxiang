@@ -17,7 +17,7 @@ import PromptStudioPage from './pages/PromptStudioPage.vue';
 import WorksPage from './pages/WorksPage.vue';
 import NotFound from './pages/NotFound.vue';
 import { NOT_FOUND_META, PRIVATE_PAGES, PUBLIC_PAGES } from './route-data';
-import '../app/globals.css';
+import './globals.css';
 
 const router = createRouter({
   history: createWebHistory(),

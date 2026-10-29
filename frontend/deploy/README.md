@@ -34,7 +34,7 @@ HTML不缓存；带构建哈希的JS／CSS／WASM一年immutable，其他assets�
 $dir='C:/Users/sun/AppData/Local/yingxiang-entry-8787'
 New-Item -ItemType Directory -Force -Path $dir,"$dir/logs","$dir/body","$dir/proxy","$dir/temp" | Out-Null
 $tpl=[IO.File]::ReadAllText('deploy/nginx.local.conf.template')
-$conf=$tpl.Replace('@RUNTIME@',$dir).Replace('@DIST@','<frontend/dist 绝对路径>').Replace('@PORT@','8787').Replace('@UPSTREAM@','8788')
+$conf=$tpl.Replace('@RUNTIME@',$dir).Replace('@DIST@','<frontend/dist 绝对路径>').Replace('@PORT@','8787').Replace('@UPSTREAM@','8792')
 # 实际8787入口使用master模式，支持后续reload/quit；隔离测试模板仍为单进程。
 $conf=$conf.Replace('master_process off;','master_process on;')
 # 必须写无BOM UTF-8，否则Nginx报unknown directive
@@ -45,12 +45,12 @@ Start-Process 'D:/Code/Tools/nginx-1.28.3/nginx.exe' -ArgumentList '-p',"$dir/",
 D:/Code/Tools/nginx-1.28.3/nginx.exe -p "$dir/" -c nginx.conf -s quit
 ```
 
-入口只接受 `127.0.0.1:8787`／`localhost:8787`，`/api` 转发8788。真实入口的只读HTTP合同：`npm run smoke:entry`（155项，不登录、不写库）；桌面走查用 `scripts/browser/entry-8787-check.js`（1440×1000，含无JavaScript六页）。回退到Next入口见[根README](../../README.md#本机启动)与[M09-d报告](../../docs/reports/2026-10-28-M09-d-前端入口切换.md)。
+入口只接受 `127.0.0.1:8787`／`localhost:8787`，`/api` 转发127.0.0.1:8792 Java。真实入口的只读HTTP合同：`npm run smoke:entry`（155项，不登录、不写库）；桌面走查用 `scripts/browser/entry-8787-check.js`（1440×1000，含无JavaScript六页）。旧Next入口已随M25退役，历史回退步骤只保留在[M09-d报告](../../docs/reports/2026-10-28-M09-d-前端入口切换.md)与Git标签 `archive/pre-m25`。
 
 官方依据：[Windows注意事项](https://nginx.org/en/docs/windows.html)、[请求转发](https://nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_set_header)、[try_files](https://nginx.org/en/docs/http/ngx_http_core_module.html#try_files)。本机实测版本为1.28.3，没有升级现有安装。
 
 
-2026-10-29归并后，正式8787的静态root已改为`C:/Users/sun/Desktop/anyware/frontend/dist`，`/api`仍转8788 FastAPI；主进程模式已启用，155项只读入口合同通过。此前单进程配置的reload/quit未实际生效，本次先核对专属PID和完整可执行路径后仅重启该入口；旧配置备份留在同一私有prefix。没有使用全局kill／stop或修改其他Nginx服务。
+2026-10-29归并后，正式8787的静态root已改为`C:/Users/sun/Desktop/anyware/frontend/dist`，`/api`当时仍转8788 FastAPI（M22已改为8792）；主进程模式已启用，155项只读入口合同通过。此前单进程配置的reload/quit未实际生效，本次先核对专属PID和完整可执行路径后仅重启该入口；旧配置备份留在同一私有prefix。没有使用全局kill／stop或修改其他Nginx服务。
 
 
 2026-10-29 M22后：8787的静态root仍为主目录frontend/dist，`/api` upstream已由8788切到127.0.0.1:8792 Java，master模式reload生效；155项入口合同通过。以后生成本机配置应将`@UPSTREAM@`替换为8792，不再指向停止的FastAPI。旧模板的8788说明仅作历史对照。

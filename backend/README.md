@@ -1,6 +1,16 @@
 # 映想后端
 
-> 当前已完成真实PG导入和Java接管（2026-10-29）：API8792、独立Worker、云PG18／Redis运行，旧FastAPI8788已停止。私有配置与进程状态通过backups/M22-current.json定位，当前启动命令见[根README](../README.md#当前java与vue启动)。本手册早期隔离／FastAPI内容作为历史运维资料；不得同时启动旧SQLite写后端。
+> 当前已完成真实PG导入、Java接管与M25旧实现退役（2026-10-29）：API8792、独立Worker、云PG18／Redis运行，正式业务代码为 `src/`（Spring Boot）。FastAPI应用、Alembic迁移、旧HTTP合同捕获器和相关测试已从工作区移除；完整历史保留在Git标签 `archive/pre-m25`（提交1436e7c），需要查阅时用 `git show archive/pre-m25:backend/app/main.py` 等只读方式，不得据此重新启动旧写后端。私有配置与进程状态通过 `backups/M22-current.json` 定位，当前启动命令见[根README](../README.md#当前java与vue启动)。
+
+M25后保留的Python资料只服务于Java迁移、PG导入核对与历史恢复：
+
+- `ops/`：M21-a PG导入、核对、seal、PG／媒体联合备份；`ops/schema_v0006.sql` 是旧SQLite revision 0006 的冻结结构，仅用于合成源和工具测试。
+- `scripts/joint_snapshot.py`：旧SQLite＋私有媒体联合快照／校验／恢复（revision 0006 固定）。
+- `scripts/java_import_rehearsal.py`、`formal_pg18_rehearsal.py`、`runtime_closure_contracts.py`：隔离PG／媒体导入与正式模式演练。
+- `scripts/java_schema.py`、`java_connections.py`、`java_cloud_preflight.py`、`java_offline_smoke.py`、`java_full_entry.py`、`java_*_contracts.py`、`live_crud_check.py`、`migration_env.py`：Java侧连接、入口、合同与运行检查。
+- `.venv`、`.runtime`、`data`、`backups`、`config` 保留；旧SQLite和媒体只读封存，不再写。
+
+本手册中标注“历史”的FastAPI／Alembic／`scripts.ops`／`scripts.migration_contracts`／`java_account_contracts` 等命令已随M25退役，不能执行；对应实现和报告保存在Git标签与 `docs/reports/`。依赖已裁剪为 `requirements.in`／`requirements.lock.txt` 中的 pytest、psycopg 与 python-dotenv。
 
 ## Java项目配置与启动
 
@@ -42,9 +52,9 @@ Java连接以 `config/application-local.yml` 为准，旧dotenv只供历史Pytho
 .venv/Scripts/python.exe -m scripts.java_schema preflight
 .venv/Scripts/python.exe -m scripts.java_schema migrate
 .venv/Scripts/python.exe -m scripts.java_schema validate
-# 创建随机标记的临时schema，使用合成账号与旧FastAPI对照，最后清理自建schema
-.venv/Scripts/python.exe -m scripts.java_account_contracts
 ```
+
+旧FastAPI对照脚本 `scripts.java_account_contracts` 已随M25退役；当前以Java单测、真实PG检查与入口合同为准，历史结果见[M10-b报告](../docs/reports/2026-10-27-M10-b-Flyway与本人读取.md)。
 
 Flyway不会在API启动时自动执行，clean禁用，不会baseline未知非空目标。已应用的 `src/main/resources/db/migration/V1__current_schema.sql` 必须保持不变，后续追加V2。V1保留当前SQLite0006的19张表／字段／约束，无默认用户或自动赠送。
 
@@ -59,11 +69,11 @@ Flyway不会在API启动时自动执行，clean禁用，不会baseline未知非�
 默认 `migration.auth-enabled=false`、维护true、Hikari只读，目标库不会自动注册测试账号。测试与手动开启方式：
 
 ```powershell
-# backend/；53项合同与故障检查，自动使用随机临时schema，结束清理
-.venv/Scripts/python.exe -m scripts.java_auth_contracts
 # 显式开发开启：指向当前本机YAML的目标schema，会允许真实账号写入
 java -jar target/yingxiang-backend-0.1.0.jar --migration.auth-enabled=true --migration.maintenance=false --spring.datasource.hikari.read-only=false
 ```
+
+旧FastAPI对照脚本 `scripts.java_auth_contracts` 已随M25退役；账号合同由Java单测和实际入口回归覆盖。
 
 账号写入需要local、显式auth开关、关闭维护与可写数据源；维护开启时仍返回503 MAINTENANCE，其他业务写接口继续关闭。仅三条账号POST沿用严格Host／Origin／跨站检查，无须新增CSRF token；其余Spring Security保护保留。
 
@@ -73,12 +83,7 @@ java -jar target/yingxiang-backend-0.1.0.jar --migration.auth-enabled=true --mig
 
 新增EntitlementReservationService：本人real_usage额度原子预留、unknown占用与幂等签发确认。没有浏览器调用确认的入口，没有上游模型调用；供应商接口仍关闭。只有将来可信签发适配器验证成功后才调用confirmIssued，不能由客户端直接“确认”。
 
-```powershell
-# backend/；随机临时schema与原SQLite状态对照，两个独立JVM做竞争，结束清理
-.venv/Scripts/python.exe -m scripts.java_quota_contracts
-```
-
-31项真实PG领域检查通过，覆盖最后一次竞争、沙盒／归属、unknown持久性、重复确认和异常回滚。M12完整签发／令牌校验与浏览器闭环未实现，详见[M12-a报告](../docs/reports/2026-10-27-M12-a-权益原子预留与确认.md)。
+旧FastAPI对照脚本 `scripts.java_quota_contracts`／`scripts.java_studio_contracts` 已随M25退役；31项真实PG领域检查与28项JUnit历史结果分别见[M12-a报告](../docs/reports/2026-10-27-M12-a-权益原子预留与确认.md)与[M12-b3报告](../docs/reports/2026-10-27-M12-b3-替身签发与观测闭环.md)。
 
 ## 迁移环境配置（M02）
 
@@ -93,12 +98,7 @@ java -jar target/yingxiang-backend-0.1.0.jar --migration.auth-enabled=true --mig
 
 ## 当前合同对照（M01）
 
-```powershell
-# backend/；临时合成库、供应商替身，常规检查不改fixture
-.venv/Scripts/python.exe -m scripts.migration_contracts
-```
-
-当前冻结合同见 [contracts/migration-v2](contracts/migration-v2/README.md)；覆盖70个代表交互及100项方法／路径，原29条Node合同继续保留。没有触发真实模型或支付。
+当前冻结合同见 [contracts/migration-v2](contracts/migration-v2/README.md)；覆盖70个代表交互及100项方法／路径，原29条Node合同继续保留。捕获器 `scripts.migration_contracts` 与 `tests/test_migration_contract_v2.py` 已随M25退役，样本只读保留，不得用新实现失败后重新录制“通过”。没有触发真实模型或支付。
 
 ## 数据库与私有文件联合快照（M02）
 
@@ -119,67 +119,42 @@ java -jar target/yingxiang-backend-0.1.0.jar --migration.auth-enabled=true --mig
 
 `/admin`复用普通账号会话，以数据库role区分user/admin；管理员导航不是鉴权边界。新建账号默认user，用户名suny本身不会自动获得权限。管理修改记录审计，不提供任意SQL/密钥编辑、媒体读取、订单改价或风险账本删除。
 
-既有数据库升级前停止后端写入，显式备份，再运行迁移与完整性检查：
+既有旧SQLite数据库的升级／授权命令（`scripts.ops`、Alembic）已随M25退役；旧库只读封存，不再执行 init／upgrade／grant-admin。当前管理员变更通过Java `/admin` 受保护接口完成，并继续记录审计；不要通过编辑角色、删除审计或清空预留来规避限制。历史升级与授权证据见Git标签 `archive/pre-m25` 和对应报告。
 
-```powershell
-.venv/Scripts/python.exe -m scripts.ops backup --destination data/backups/pre-admin-0004.sqlite3
-.venv/Scripts/python.exe -m scripts.ops init
-.venv/Scripts/python.exe -m scripts.ops check
-# 仅用于明确授权的既有账号；不会创建新账号或改变其额度。
-.venv/Scripts/python.exe -m scripts.ops grant-admin --username suny
-```
+FastAPI/Pydantic、同步 SQLAlchemy/Alembic、SQLite 单机持久化曾是旧运行时，M25已移除；当前正式后端为Spring Boot／PG／Redis，前端为Vue／Nginx。所有Python命令仍在本目录执行，只用于迁移与恢复工具。
 
-备份目标不可覆盖，已有同名备份时选择新名称。授权命令幂等并留下`admin.bootstrap`审计，不按注册名自动提权；网页角色变更、账号暂停会撤销目标旧会话。服务暂停取消后仍受`.env`既有密钥、名单、预算和次数门禁限制。不要通过编辑角色、删除审计或清空预留来规避限制。其他管理员只能由受保护管理接口或显式本机授权配置。
-
-FastAPI/Pydantic、同步 SQLAlchemy/Alembic、SQLite 单机持久化。网页和浏览器媒体逻辑仍在 `frontend/`；Next.js 仅转发同源 `/api/*`。所有 Python 命令在本目录执行。
-
-## 安装与运行
+## 安装与运行（迁移／恢复工具）
 
 本轮固定 CPython **3.13.17**（python.org 官方 Windows x64 发行版，安装器签名有效）、SQLite **3.50.4**、Windows x64。本机隔离运行时位于 `.runtime/`，不是 Git 交付物。其他机器可自行安装 Python 3.13，不要求重装全局环境；实际 sqlite/scrypt 必须检查。
 
 ```powershell
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install --require-hashes -r requirements.lock.txt
-Copy-Item .env.example .env
-# 首次空环境才初始化；已有数据库直接 check，禁止删库或重新导入来重置额度。
-.venv/Scripts/python.exe -m scripts.ops init
-.venv/Scripts/python.exe -m scripts.ops check
-.venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8788 --workers 1 --no-access-log --no-proxy-headers --log-level warning
+.venv/Scripts/python.exe -m pytest
 ```
 
-示例默认 `MAINTENANCE=true`，准备完毕后改为 false 并重启，才能接受业务写入。不存在库/错误 revision 不会自动建库，readiness 和业务写入失败关闭。初始运行库为 `data/yingxiang.sqlite3`，与当前目录无关；显式 `DATA_DIR` 相对本目录。数据库、快照、日志和配置都不得放在 `frontend/public/`。
-
-另一个终端在 `frontend/` 执行 `npm run dev` 或构建后 `npm start`；对外入口仍为 127.0.0.1:8787。后端单 worker；不要启用 reload 处理真实业务，不配置公开监听。前端故障/后端断开不会回退旧 JSON 写入。`/api/internal/live` 与 `/api/internal/ready` 只在后端直连，前端只转发 `/api/`。
+旧SQLite已冻结在revision 0006，不再建库、升级或接受业务写入；`scripts.ops init/check/openapi` 与 `python -m alembic` 已退役。联合恢复使用 `scripts.joint_snapshot`，PG／媒体恢复使用 `ops.pg_backup`。当前Java／Vue启动、Worker与8787入口见[根README](../README.md#当前java与vue启动)。
 
 ## 数据与恢复
 
 当前采用 SQLite **DELETE/FULL**，外键开启、busy_timeout=1000ms，写事务 BEGIN IMMEDIATE。该选择遵从用户“SQL版本怎么方便怎么来”；现成 3.50.4 不支持启用 WAL，避免已知 WAL-reset 风险。未来升级到修复运行时并验证后才可显式配置 WAL，不静默替换系统 DLL。
 
-```powershell
-.venv/Scripts/python.exe -m scripts.ops backup --destination backups/指定新文件.sqlite3
-.venv/Scripts/python.exe -m scripts.ops restore --source backups/指定备份.sqlite3 --destination data/待核对恢复库.sqlite3
-.venv/Scripts/python.exe -m scripts.ops snapshot --source ../frontend/.cache --destination data/指定新快照目录
-.venv/Scripts/python.exe -m scripts.ops dry-run --source data/指定快照目录
-# 只有停写最终快照、空目标库及完整核对通过后才执行实际导入：
-.venv/Scripts/python.exe -m scripts.ops import --source data/指定快照目录
-```
+旧SQLite（DELETE/FULL、外键开启、busy_timeout=1000ms）已只读封存，不再运行写入。M25后不再提供 `scripts.ops backup/restore/snapshot/import`；需要恢复旧库与媒体时使用 `scripts.joint_snapshot`（见上一节），PG／媒体使用 `ops.pg_backup`。恢复目标必须为新路径，核对通过后在停写窗口人工切换；不得在PG已接受新写入后直接切回旧SQLite。数据库为明文，Windows目录／备份继承当前用户权限，分发或异机保存前需另外加密。
 
-备份用 SQLite backup API 并做 integrity/外键检查；拒绝覆盖文件。恢复演练只能写新路径，恢复验证通过后，在维护停写期间人工切 `DATA_DIR` 并重启。保留新库和备份，禁止在新库已接受写入后直接恢复旧 JSON；优先维护并向前修复。恢复后需要补查维护期间已知 Stripe 订单，保留模型未知占用，不自动重发生成。数据库为明文，Windows 目录/备份继承当前用户权限，分发或异机保存前需另外加密。
-
-`data/final-20261024/` 是本次停写快照，含旧配置私有备份；`backups/initial-20261024.sqlite3` 是初始导入备份。旧 `frontend/.cache` 仅作归档，不再运行写入。备份不是自动调度：目前需手工运行，不承诺 RPO/RTO 或生产容量。
+`data/final-20261024/` 是历史停写快照，含旧配置私有备份；`backups/initial-20261024.sqlite3` 是初始导入备份。旧 `frontend/.cache` 含历史账号／创作JSON，作为归档保留，不再参与业务读写。备份不是自动调度：目前需手工运行，不承诺 RPO/RTO 或生产容量。
 
 ## 验证与合同
 
 ```powershell
+# backend/；M25后仅保留迁移/恢复工具测试（36项）
 .venv/Scripts/python.exe -m pytest
 .venv/Scripts/python.exe -m pip check
-.venv/Scripts/python.exe -m scripts.ops openapi
 # 再在 frontend/ 执行 npm run api:types 和 npm run check
 ```
 
-完整依赖及哈希固定在 `requirements.lock.txt`。pytest 使用临时文件库、官方 Stripe 本地签名及 HTTPX 替身，不调用真实模型/支付。`contracts/http-fixtures.json` 的 29 个样本由迁移前 Git `d4e2328` 的实际 Next 路由在临时合成仓储中生成；动态 UUID/时间归一化，其余字段、状态、Cookie 和安全头逐项比对。合同样本不含用户数据或真实凭据。
+依赖与哈希固定在 `requirements.lock.txt`（pytest、psycopg、python-dotenv及其传递依赖），由原锁文件已核验条目裁剪，未联网重新解析。pytest 使用临时SQLite合成源、临时PG／Docker及替身，不调用真实模型/支付。`contracts/http-fixtures.json` 的29个样本由迁移前 Git `d4e2328` 的实际 Next 路由生成，`contracts/migration-v2/` 冻结FastAPI 70个交互；两者均为只读证据，捕获器已退役。合同样本不含用户数据或真实凭据。
 
-隔离集成：`python -m scripts.prepare_integration` 在 `data/integration-frontend` 创建页面副本（目标必须不存在），连接/安装前端依赖后构建，8789 启动页面；8790 用 `scripts.integration_server:create`。在原 `frontend/` 执行 `node scripts/migration-integration.mjs`。后者固定只访问 8789，所有供应商均为进程内替身；正式服务不加载该模块。重复演练应改用新隔离目录/明确归档上一批合成数据，不借删真实账本来测试。
+旧隔离集成（`scripts.prepare_integration`、`scripts.integration_server`、`frontend/scripts/migration-integration.mjs`）已随M25退役；需要全入口回归时使用 `scripts.java_full_entry` 与 `npm run smoke:entry`。
 
 真实效果、相机和新增费用不因架构迁移获得验证或测试授权。提示词和视频保持原独立门禁，长期密钥只在后端。正式 Stripe 支付恒关闭。
 
@@ -196,11 +171,11 @@ Copy-Item .env.example .env
 
 当前schema revision为0006。0002新增video_history只保存标题/归档，旧任务通过左连接直接出现在历史中，不回填或重置额度。历史GET/POST需登录和同源且校验所有者；归档不删除任务、不释放预算，活动/未知任务不可归档；作品媒体保存后来由0005增加。
 
-旧0001升级：先停后端写入，运行`python -m scripts.ops backup --destination backups/指定新备份.sqlite3`，再`python -m alembic upgrade head`和`python -m scripts.ops check`，成功后重启。不能改已部署0001或通过downgrade删除业务数据。本机本轮备份pre-video-history-20261024.sqlite3；13张原表行数和内容指纹均保持一致。
+旧0001升级（历史）：先停后端写入、备份，再执行Alembic upgrade与完整性检查，成功后重启。相关 `scripts.ops`／Alembic 命令已随M25退役；本机历史备份pre-video-history-20261024.sqlite3保留，13张原表行数和内容指纹一致。不能改已部署0001或通过downgrade删除业务数据。
 
 ## 长期有效积分包与0003升级
 
-0003增加独立sandbox_credit_packs及积分订单字段；升级在事务中保存/重建payment_events依赖并恢复全部事件，保留旧订单字段和请求快照。不更改0001/0002。先停写、备份，再upgrade head和ops check，成功后重启；本轮备份backups/pre-credit-packages-20261025.sqlite3，14张原业务表逐字段比对一致，完整性与外键检查通过。
+0003增加独立sandbox_credit_packs及积分订单字段；升级在事务中保存/重建payment_events依赖并恢复全部事件，保留旧订单字段和请求快照。不更改0001/0002。历史升级流程为先停写、备份、Alembic upgrade与完整性检查；本轮备份backups/pre-credit-packages-20261025.sqlite3，14张原业务表逐字段比对一致。
 
 credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和原子幂等积分发放。积分不设到期；测试包保存在独立表，真实模型额度不读它。Checkout链接超时仍保留。/api/payments/orders与reconcile新增sandboxPointBalance、sandboxCreditPacks；旧sandboxCredits仍表示旧次数包。客户端只提交SKU，不能自报价格。正式支付仍关闭。
 
@@ -228,7 +203,7 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 
 单worker生命周期内启动后台保存任务；只查询既有provider_id与GET结果，不新建模型任务。视频排队/保存状态在SQLite，重启继续；下载最多3次后failed，用户可主动重试保存。实时录制离开页面仍提交最后片段；断开超过120秒后合并已确认片段并提示中断，不保证未上传数据可恢复。参考图按实际使用顺序关联作品，保存失败明确提示，不伪造为已保存。原人物视频、相机原画和提示词不持久保存。
 
-维护时先停止后端写入，再备份SQLite与整个`data/users`目录，两者需同一静止时点；`scripts.ops backup`仍只备份数据库，不能当作媒体备份。恢复两者后运行完整性检查，并抽查ready作品及所有参考文件存在。本机升级前备份`data/backups/pre-works-0005-20261026.sqlite3`，17张旧业务表原字段逐行一致。删除作品清除其视频/参考文件，索引保留最少tombstone去重，避免后台重新创建；不删除模型任务/预算流水。
+维护时先停止后端写入，再对旧SQLite与整个`data/users`目录做同一静止时点快照；`scripts.joint_snapshot`会联合校验数据库与媒体，不能用只备份数据库的旧命令代替。恢复后运行完整性检查，并抽查ready作品及所有参考文件存在。本机历史备份`data/backups/pre-works-0005-20261026.sqlite3`保留，17张旧业务表原字段逐行一致。删除作品清除其视频/参考文件，索引保留最少tombstone去重，避免后台重新创建；不删除模型任务/预算流水。
 
 
 ## 作品收藏与检索（0006，2026-10-27）
@@ -296,7 +271,7 @@ Worker不提交生成、不读取正式库、不记录媒体或凭据；M18已�
 
 ## Java本机studio替身验收（M12-b）
 
-默认`migration.studio-fixture-enabled=false`，不开放生成。完整验收使用`.venv/Scripts/python.exe -m scripts.java_studio_contracts`：工具自建有所有权标记的随机临时PG schema、回环HTTP替身和实际Jar，结束清理；不读取旧业务.env，不访问真实模型／支付。正式yingxiang_migration不允许启用此替身。
+默认`migration.studio-fixture-enabled=false`，不开放生成。旧完整验收脚本`scripts.java_studio_contracts`已随M25退役；其自建随机临时PG schema、回环HTTP替身和实际Jar的历史结果见[M12-b3报告](../docs/reports/2026-10-27-M12-b3-替身签发与观测闭环.md)。正式yingxiang_migration不允许启用此替身；当前Java替身能力由`src/test`中的单测与显式配置覆盖。
 
 替身JVM明确传入`-Djdk.httpclient.disableRetryConnect=true -Djdk.httpclient.enableAllMethodRetry=false`，只接受数字回环URL与内置synthetic凭据。不要给替身填真实模型key。运行前先Wrapper verify；需要本机config/application-local.yml中已验证的PG连接。最终28项JUnit、75项签发／观测／崩溃对照、31项权益回归通过，见[M12-b3报告](../docs/reports/2026-10-27-M12-b3-替身签发与观测闭环.md)。Vue页面、同源入口及迁移后真实模型复验仍未完成。
 
