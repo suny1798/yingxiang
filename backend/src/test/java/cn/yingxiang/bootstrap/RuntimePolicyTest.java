@@ -4,6 +4,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.env.MockEnvironment;
 import static org.assertj.core.api.Assertions.*;
 class RuntimePolicyTest {
+ @Test void preservesExplicitLocalhostOrigin() {
+  var env=new MockEnvironment().withProperty("migration.public-origin","http://127.0.0.1:8787")
+      .withProperty("migration.allowed-origins","http://127.0.0.1:8787,http://localhost:8787");
+  var origins=new MigrationOrigin(env);
+  assertThat(origins.hostAllowed("localhost:8787")).isTrue();
+  assertThat(origins.originAllowed("http://localhost:8787")).isTrue();
+  assertThat(origins.hostAllowed("evil.example:8787")).isFalse();
+ }
  @Test void runtimePinsHttpsOriginPathAndPort() {
   RuntimePolicy.endpoint(URI.create("https://api.decart.ai/v1/client/tokens"),"api.decart.ai","/v1/client/tokens",true);
   for(String target: new String[]{"http://api.decart.ai/v1/client/tokens","https://api.decart.ai.evil/v1/client/tokens","https://api.decart.ai:8443/v1/client/tokens","https://api.decart.ai/v1/client/tokens?x=1","https://user@api.decart.ai/v1/client/tokens","https://127.0.0.1/v1/client/tokens"})

@@ -26,6 +26,14 @@ public class MigrationOrigin {
         }
         authorities = new LinkedHashSet<>(Set.of(uri.getRawAuthority()));
         origins = new LinkedHashSet<>(Set.of(origin));
+        for (String additional : env.getProperty("migration.allowed-origins", "").split(",")) {
+            if (additional.isBlank()) continue;
+            URI allowed=URI.create(additional.strip());
+            if (!Set.of("http","https").contains(allowed.getScheme()) || allowed.getHost()==null
+                    || allowed.getUserInfo()!=null || allowed.getQuery()!=null || allowed.getFragment()!=null
+                    || !allowed.getPath().isEmpty()) throw new IllegalStateException("Invalid additional origin");
+            authorities.add(allowed.getRawAuthority());origins.add(additional.strip());
+        }
         if (Set.of(env.getActiveProfiles()).equals(Set.of("local"))) {
             int port = env.getProperty("server.port", Integer.class, 8792);
             for (String host : List.of("127.0.0.1", "localhost")) {
