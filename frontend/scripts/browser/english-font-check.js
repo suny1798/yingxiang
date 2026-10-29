@@ -33,7 +33,7 @@ async (page) => {
   await page.context().addCookies([{name:'yingxiang-locale',value:'zh',url:origin}]);
   await page.goto(origin+'/');await page.locator('main').first().waitFor();
   const chinese=await page.evaluate(()=>({lang:document.documentElement.lang,display:getComputedStyle(document.querySelector('main h1')).fontFamily,overflow:document.documentElement.scrollWidth>innerWidth}));
-  check(chinese.lang==='zh-CN' && chinese.display.includes('Songti SC') && !chinese.overflow,'Chinese display fallback');
+  check(chinese.lang==='zh-CN' && chinese.display.includes('Noto Sans SC') && !chinese.overflow,'Chinese sans-serif font stack');
   await page.context().addCookies([{name:'yingxiang-locale',value:'en',url:origin}]);
   await page.goto(origin+'/');await page.locator('main').first().waitFor();
   await page.getByRole('heading',{name:'Local preview, cloud processing, and saved creations'}).scrollIntoViewIfNeeded();
@@ -45,5 +45,5 @@ async (page) => {
   const {fonts}=await cdp.send('CSS.getPlatformFontsForNode',{nodeId});
   check(fonts.some(font=>font.familyName.startsWith('Inter') && font.isCustomFont),'actual self-hosted Inter rendering');
   await cdp.detach();
-  return {routes:results,checkedElements:results.reduce((n,r)=>n+r.elements,0),renderedFonts:fonts.map(font=>font.familyName),chineseFallback:true,viewport:'1440x1000',modelCalls:0,payments:0};
+  return {routes:results,checkedElements:results.reduce((n,r)=>n+r.elements,0),renderedFonts:fonts.map(font=>font.familyName),chineseSansSerif:true,viewport:'1440x1000',modelCalls:0,payments:0};
 }

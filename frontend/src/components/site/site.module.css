@@ -164,3 +164,9 @@
   letter-spacing: -.04em;
 }
 :global(html[lang="en"]) .heroDescription { line-height: 1.65; }
+:global(html[lang="zh-CN"]) .brand,
+:global(html[lang="zh-CN"]) .footerBrand {
+  font-weight: 600;
+  letter-spacing: 0;
+}
+:global(html[lang="zh-CN"]) .heroDescription { line-height: 1.75; }
