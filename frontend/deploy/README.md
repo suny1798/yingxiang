@@ -54,3 +54,5 @@ D:/Code/Tools/nginx-1.28.3/nginx.exe -p "$dir/" -c nginx.conf -s quit
 
 
 2026-10-29 M22后：8787的静态root仍为主目录frontend/dist，`/api` upstream已由8788切到127.0.0.1:8792 Java，master模式reload生效；155项入口合同通过。以后生成本机配置应将`@UPSTREAM@`替换为8792，不再指向停止的FastAPI。旧模板的8788说明仅作历史对照。
+
+2026-10-29衣装灵感新增后，当前公开预渲染页为7个（含/wardrobe），入口只读合同为168项、隔离Nginx合同为78项。正式8787专属配置同步新增wardrobe页面白名单并通过-t／reload；/api仍转8792，不修改其他服务。历史六页／155项记录保持其原执行范围。
