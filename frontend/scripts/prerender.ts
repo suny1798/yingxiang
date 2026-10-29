@@ -20,6 +20,7 @@ const ROUTE_TIMEOUT_MS = 30_000;
 
 /** 每个公开页必须出现在预渲染正文里的关键文案；防止只注入meta。 */
 const BODY_MARKERS: Record<string, string> = {
+  '/wardrobe': '下一套，',
   '/': '让想象，',
   '/pricing': '选择适合你的创作套餐',
   '/help': '使用指南与常见问题',

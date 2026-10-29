@@ -22,6 +22,7 @@ assert.ok(shell.includes('<meta name="robots" content="noindex, nofollow">'), 'S
 assert.ok(!/<main[\s>]/.test(shell), 'SPA shell must not carry prerendered body');
 
 const publicPages = [
+  { path:'/wardrobe', title:'衣装灵感 · 映想', marker:'下一套，', description:'浏览四季衣装参考图，按颜色、服装与细节多标签筛选，选择喜欢的衣装带入创作空间实时换装。' },
   { path:'/', title:'映想 — 让想象，在眼前发生。', marker:'让想象，', description:'映想提供实时换装、视频换装与提示词实时编辑。可使用摄像头、已有视频或提示词完成画面创作，生成内容自动保存。' },
   { path:'/pricing', title:'价格方案 · 映想', marker:'选择适合你的创作套餐', description:'轻享、创作与进阶三档积分方案，涵盖实时换装、视频换装与实时编辑。积分长期有效，支持沙盒测试购买；测试积分与真实生成权限独立，正式购买暂未开放。' },
   { path:'/help', title:'帮助中心 · 映想', marker:'使用指南与常见问题', description:'查看实时换装、视频换装与实时编辑的操作步骤、素材要求、积分说明和常见问题。' },

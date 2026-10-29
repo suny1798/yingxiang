@@ -34,6 +34,7 @@ function http(path, { method = 'GET', headers = {} } = {}) {
 const text = value => value.body.toString('utf8');
 const meta = (html, name) => html.match(new RegExp(`<meta ${name}[^>]*content="([^"]*)"`))?.[1];
 const publicPages = [
+  ['/wardrobe', 'wardrobe/index.html', '衣装灵感 · 映想', '下一套，'],
   ['/', 'index.html', '映想 — 让想象，在眼前发生。', '让想象，'],
   ['/pricing', 'pricing/index.html', '价格方案 · 映想', '选择适合你的创作套餐'],
   ['/help', 'help/index.html', '帮助中心 · 映想', '使用指南与常见问题'],

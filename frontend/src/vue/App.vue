@@ -22,7 +22,7 @@ watchEffect(() => {
 });
 onUnmounted(preferences.stop);
 onUnmounted(()=>{void accountCoordinator.dispose().catch(()=>{});});
-const links = [['/', '首页'], ['/studio', '创作空间'], ['/works', '我的作品'], ['/pricing', '价格方案'], ['/help', '帮助中心']];
+const links = [['/', '首页'], ['/wardrobe', '衣装灵感'], ['/studio', '创作空间'], ['/works', '我的作品'], ['/pricing', '价格方案'], ['/help', '帮助中心']];
 const footerLinks = [['/pricing','价格方案'],['/studio','创作空间'],['/account','个人中心'],['/help','帮助中心'],['/help/feedback','问题反馈'],['/privacy','隐私与使用说明'],['/terms','用户协议']];
 const active=(path:string)=>route.path===path||(path!=='/'&&route.path.startsWith(path+'/'));
 </script>

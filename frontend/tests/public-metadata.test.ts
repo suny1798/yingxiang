@@ -6,8 +6,8 @@ import {
 } from '../src/vue/route-data';
 import { documentDescription, documentTitle, robotsContent } from '../src/vue/document-meta';
 
-test('公开路由固定为六个可抓取页面', () => {
-  assert.deepEqual([...PUBLIC_ROUTES], ['/', '/pricing', '/help', '/help/feedback', '/privacy', '/terms']);
+test('公开路由包含衣装灵感及既有六个可抓取页面', () => {
+  assert.deepEqual([...PUBLIC_ROUTES], ['/wardrobe', '/', '/pricing', '/help', '/help/feedback', '/privacy', '/terms']);
   for (const path of PUBLIC_ROUTES) {
     const meta = publicPage(path);
     assert.ok(meta, `${path} 缺少元数据`);

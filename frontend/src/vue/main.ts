@@ -9,6 +9,7 @@ import HelpPage from './pages/HelpPage.vue';
 import FeedbackPage from './pages/FeedbackPage.vue';
 import PricingPage from './pages/PricingPage.vue';
 import HomePage from './pages/HomePage.vue';
+import WardrobePage from './pages/WardrobePage.vue';
 import AccountPage from './pages/AccountPage.vue';
 import AdminPage from './pages/AdminPage.vue';
 import StudioPage from './pages/StudioPage.vue';
@@ -23,6 +24,7 @@ const router = createRouter({
   history: createWebHistory(),
   routes: [
     { path: '/', component: HomePage, meta: PUBLIC_PAGES['/'] },
+    { path: '/wardrobe', component: WardrobePage, meta: PUBLIC_PAGES['/wardrobe'] },
     { path: '/terms', component: TermsPage, meta: PUBLIC_PAGES['/terms'] },
     { path: '/privacy', component: PrivacyPage, meta: PUBLIC_PAGES['/privacy'] },
     { path: '/help', component: HelpPage, meta: PUBLIC_PAGES['/help'] },

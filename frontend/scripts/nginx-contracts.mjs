@@ -93,7 +93,7 @@ try {
   }
   const check=(value,message)=>{assert.ok(value,message);checks++;};
   const shell=await readFile(join(root,'dist/app.html'));
-  const publicPages=[['/','index.html','映想 — 让想象，在眼前发生。'],['/pricing','pricing/index.html','价格方案 · 映想'],['/help','help/index.html','帮助中心 · 映想'],['/help/feedback','help/feedback/index.html','问题反馈 · 映想'],['/privacy','privacy/index.html','隐私与使用说明 · 映想'],['/terms','terms/index.html','用户协议 · 映想'],['/terms?synthetic=1','terms/index.html','用户协议 · 映想']];
+  const publicPages=[['/wardrobe','wardrobe/index.html','衣装灵感 · 映想'],['/','index.html','映想 — 让想象，在眼前发生。'],['/pricing','pricing/index.html','价格方案 · 映想'],['/help','help/index.html','帮助中心 · 映想'],['/help/feedback','help/feedback/index.html','问题反馈 · 映想'],['/privacy','privacy/index.html','隐私与使用说明 · 映想'],['/terms','terms/index.html','用户协议 · 映想'],['/terms?synthetic=1','terms/index.html','用户协议 · 映想']];
   for(const [path,file,title] of publicPages) {
     const expected=await readFile(join(root,'dist',file));const value=await http(port,path);
     check(value.status===200&&value.body.equals(expected),'Known public route must serve its prerendered HTML');

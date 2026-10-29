@@ -21,6 +21,11 @@ export const SHARE_IMAGE = '/assets/try-on-demo-poster.jpg';
 export const SHARE_IMAGE_ALT = '映想实时换装演示画面';
 
 export const PUBLIC_PAGES = {
+  '/wardrobe': {
+    title: '衣装灵感', englishTitle: 'Outfit inspiration',
+    description: '浏览四季衣装参考图，按颜色、服装与细节多标签筛选，选择喜欢的衣装带入创作空间实时换装。',
+    robots: 'index',
+  },
   '/': {
     title: '映想 — 让想象，在眼前发生。',
     description: '映想提供实时换装、视频换装与提示词实时编辑。可使用摄像头、已有视频或提示词完成画面创作，生成内容自动保存。',

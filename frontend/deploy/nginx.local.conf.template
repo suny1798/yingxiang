@@ -31,7 +31,7 @@ http {
     map $uri $entry_page {
         default 0;
         / 1;
-        ~^/(pricing|help(/feedback)?|privacy|terms|studio(/(video|edit))?|works|account(/(orders|usage|security))?|admin)/?$ 1;
+        ~^/(wardrobe|pricing|help(/feedback)?|privacy|terms|studio(/(video|edit))?|works|account(/(orders|usage|security))?|admin)/?$ 1;
     }
     map "$status:$uri" $entry_cache {
         default "no-store";
