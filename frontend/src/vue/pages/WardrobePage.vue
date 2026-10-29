@@ -5,6 +5,7 @@ import { colorTags, detailTags, filterLooks, garmentTags, libraryLooks, lookById
 import { preferences, t } from '../preferences';
 import { MAX_GARMENTS } from '../../lib/limits';
 import s from './wardrobe.module.css';
+import GarmentTagGroup from '../GarmentTagGroup.vue';
 
 const router=useRouter();
 const search=ref(''), selectedSeasons=ref<string[]>([]), selectedTags=ref<string[]>([]), chosen=ref<string[]>([]), onlyChosen=ref(false), message=ref('');
@@ -31,7 +32,6 @@ onUnmounted(()=>{scrollObserver?.disconnect();resizeObserver?.disconnect();});
 const selected=computed(()=>chosen.value.map(id=>lookById(id)!));
 const groups=[{name:'服装',tags:garmentTags},{name:'颜色',tags:colorTags},{name:'材质与细节',tags:detailTags}];
 const failed=ref(new Set<string>()), retry=ref(0), fullFailed=ref(false);
-const expanded=ref<Record<string,boolean>>({'服装':true});
 const dialog=ref<HTMLDialogElement|null>(null), preview=ref<LibraryLook|null>(null);
 const label=(tag:string)=>english.value?tag:tagLabels[tag]??tag;
 const seasonLabel=(season:string)=>english.value?({春:'Spring',夏:'Summer',秋:'Autumn',冬:'Winter'}[season]??season):`${season}装`;
@@ -72,7 +72,7 @@ function retryImage(id:string){const next=new Set(failed.value);next.delete(id);
         <div :class="s.filterHeading"><h2>{{t('筛选衣装')}}</h2><button type="button" @click="clearFilters">{{t('重置')}}</button></div>
         <p :class="s.filterNote">{{t('季节可多选，标签需同时满足。')}}</p>
         <fieldset><legend>{{t('季节')}}</legend><div :class="s.seasons"><button v-for="season in seasons" :key="season" type="button" :aria-pressed="selectedSeasons.includes(season)" @click="selectedSeasons=toggle(selectedSeasons,season)">{{seasonLabel(season)}}<span>{{libraryLooks.filter(item=>item.season===season).length}}</span></button></div></fieldset>
-        <fieldset v-for="group in groups" :key="group.name"><legend>{{t(group.name)}}</legend><details :class="s.tagDetails" :open="expanded[group.name]" @toggle="event=>expanded[group.name]=(event.target as HTMLDetailsElement).open"><summary>{{t(expanded[group.name]?'收起标签':'展开全部标签')}}</summary><div :class="s.tags"><button v-for="tag in group.tags" :key="tag" type="button" :aria-pressed="selectedTags.includes(tag)" @click="selectedTags=toggle(selectedTags,tag)">{{label(tag)}}</button></div></details></fieldset>
+        <GarmentTagGroup v-for="group in groups" :key="group.name" :name="group.name" :tags="group.tags" :selected="selectedTags" :initially-expanded="group.name==='服装'" @toggle="tag=>selectedTags=toggle(selectedTags,tag)"/>
         <p :class="s.sourceNote">{{t('图片用作换装参考，非实际生成效果。')}}</p>
       </aside>
       <section :class="s.results" aria-labelledby="looks-heading">
