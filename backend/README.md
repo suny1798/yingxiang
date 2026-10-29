@@ -14,7 +14,7 @@ M25后保留的Python资料只服务于Java迁移、PG导入核对与历史恢�
 
 ## 代码分层与统一响应（2026-10-29）
 
-后端已从扁平 `bootstrap` 包迁为 `controller/service/mapper/manager/config/common/exception/worker/fixture`，唯一启动类为 `cn.yingxiang.YingxiangApplication`。通用基础代码位于 `common` 与 `exception`：`BaseResponse`、`ResultUtils`、`PageRequest`、`DeleteRequest`、`ErrorCode`、`BusinessException`、`ThrowUtils`、`GlobalExceptionHandler`、`CorsConfig`。
+后端已从扁平 `bootstrap` 包迁为 `controller/service/mapper/manager/config/common/exception/worker/fixture`，唯一启动类为 `cn.yingxiang.YingxiangApplication`。`service` 下按通用工程约定保留接口，具体实现位于 `service/impl`：`AccountAuthService`／`AccountAuthServiceImpl`、`PaymentsService`／`PaymentsServiceImpl` 等；Controller 与 Fixture 依赖接口，Spring 注入实现类。通用基础代码位于 `common` 与 `exception`：`BaseResponse`、`ResultUtils`、`PageRequest`、`DeleteRequest`、`ErrorCode`、`BusinessException`、`ThrowUtils`、`GlobalExceptionHandler`、`CorsConfig`。
 
 JSON响应统一为 `{code,data,message,requestId,reason}`：成功 `code=0`、`data` 为原业务对象；失败使用通用错误码，`reason` 保留细分原因，HTTP状态保留原语义。作品视频、参考图、下载与视频准备结果等二进制响应不包装。新增接口应抛 `BusinessException` 交给全局处理器，不再手写错误JSON。
 

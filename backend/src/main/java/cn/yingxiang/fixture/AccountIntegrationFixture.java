@@ -3,6 +3,7 @@ package cn.yingxiang.fixture;
 import cn.yingxiang.manager.ConnectionProbe;
 import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.service.EntitlementReservationService;
+import cn.yingxiang.service.impl.EntitlementReservationServiceImpl;
 import cn.yingxiang.manager.SchemaOperations;
 import tools.jackson.databind.json.JsonMapper;
 import java.nio.file.Path;
@@ -78,7 +79,7 @@ public final class AccountIntegrationFixture {
                         var dataSource = SchemaOperations.dataSource(config, false);
                         var env = new org.springframework.core.env.StandardEnvironment();
                         env.getPropertySources().addFirst(new org.springframework.core.env.MapPropertySource("quota-fixture", Map.of("migration.db-schema", target)));
-                        var service = new EntitlementReservationService(new org.springframework.jdbc.core.JdbcTemplate(dataSource),
+                        var service = new EntitlementReservationServiceImpl(new org.springframework.jdbc.core.JdbcTemplate(dataSource),
                                 new org.springframework.jdbc.datasource.DataSourceTransactionManager(dataSource), env);
                         if (action.equals("quota-reserve")) {
                             service.reserve((String) body.get("hashed"), (String) body.get("attemptId"), ((Number) body.get("seconds")).intValue());
