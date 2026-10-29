@@ -1,5 +1,7 @@
 # 映想后端
 
+> 当前已完成真实PG导入和Java接管（2026-10-29）：API8792、独立Worker、云PG18／Redis运行，旧FastAPI8788已停止。私有配置与进程状态通过backups/M22-current.json定位，当前启动命令见[根README](../README.md#当前java与vue启动)。本手册早期隔离／FastAPI内容作为历史运维资料；不得同时启动旧SQLite写后端。
+
 ## Java项目配置与启动
 
 已按用户指定的picture可运行项目适配，使用当前JDK21／Spring Boot4.1.2。Maven引入 `spring-boot-starter-jdbc` 与 `spring-boot-starter-data-redis`，由Spring自动装配Hikari数据源、RedisConnectionFactory与StringRedisTemplate；PG驱动42.7.14与Lettuce7.5.2.RELEASE由Boot BOM管理。

@@ -51,3 +51,6 @@ D:/Code/Tools/nginx-1.28.3/nginx.exe -p "$dir/" -c nginx.conf -s quit
 
 
 2026-10-29归并后，正式8787的静态root已改为`C:/Users/sun/Desktop/anyware/frontend/dist`，`/api`仍转8788 FastAPI；主进程模式已启用，155项只读入口合同通过。此前单进程配置的reload/quit未实际生效，本次先核对专属PID和完整可执行路径后仅重启该入口；旧配置备份留在同一私有prefix。没有使用全局kill／stop或修改其他Nginx服务。
+
+
+2026-10-29 M22后：8787的静态root仍为主目录frontend/dist，`/api` upstream已由8788切到127.0.0.1:8792 Java，master模式reload生效；155项入口合同通过。以后生成本机配置应将`@UPSTREAM@`替换为8792，不再指向停止的FastAPI。旧模板的8788说明仅作历史对照。

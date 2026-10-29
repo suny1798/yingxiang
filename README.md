@@ -2,13 +2,15 @@
 
 **让想象，在眼前发生。**
 
+**当前运行（2026-10-29）**：已完成真实数据迁移，当前为 **Vue 3/Vite＋Nginx → Java/Spring Boot API＋独立Worker → 云PostgreSQL18／Redis**。访问 http://127.0.0.1:8787/ 。旧FastAPI已停止，SQLite与原作品目录只读保留；新增业务以PG和新私有卷为准。实际数据核对、CRUD与运行方式见[M22切流报告](docs/reports/2026-10-29-M22-真实云库迁移与Java接管.md)。下方早期Next／FastAPI资料为历史对照，不作为当前启动入口。
+
 **当前前端运行说明（2026-10-29已归并主目录）**：本分支在 `frontend/` 增量接入Vue3／Vite，默认 `npm run dev` 为127.0.0.1:8791隔离预览，目前已迁 `/`、`/terms`、`/privacy`、`/help`、`/help/feedback`、`/pricing` 与公共导航／公告／偏好／404，已完成实际Nginx隔离入口HTTP及桌面验证；已接全站登录注册／退出与账号协调、个人中心三页及管理员无权门禁；/studio已接选图、本机相机预览、实时换装与分片保存，/studio/video已接视频提交与结果，/studio/edit已接提示词组合实时编辑，作品页已接列表与详情，订单与沙盒购买、管理控制台与公告已接；六个公开页在构建期预渲染并输出服务端title／description／分享标签，私有页保持SPA与noindex。**本机正式入口已于2026-10-28从Next切换为Vue静态构建**：8787由隔离Nginx提供静态文件并把 `/api` 转发8788 FastAPI，原Next源码、依赖锁与构建产物保留作回退（`legacy:dev`／`legacy:build`／`legacy:typecheck`／`legacy:smoke`）。切换证据与回退步骤见[M09-d报告](docs/reports/2026-10-28-M09-d-前端入口切换.md)，功能进度见[M09-c报告](docs/reports/2026-10-28-M09-c-公开页预渲染与服务端meta.md)，下方原运行资料继续保留作对照。
 
 映想提供实时换装、视频换装和提示词实时编辑，三种创作的生成视频默认保存到“我的作品”。三个创作画面及作品详情另提供桌面全屏与当前帧 PNG 截图；截图仅本机主动导出，不上传、不自动入作品。我的作品支持标题搜索、最新/最早/名称排序及账号级收藏筛选。实时编辑已接入云端生成，支持在同一连接内添加、移除并同步完整提示词组合；用户于2026-10-26确认功能已实现，产品文案不再标为“仅交互预览”或“待接入”。当前仅测试账号suny开放视频与实时编辑，视频按原US$5/20次累计上限控制；suny的实时编辑按用户明确要求取消次数、累计预算及申请冷却限制。此状态不扩大其他账号权限，也不把首页概念图当作真实生成结果。视频换装此前的单次真实生成记录见[报告](docs/reports/2026-10-24-视频换装单次真实测试.md)。
 
 实时编辑新作品同时保存本轮已同步的用户提示词组合，可在视频右侧“本次提示词”按序回看；未发送草稿不保存，旧作品没有留存的提示词不能补回。记录与视频同属私有用户作品目录，删除作品时一并清除。提示词只在本人详情接口读取，不写日志；该提示词记录不进行数据库迁移。
 
-当前实际架构为 **Vue 3/Vite 静态前端＋Nginx同源入口＋FastAPI独立后端＋SQLite**。浏览器仍访问同源 `/api/*`；Nginx 转发请求，账号、订单、权益、预算和长期密钥统一由后端管理。迁移与实际验证见 [迁移验收报告](docs/reports/2026-10-24-FastAPI与SQLite架构迁移.md)。
+当前实际架构为 **Vue 3/Vite静态前端＋Nginx同源入口＋Java API／Worker＋云PG／Redis**。浏览器仍访问同源 `/api/*`；Nginx转发8792 Java，账号、订单、权益、预算和长期密钥统一由后端管理。迁移与实际验证见 [迁移验收报告](docs/reports/2026-10-24-FastAPI与SQLite架构迁移.md)。
 
 **后续重构方向（2026-10-27）**：用户已确认前端采用 **Vue 3＋Vite＋TypeScript**，正式工程继续维护在 `frontend/`；后端采用 Java／Spring Boot 模块化单体与独立 Java Worker，优先核查已有云 PostgreSQL 作为单一主库，并接入已有 Redis。选型背景见[业务扩展与工程架构选型](docs/15-业务扩展与工程架构选型.md)，后续迁移统一按[前后端技术与架构迁移执行方案](docs/16-前后端技术与架构迁移执行方案.md)推进，实际工作包状态见[开发任务与验收](docs/05-开发任务与验收.md)。这是后续目标与执行方案，当前入口为Vue／Nginx，业务服务与主库仍是FastAPI／SQLite；尚未切换云库或新增业务。PostgreSQL实例不满足条件时先记录选型变更，再调整方言与测试，不同时使用两套业务主库。
 
@@ -26,7 +28,7 @@ Java账号写入已完成[M11合成验证](docs/reports/2026-10-27-M11-Java登�
 
 最新真实测试：2026-10-24执行获批的一次15秒连接，用户随后另手动开始一次；两次均未确认远端首帧，账单待核对。用户随后要求重启，**当前实时换装云端签发已恢复就绪**，历史/权益未重置；见[本轮测试报告](docs/reports/2026-10-24-迁移后15秒真实换装测试.md)。
 
-## 本机启动
+## 原FastAPI启动资料（历史回退对照，当前不运行）
 
 本机已安装隔离的 Python 3.13.17，SQLite 3.50.4；采用 DELETE/FULL，外键开启。前端仍使用 Node.js 22+。详细安装、备份与恢复命令见 [后端运行手册](backend/README.md)。
 
@@ -148,3 +150,19 @@ npm run smoke
 
 
 2026-10-29已补[正式运行与门禁收尾M20-r](docs/reports/2026-10-29-M20-r-正式运行与门禁收尾.md)：显式正式schema／HTTPS供应商适配、Redis窗口原子合并、实际readiness与无HTTP Worker已在隔离环境验证。默认维护／场景关闭，8787仍Vue入口、8788仍FastAPI；未执行正式后端切流。安全配置模板与运行说明见[后端手册](backend/README.md#正式运行收尾配置m20-r)。
+
+
+## 当前Java与Vue启动
+
+目前服务已运行，直接访问[映想](http://127.0.0.1:8787/)。Vue产物在主目录frontend/dist，Nginx8787将API转发8792 Java；Worker无HTTP端口。以后重启时，在backend终端分别启动API和Worker，先检查旧PID已退出，不能重复启动：
+
+```powershell
+cd backend
+$live = Get-Content backups/M22-current.json -Raw | ConvertFrom-Json
+# 终端一
+java -jar target/yingxiang-backend-0.1.0.jar "--spring.config.additional-location=file:$($live.runtime)"
+# 终端二（同样先读取$live）
+java -jar target/yingxiang-backend-0.1.0.jar "--spring.config.additional-location=file:$($live.worker)"
+```
+
+私有运行配置保存在当前迁移批次的backups目录，指针为backend/backups/M22-current.json；不要粘贴或提交这些文件。原config/application-local.yml仍保存现有云连接及维护默认值，直接用它启动不会自动开放业务。前端更新在frontend执行npm run build后按部署手册重载Nginx；当前开发用npm run dev仍默认隔离后端，不应误当正式8787入口。PG已有新写入，不能直接切回旧SQLite。
