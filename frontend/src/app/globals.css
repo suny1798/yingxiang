@@ -13,7 +13,10 @@
   --error: #9b4037;
   --on-accent: #fffefa;
   --preview-background: #eeebe6;
-  --font-body: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  /* 拉丁字符共用清晰的系统无衬线；中文标题仍保留原宋体风格。 */
+  --font-latin: "Segoe UI", "Helvetica Neue", Arial;
+  --font-body: var(--font-latin), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  --font-display: var(--font-latin), "Songti SC", "STSong", "SimSun", serif;
   --font-scale: 1.15;
   --font-min: 11px;
 }
@@ -36,7 +39,7 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 89px; scrollbar-gutter: stable both-edges; }
 body { margin: 0; background: var(--paper); color: var(--ink); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(14px * var(--font-scale))); line-height: 1.6; font-family: var(--font-body);; padding-bottom: 0; -webkit-font-smoothing: antialiased; }
-button, input, select { font: inherit; }
+button, input, select, textarea { font: inherit; }
 button, a, input { -webkit-tap-highlight-color: transparent; }
 button, a { touch-action: manipulation; }
 button { cursor: pointer; }
@@ -61,3 +64,10 @@ body { background-color:var(--paper); background-image:url('/assets/ambient-pebb
 /* 创作画面工具：仅放大既有视频，不改变媒体、镜像或播放状态。 */
 [data-preview-stage]:fullscreen { width:100vw; height:100vh; min-height:0; max-height:none; border:0; border-radius:0; background:#191617; }
 [data-preview-stage]:fullscreen video { width:100%; height:100%; max-width:100vw; max-height:100vh; object-fit:contain; }
+
+/* 英文不沿用中文展示标题的夸张字距，所有页面共用同一字体体系。 */
+:root:lang(en) { --font-display: var(--font-body); }
+:root:lang(en) body :is(h1, h2, h3, h4, h5, h6) {
+  letter-spacing: -.02em;
+  font-weight: 500;
+}

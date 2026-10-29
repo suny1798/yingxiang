@@ -5,8 +5,8 @@
 .visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0; clip: rect(0,0,0,0); overflow: hidden; }
 .site-header { border-bottom: 1px solid var(--line); background: var(--paper); }
 .header-inner { max-width: 1280px; margin: 0 auto; height: 84px; display: flex; align-items: center; justify-content: space-between; gap: 32px; }
-.wordmark { font-weight: 600; font-style: normal; font-size: max(var(--font-min), calc(34px * var(--font-scale))); line-height: 1.1; font-family: "Songti SC", "STSong", "SimSun", serif;; letter-spacing: 4px; display: inline-flex; align-items: flex-start; white-space: nowrap; }
-.brand-dot { margin: -2px 0 0 5px; font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(25px * var(--font-scale))); line-height: 1; font-family: Georgia, serif;; color: var(--accent); letter-spacing: 0; }
+.wordmark { font-weight: 600; font-style: normal; font-size: max(var(--font-min), calc(34px * var(--font-scale))); line-height: 1.1; font-family: var(--font-display);; letter-spacing: 4px; display: inline-flex; align-items: flex-start; white-space: nowrap; }
+.brand-dot { margin: -2px 0 0 5px; font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(25px * var(--font-scale))); line-height: 1; font-family: var(--font-body);; color: var(--accent); letter-spacing: 0; }
 
 .nav-link { position: relative; border: none; padding: 9px 0; background: none; color: var(--muted); font-size: max(var(--font-min), calc(13px * var(--font-scale))); }
 .nav-link:hover, .nav-link.active { color: var(--ink); }
@@ -18,7 +18,7 @@
 .status-dot.neutral { background: light-dark(#9b958d, var(--line)); }
 .page-shell { max-width: 1280px; margin: 0 auto; }
 .intro { display: flex; justify-content: space-between; align-items: flex-end; padding: 34px 0 28px; gap: 28px; }
-.eyebrow { color: var(--muted); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(10px * var(--font-scale))); line-height: 1.6; font-family: Arial, sans-serif;; letter-spacing: 2px; }
+.eyebrow { color: var(--muted); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(10px * var(--font-scale))); line-height: 1.6; font-family: var(--font-body);; letter-spacing: 2px; }
 .intro h1 { font-size: max(var(--font-min), clamp(calc(29px * var(--font-scale)), calc(3.1vw * var(--font-scale)), calc(42px * var(--font-scale)))); line-height: 1.4; letter-spacing: -1.7px; font-weight: 500; margin-top: 9px; }
 .intro h1 span { color: var(--accent); }
 .intro-copy { color: var(--muted); font-size: max(var(--font-min), calc(12px * var(--font-scale))); line-height: 1.9; margin: 0 2px 6px 0; }
@@ -60,7 +60,7 @@
 .mirror-stage:has(.camera-video:not(.camera-hidden)) .stage-bottomline { background: light-dark(#fffefaf2, color-mix(in srgb, var(--surface) 95%, transparent)); border-radius: 10px; padding: 6px 9px; }
 .mirror-heading { display: flex; align-items: center; justify-content: space-between; gap: 15px; height: 58px; padding: 0 12px; }
 .mirror-heading h2 { font-size: max(var(--font-min), calc(13px * var(--font-scale))); font-weight: 500; }
-.mirror-heading h2 > span { margin-left: 12px; font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(8px * var(--font-scale))); line-height: normal; font-family: Arial, sans-serif;; letter-spacing: 1.5px; color: var(--muted); }
+.mirror-heading h2 > span { margin-left: 12px; font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(8px * var(--font-scale))); line-height: normal; font-family: var(--font-body);; letter-spacing: 1.5px; color: var(--muted); }
 .session-status { display: flex; gap: 7px; align-items: center; color: var(--muted); font-size: max(var(--font-min), calc(10px * var(--font-scale))); white-space: nowrap; }
 .mirror-stage { position: relative; height: 451px; overflow: hidden; border-radius: 10px; background: var(--stage); isolation: isolate; }
 .stage-topline, .stage-bottomline { position: absolute; left: 23px; right: 23px; display: flex; justify-content: space-between; align-items: center; gap: 10px; z-index: 3; }
@@ -126,7 +126,7 @@
 .studio dialog h2 { margin-top: 24px; font-size: max(var(--font-min), calc(28px * var(--font-scale))); line-height: 1.6; font-weight: 500; letter-spacing: -1px; }
 .guide-steps { padding-left: 24px; margin: 25px 0; }
 .guide-steps li { margin-top: 21px; padding-left: 7px; }
-.guide-steps li::marker { color: var(--accent); font-weight: normal; font-style: italic; font-size: max(var(--font-min), calc(18px * var(--font-scale))); line-height: normal; font-family: Georgia, serif;; }
+.guide-steps li::marker { color: var(--accent); font-weight: normal; font-style: italic; font-size: max(var(--font-min), calc(18px * var(--font-scale))); line-height: normal; font-family: var(--font-body);; }
 .guide-steps strong { font-size: max(var(--font-min), calc(13px * var(--font-scale))); font-weight: 500; }
 .guide-steps p { font-size: max(var(--font-min), calc(11px * var(--font-scale))); color: var(--muted); margin-top: 6px; line-height: 1.9; }
 .dialog-footnote { font-size: max(var(--font-min), calc(10px * var(--font-scale))); color: var(--muted); margin: 18px 0 0; }
@@ -176,12 +176,12 @@
 .account-footnote { color: var(--muted); font-size: max(var(--font-min), calc(10px * var(--font-scale))); line-height: 1.8; margin-top: 16px; }
 .account-error { color: var(--accent); background: var(--accent-soft); padding: 12px; border-radius: 8px; font-size: max(var(--font-min), calc(12px * var(--font-scale))); line-height: 1.8; margin-top: 16px; }
 .account-identity { display: flex; align-items: center; gap: 16px; margin-top: 28px; min-width: 0; }
-.account-avatar { display: grid; place-items: center; width: 54px; height: 54px; border: 1px solid light-dark(#ded0d4, var(--line)); border-radius: 50%; color: var(--accent); background: var(--accent-soft); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(26px * var(--font-scale))); line-height: normal; font-family: Georgia, serif;; }
-.studio .account-identity h2 { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(23px * var(--font-scale))); line-height: 1.4; font-family: Georgia, serif;; margin: 0; overflow-wrap: anywhere; }
+.account-avatar { display: grid; place-items: center; width: 54px; height: 54px; border: 1px solid light-dark(#ded0d4, var(--line)); border-radius: 50%; color: var(--accent); background: var(--accent-soft); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(26px * var(--font-scale))); line-height: normal; font-family: var(--font-body);; }
+.studio .account-identity h2 { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(23px * var(--font-scale))); line-height: 1.4; font-family: var(--font-body);; margin: 0; overflow-wrap: anywhere; }
 .account-identity p { color: var(--muted); font-size: max(var(--font-min), calc(11px * var(--font-scale))); margin-top: 4px; }
 .trial-ticket { margin-top: 26px; padding: 23px; border: 1px solid light-dark(#dfcbd2, var(--line)); border-radius: 14px 14px 30px 14px; background: var(--accent-soft); }
 .ticket-kicker { font-size: max(var(--font-min), calc(10px * var(--font-scale))); letter-spacing: 2px; color: var(--accent); }
-.trial-ticket strong { display: block; font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(27px * var(--font-scale))); line-height: 1.5; font-family: "Songti SC", "SimSun", serif;; margin: 9px 0; color: var(--accent); }
+.trial-ticket strong { display: block; font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(27px * var(--font-scale))); line-height: 1.5; font-family: var(--font-display);; margin: 9px 0; color: var(--accent); }
 .trial-ticket p { font-size: max(var(--font-min), calc(11px * var(--font-scale))); line-height: 1.9; color: var(--muted); }
 .ticket-note { display: block; border-top: 1px dashed light-dark(#d6c3ca, var(--line)); padding-top: 12px; margin-top: 16px; font-size: max(var(--font-min), calc(10px * var(--font-scale))); color: var(--accent); }
 .account-section-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 26px; }
@@ -243,7 +243,7 @@
 /* 示意动画上的引导卡：新访客第一眼要能看到下一步 */
 .demo-prompt { position: absolute; z-index: 2; left: 22px; bottom: 22px; display: flex; align-items: center; gap: 12px; padding: 10px 38px 10px 12px; border-radius: 12px; border: 1px solid light-dark(#e3ccd4, var(--line)); background: light-dark(#fffefaf0, color-mix(in srgb, var(--surface) 94%, transparent)); backdrop-filter: blur(12px); box-shadow: 0 10px 30px #2d1a2012; max-width: calc(100% - 44px); }
 .demo-prompt > p { display: flex; flex-direction: column; gap: 4px; }
-.demo-prompt strong { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(14px * var(--font-scale))); line-height: 1.4; font-family: "Songti SC", "STSong", "SimSun", serif;; color: var(--ink); }
+.demo-prompt strong { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(14px * var(--font-scale))); line-height: 1.4; font-family: var(--font-display);; color: var(--ink); }
 .demo-prompt span { font-size: max(var(--font-min), calc(11px * var(--font-scale))); color: var(--muted); }
 .demo-prompt .primary-button { flex-shrink: 0; min-height: 32px; padding: 6px 12px; font-size: max(var(--font-min), calc(12px * var(--font-scale))); gap: 6px; }
 .demo-prompt .primary-button .icon { width: 16px; height: 16px; stroke-width: 1.6; }
@@ -273,9 +273,9 @@
 .preview-actions .stop-button { min-height: 39px; font-size: max(var(--font-min), calc(11px * var(--font-scale))); padding: 10px 14px; }
 .camera-error { color: var(--error); font-size: max(var(--font-min), calc(11px * var(--font-scale))); line-height: 1.8; padding: 12px 6px 0; }
 .floating-card { position: absolute; z-index: 4; right: 23px; bottom: 23px; width: min(260px, calc(100% - 32px)); border: 1px solid light-dark(#e3ccd4, var(--line)); background: light-dark(#fffefaf2, color-mix(in srgb, var(--surface) 95%, transparent)); backdrop-filter: blur(14px); border-radius: 12px; padding: 12px; box-shadow: 0 6px 24px #2d1a2014; animation: card-arrive .28s ease-out; }
-.imagine-orbit { display: grid; place-items: center; border: 1px solid light-dark(#debdc9, var(--line)); border-radius: 50%; width: 40px; height: 40px; color: var(--accent); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(25px * var(--font-scale))); line-height: normal; font-family: Georgia, serif;; background: var(--accent-soft); position: relative; margin-bottom: 14px; }
+.imagine-orbit { display: grid; place-items: center; border: 1px solid light-dark(#debdc9, var(--line)); border-radius: 50%; width: 40px; height: 40px; color: var(--accent); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(25px * var(--font-scale))); line-height: normal; font-family: var(--font-body);; background: var(--accent-soft); position: relative; margin-bottom: 14px; }
 .imagine-orbit:after { content: ''; position: absolute; inset: -5px; border: 1px dashed light-dark(#ba879a, var(--line)); border-radius: 50%; animation: spin 14s linear infinite; }
-.floating-card h3 { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(15px * var(--font-scale))); line-height: 1.5; font-family: "Songti SC", "SimSun", serif;; margin: 0 22px 9px 0; color: var(--ink); }
+.floating-card h3 { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(15px * var(--font-scale))); line-height: 1.5; font-family: var(--font-display);; margin: 0 22px 9px 0; color: var(--ink); }
 .floating-card .primary-button { width: 100%; min-height: 32px; padding: 6px 10px; font-size: max(var(--font-min), calc(12px * var(--font-scale))); gap: 9px; }
 .floating-card .primary-button .icon { width: 14px; height: 14px; }
 .floating-consent { display: flex; gap: 8px; align-items: flex-start; color: var(--muted); font-size: max(var(--font-min), calc(10px * var(--font-scale))); line-height: 1.6; margin-bottom: 9px; cursor: pointer; }

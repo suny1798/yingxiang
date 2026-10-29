@@ -1,10 +1,10 @@
 .page { width:min(1120px,calc(100% - 96px)); margin:0 auto; padding:44px 0 64px; min-height:calc(100dvh - 280px); }
 .page header { display:flex; justify-content:space-between; align-items:center; gap:24px; margin-bottom:24px; }
-.page h1 { font-weight: 400; font-style: normal; font-size: max(var(--font-min), calc(30px * var(--font-scale))); line-height: 1.5; font-family: 'Songti SC','SimSun',serif;; color:var(--ink); }
+.page h1 { font-weight: 400; font-style: normal; font-size: max(var(--font-min), calc(30px * var(--font-scale))); line-height: 1.5; font-family: var(--font-display);; color:var(--ink); }
 .page header a { color:var(--accent); font-size:max(var(--font-min), calc(13px * var(--font-scale))); }
 .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:420px; padding:56px 32px; border:1px solid var(--line); border-radius:18px; background:var(--surface); text-align:center; color:var(--muted); }
-.star { display:grid; place-items:center; width:64px; height:64px; margin-bottom:18px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(32px * var(--font-scale))); line-height: normal; font-family: Georgia,serif;; }
-.empty h2 { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(24px * var(--font-scale))); line-height: 1.6; font-family: 'Songti SC','SimSun',serif;; color:var(--ink); }
+.star { display:grid; place-items:center; width:64px; height:64px; margin-bottom:18px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(32px * var(--font-scale))); line-height: normal; font-family: var(--font-body);; }
+.empty h2 { font-weight: 500; font-style: normal; font-size: max(var(--font-min), calc(24px * var(--font-scale))); line-height: 1.6; font-family: var(--font-display);; color:var(--ink); }
 .empty p { max-width:470px; margin-top:10px; font-size:max(var(--font-min), calc(12px * var(--font-scale))); line-height:2; }
 .actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px 22px; margin-top:24px; }
 .actions a:not(.primary) { color:var(--accent); font-size:max(var(--font-min), calc(12px * var(--font-scale))); }

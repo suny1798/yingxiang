@@ -1,6 +1,6 @@
 .page { width: min(1440px, calc(100% - 96px)); margin: 0 auto; padding: 32px 0 60px; }
 .heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 26px; }
-.heading h1 { font: 500 30px/1.5 "Songti SC", "SimSun", serif; margin: 3px 0; }
+.heading h1 { font: 500 30px/1.5 var(--font-display); margin: 3px 0; }
 .heading p { font-size: 13px; color: var(--muted); margin: 0; }
 .heading span { color: var(--accent); }
 .layout { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 26px; align-items: start; }

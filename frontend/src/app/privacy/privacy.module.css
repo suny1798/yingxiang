@@ -1,6 +1,6 @@
 .page { max-width:800px; margin:0 auto; padding:48px 24px 64px; color:var(--ink); }
 .page header>p:first-child { color:var(--accent); font-size:max(var(--font-min), calc(13px * var(--font-scale))); margin-bottom:12px; }
-.page h1 { font-weight: 400; font-style: normal; font-size: max(var(--font-min), calc(34px * var(--font-scale))); line-height: 1.4; font-family: 'Songti SC','SimSun',serif;; margin:0 0 16px; }
+.page h1 { font-weight: 400; font-style: normal; font-size: max(var(--font-min), calc(34px * var(--font-scale))); line-height: 1.4; font-family: var(--font-display);; margin:0 0 16px; }
 .page header>p:last-child { font-size:max(var(--font-min), calc(15px * var(--font-scale))); line-height:1.8; color:var(--muted); }
 .page nav { display:flex; flex-wrap:wrap; gap:12px 24px; margin:28px 0 12px; padding:18px 0; border-block:1px solid var(--line); font-size:max(var(--font-min), calc(14px * var(--font-scale))); }
 .page a { color:var(--accent); text-underline-offset:4px; }
