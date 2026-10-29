@@ -129,7 +129,7 @@ def start_worker(schema, storage, provider_port, worker_id):
     process = subprocess.Popen([
         'java', '-jar', str(JAR), f'--server.port={port}', f'--migration.db-schema={schema}',
         '--migration.auth-enabled=true', '--migration.maintenance=false', '--migration.account-read-enabled=true',
-        '--migration.worker-enabled=true', f'--migration.worker-id={worker_id}',
+        '--migration.role=worker', '--migration.worker-enabled=true', f'--migration.worker-id={worker_id}',
         f'--migration.storage-root={storage}', f'--migration.video-key={KEY}',
         f'--migration.video-provider-url=http://127.0.0.1:{provider_port}',
         '--migration.worker-lease-ms=500', '--migration.worker-retry-ms=100',
@@ -137,22 +137,24 @@ def start_worker(schema, storage, provider_port, worker_id):
         '--migration.worker-capture-timeout-ms=200', '--migration.worker-max-attempts=3',
         f'--migration.public-origin={ORIGIN}', '--spring.datasource.hikari.read-only=false',
     ], cwd=BACKEND, stdout=log, stderr=log)
-    deadline = time.monotonic() + 60
+    deadline=time.monotonic()+60
     while True:
-        assert process.poll() is None, 'worker process exited; raw log suppressed'
-        try:
-            connection = http.client.HTTPConnection('127.0.0.1', port, timeout=2)
-            try:
-                connection.request('GET', '/api/internal/live', headers={'Host': HOST})
-                if connection.getresponse().status == 200:
-                    break
-            finally:
-                connection.close()
-        except OSError:
-            pass
-        if time.monotonic() > deadline:
-            raise AssertionError('worker startup deadline exceeded')
+        if process.poll() is not None:
+            import re
+            log.seek(0)
+            safe=log.read().decode('utf-8',errors='replace')
+            beans=re.findall("Error creating bean with name '([A-Za-z0-9]+)'",safe)
+            causes=re.findall(r'Caused by: ([A-Za-z0-9.$]+)',safe)
+            raise AssertionError('worker startup failed: beans='+str(beans)+' causes='+str(causes)+' exit='+str(process.returncode)+' summary='+str([line for line in safe.splitlines() if any(word in line for word in ['WebApplicationType','required a bean','Consider defining','non-web','APPLICATION FAILED','Web server failed'])]))
+        log.seek(0)
+        ready=b'YINGXIANG_WORKER_READY' in log.read()
+        log.seek(0,2)
+        if ready: break
+        assert time.monotonic()<deadline, 'worker startup timeout'
         time.sleep(.1)
+    with socket.socket() as probe:
+        probe.settimeout(1)
+        check(probe.connect_ex(('127.0.0.1',port))!=0, 'worker has no HTTP listener')
     return process
 
 

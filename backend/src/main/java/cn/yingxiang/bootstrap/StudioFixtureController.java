@@ -15,9 +15,10 @@ import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
-@ConditionalOnProperty(name = "migration.studio-fixture-enabled", havingValue = "true")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression("${migration.studio-fixture-enabled:false} or (${migration.runtime-enabled:false} and ${migration.studio-enabled:false})")
 public class StudioFixtureController {
     private final StudioFixtureService service;
     private final JsonMapper json;

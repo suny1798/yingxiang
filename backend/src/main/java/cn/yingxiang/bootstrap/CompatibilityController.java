@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 /** M20：旧公开配置／健康与已停用会话接口的兼容边界；不启用旧会话写入。 */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "migration.compatibility-enabled", havingValue = "true")
@@ -24,7 +25,7 @@ public class CompatibilityController {
 
     public CompatibilityController(JsonMapper json, Environment env) {
         this.json = json;
-        this.studio = env.getProperty("migration.studio-fixture-enabled", Boolean.class, false);
+        this.studio = env.getProperty("migration.studio-fixture-enabled", Boolean.class, false) || (RuntimePolicy.runtime(env) && env.getProperty("migration.studio-enabled", Boolean.class, false));
     }
 
     @GetMapping("/v1/config")

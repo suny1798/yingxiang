@@ -13,6 +13,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 import java.util.Map;
 
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
 public class AccountAuthController {

@@ -64,9 +64,11 @@ public class PromptService {
         maximum = Double.isFinite(max) && max == Math.floor(max) && max > 0 && max <= 20 ? (int) max : 0;
         allowedUsers = names(env.getProperty("migration.prompt-allowed-usernames", ""));
         unlimitedUsers = names(env.getProperty("migration.prompt-unlimited-usernames", ""));
+        if (RuntimePolicy.runtime(env) && (allowedUsers.isEmpty() || !allowedUsers.containsAll(unlimitedUsers)))
+            throw new IllegalStateException("Runtime prompt whitelist must include all unlimited users");
         key = env.getProperty("migration.prompt-key", "").strip();
         String endpoint = env.getRequiredProperty("migration.prompt-token-url");
-        transport = new FixtureTokenTransport(URI.create(endpoint), key, json, Duration.ofSeconds(10));
+        transport = new FixtureTokenTransport(URI.create(endpoint), key, json, Duration.ofSeconds(10), RuntimePolicy.runtime(env));
     }
 
     private static Set<String> names(String value) {

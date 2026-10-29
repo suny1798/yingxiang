@@ -80,12 +80,12 @@ public class VideoService {
         maximum = Double.isFinite(max) && max == Math.floor(max) && max > 0 && max <= 20 ? (int) max : 0;
         allowedUsers = new LinkedHashSet<>(Arrays.stream(env.getProperty("migration.video-allowed-usernames", "").split(","))
                 .map(String::strip).filter(value -> !value.isEmpty()).toList());
+        if (RuntimePolicy.runtime(env) && allowedUsers.isEmpty()) throw new IllegalStateException("Runtime video whitelist required");
         key = env.getProperty("migration.video-key", "").strip();
         providerBase = env.getProperty("migration.video-provider-url", "").replaceAll("/+$", "");
+        if (RuntimePolicy.runtime(env)) RuntimePolicy.tokenKey(key, true);
         URI uri = URI.create(providerBase.isEmpty() ? "http://127.0.0.1:1" : providerBase);
-        if (!(uri.getHost() != null && Set.of("127.0.0.1", "localhost", "::1").contains(uri.getHost()))) {
-            throw new IllegalStateException("M14 video provider must be loopback");
-        }
+        RuntimePolicy.endpoint(uri, "api.decart.ai", "", RuntimePolicy.runtime(env));
         client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5))
                 .followRedirects(HttpClient.Redirect.NEVER).build();
     }

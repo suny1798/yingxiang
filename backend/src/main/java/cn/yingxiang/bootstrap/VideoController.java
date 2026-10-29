@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 /** M14视频任务入口：prepare不登录；任务提交／查询／下载要求本人会话与精确来源。 */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
 @ConditionalOnProperty(name = "migration.video-enabled", havingValue = "true")

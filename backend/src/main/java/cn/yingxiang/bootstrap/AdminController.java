@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.Map;
 
 /** M13-b路由：先精确来源，再管理员身份，最后读取受限请求体。 */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
 @ConditionalOnProperty(name = "migration.admin-enabled", havingValue = "true")

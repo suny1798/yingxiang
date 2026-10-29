@@ -9,6 +9,10 @@ spring:
     multipart:
       # 迁移入口按有界内存自行解析multipart，禁止Servlet容器预解析或落盘。
       enabled: false
+  data:
+    redis:
+      timeout: 2s
+      connect-timeout: 2s
   sql:
     init:
       mode: never

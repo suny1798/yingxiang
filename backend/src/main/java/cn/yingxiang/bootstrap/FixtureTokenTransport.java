@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.concurrent.*;
 import java.util.concurrent.Flow;
 
-/** 仅本机替身传输。不能配置真实供应商；不是生产模型客户端。 */
+/** 有界临时令牌传输；默认只接受替身，显式runtime固定HTTPS供应商。 */
 public final class FixtureTokenTransport implements AutoCloseable {
     private static final int LIMIT = 16_384;
     private final HttpClient client;
@@ -26,14 +26,17 @@ public final class FixtureTokenTransport implements AutoCloseable {
     private final String key;
 
     public FixtureTokenTransport(URI endpoint, String syntheticKey, JsonMapper json, Duration timeout) {
-        if (!"http".equals(endpoint.getScheme()) || !"127.0.0.1".equals(endpoint.getHost()) || endpoint.getPort() <= 0
-                || endpoint.getUserInfo() != null || endpoint.getQuery() != null || endpoint.getFragment() != null
-                || !"/v1/client/tokens".equals(endpoint.getPath())) throw new IllegalArgumentException("Fixture endpoint must be numeric loopback");
+        this(endpoint, syntheticKey, json, timeout, false);
+    }
+
+    public FixtureTokenTransport(URI endpoint, String syntheticKey, JsonMapper json, Duration timeout, boolean runtime) {
+        RuntimePolicy.endpoint(endpoint, "api.decart.ai", "/v1/client/tokens", runtime);
+        if (!runtime && (!"127.0.0.1".equals(endpoint.getHost()) || endpoint.getPort() <= 0
+                || !"/v1/client/tokens".equals(endpoint.getPath()))) throw new IllegalArgumentException("Invalid fixture endpoint");
         if (!"true".equals(System.getProperty("jdk.httpclient.disableRetryConnect"))
                 || !"false".equals(System.getProperty("jdk.httpclient.enableAllMethodRetry")))
             throw new IllegalStateException("Fixture JVM must explicitly disable HTTP retries");
-        if (syntheticKey == null || !syntheticKey.startsWith("synthetic-") || !syntheticKey.matches("[a-zA-Z0-9-]{10,128}"))
-            throw new IllegalArgumentException("Fixture requires a synthetic credential");
+        RuntimePolicy.tokenKey(syntheticKey, runtime);
         if (timeout.isNegative() || timeout.isZero() || timeout.compareTo(Duration.ofSeconds(10)) > 0)
             throw new IllegalArgumentException("Fixture deadline out of range");
         this.endpoint = endpoint; this.key = syntheticKey; this.json = json; this.timeout = timeout;

@@ -19,10 +19,10 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.*;
 
-/** M12本机替身组合服务：只允许有独立所有权标记的临时schema，无真实供应商出口。 */
+/** 实时换装签发服务；默认临时schema替身，正式模式沿用相同权益事务与令牌校验。 */
 @Service
 @Profile("local")
-@ConditionalOnProperty(name = "migration.studio-fixture-enabled", havingValue = "true")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnExpression("${migration.studio-fixture-enabled:false} or (${migration.runtime-enabled:false} and ${migration.studio-enabled:false})")
 public class StudioFixtureService {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate transaction;
@@ -32,21 +32,18 @@ public class StudioFixtureService {
     private final FixtureTokenTransport transport;
     private final JsonNode policy;
     private final String schema;
-    private final String key = "synthetic-studio-permanent-key";
+    private final String key;
 
     public StudioFixtureService(JdbcTemplate jdbc, PlatformTransactionManager manager, Environment env,
                                 EntitlementReservationService reservations, AccountReader accounts, JsonMapper json) throws java.io.IOException {
         this.jdbc = jdbc; this.reservations = reservations; this.accounts = accounts; this.json = json;
-        String target = env.getRequiredProperty("migration.db-schema");
-        if (!target.matches("yingxiang_migration_it_[a-f0-9]{12}")) throw new IllegalStateException("Studio fixture requires a temporary schema");
-        String owner = jdbc.queryForObject("SELECT obj_description(oid,'pg_namespace') FROM pg_namespace WHERE nspname=?", String.class, target);
-        if (!("yingxiang-m10b-integration:" + target).equals(owner)) throw new IllegalStateException("Studio fixture schema ownership mismatch");
-        schema = '"' + target + '"' + ".";
+        schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "studio");
+        key = RuntimePolicy.runtime(env) ? env.getRequiredProperty("migration.studio-key") : "synthetic-studio-permanent-key";
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         transaction.setTimeout(10);
         try (var stream = getClass().getResourceAsStream("/studio-policy.json")) { policy = json.readTree(stream); }
-        transport = new FixtureTokenTransport(URI.create(env.getRequiredProperty("migration.studio-fixture-url")), key, json, Duration.ofSeconds(10));
+        transport = new FixtureTokenTransport(URI.create(env.getRequiredProperty(RuntimePolicy.runtime(env) ? "migration.studio-token-url" : "migration.studio-fixture-url")), key, json, Duration.ofSeconds(10), RuntimePolicy.runtime(env));
     }
 
     @PreDestroy public void close() { transport.close(); }

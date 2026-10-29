@@ -401,7 +401,7 @@ def main():
         check(legacy[0] == 503 and parse(legacy)['error']['code'] == 'SERVICE_DISABLED', 'legacy sessions stay disabled')
         check(call('GET', '/api/not-real')[0] == 404 and parse(call('GET', '/api/not-real'))['error']['code'] == 'NOT_FOUND',
               'unknown api 404 json')
-        check(call('GET', '/api/internal/ready')[0] == 503, 'upstream is Java readiness, not FastAPI')
+        check(call('GET', '/api/internal/ready')[0] == 200 and parse(call('GET', '/api/internal/ready'))['role'] == 'api', 'Java dependency readiness succeeds')
         check(call('GET', '/api/account/me')[0] == 200, 'anonymous me through nginx')
         check(call('GET', '/api/account/login')[0] == 404, 'GET on POST account action is 404')
 

@@ -23,9 +23,12 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 
 /** 迁移入口的显式关闭边界；每个切片只开放已实现且验证过的路径。 */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public final class OfflineBoundary extends OncePerRequestFilter {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private Readiness readiness;
     private final JsonMapper json;
     private final MigrationOrigin origin;
     private final List<Route> routes;
@@ -33,6 +36,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
     private final boolean authEnabled;
     private final boolean maintenance;
     private final boolean studioFixtureEnabled;
+    private final boolean studioEnabled;
     private final boolean paymentsEnabled;
     private final boolean adminEnabled;
     private final boolean videoEnabled;
@@ -57,27 +61,33 @@ public final class OfflineBoundary extends OncePerRequestFilter {
                 ? env.getDefaultProfiles() : env.getActiveProfiles()));
         boolean readOnly = env.getProperty("spring.datasource.hikari.read-only", Boolean.class, true);
         String schema = env.getProperty("migration.db-schema", "");
+        boolean runtime = RuntimePolicy.runtime(env);
+        boolean schemaAllowed = runtime ? "yingxiang_migration".equals(schema) : schema.matches("yingxiang_migration_it_[a-f0-9]{12}");
+        if (runtime && (!profiles.equals(Set.of("local")) || !"yingxiang_migration".equals(schema)
+                || studioFixtureEnabled)) throw new IllegalStateException("Invalid runtime configuration");
+        studioEnabled = runtime && env.getProperty("migration.studio-enabled", Boolean.class, false);
         if (!(profiles.equals(Set.of("offline")) || profiles.equals(Set.of("local")))
                 || !"127.0.0.1".equals(env.getProperty("server.address"))
                 || !"/api".equals(env.getProperty("server.servlet.context-path", "/api"))
                 || !"none".equalsIgnoreCase(env.getProperty("server.forward-headers-strategy", "none"))
+                || (!runtime && "yingxiang_migration".equals(schema) && !maintenance)
                 || (!maintenance && !authEnabled)
                 || (authEnabled && !profiles.equals(Set.of("local")))
                 || (studioFixtureEnabled && (!authEnabled || !profiles.equals(Set.of("local"))))
-                || (studioFixtureEnabled && (readOnly || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                || (studioFixtureEnabled && (readOnly || !schemaAllowed))
                 || (authEnabled && !maintenance && readOnly)
                 || ((paymentsEnabled || adminEnabled) && (!profiles.equals(Set.of("local")) || readOnly
-                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                    || !schemaAllowed))
                 || (videoEnabled && (!profiles.equals(Set.of("local")) || readOnly
-                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                    || !schemaAllowed))
                 || (worksEnabled && (!profiles.equals(Set.of("local")) || readOnly
-                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                    || !schemaAllowed))
                 || (promptEnabled && (!profiles.equals(Set.of("local")) || readOnly
-                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
+                    || !schemaAllowed))
                 || (compatibilityEnabled && (!profiles.equals(Set.of("local")) || readOnly
-                    || !schema.matches("yingxiang_migration_it_[a-f0-9]{12}")))
-                || env.getProperty("migration.allow-external-providers", Boolean.class, false)
-                || env.getProperty("migration.scenes-enabled", Boolean.class, false)
+                    || !schemaAllowed))
+                || (env.getProperty("migration.allow-external-providers", Boolean.class, false) && !runtime)
+                || (env.getProperty("migration.scenes-enabled", Boolean.class, false) && !runtime)
                 || env.getProperty("migration.stripe-live-enabled", Boolean.class, false)) {
             throw new IllegalStateException("M10-a requires the isolated migration configuration");
         }
@@ -119,7 +129,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         boolean compatibilityPath = compatibilityEnabled && path.startsWith("/api/v1/");
         boolean paymentPath = paymentsEnabled && path.startsWith("/api/payments/");
         boolean adminPath = adminEnabled && (path.startsWith("/api/admin/") || path.equals("/api/site/announcement"));
-        if (maintenance && !safe && ((authEnabled && authPath) || (studioFixtureEnabled && studioPath)
+        if (maintenance && !safe && ((authEnabled && authPath) || ((studioFixtureEnabled || studioEnabled) && studioPath)
                 || paymentPath || adminPath || videoPath || worksPath || promptPath)) {
             error(request, response, 503, "MAINTENANCE", "服务维护中，请稍后再试。", requestId);
             return;
@@ -130,7 +140,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         routes.stream().filter(route -> route.pattern().matcher(path).matches())
                 .forEach(route -> knownMethods.addAll(route.methods()));
         boolean methodMismatch = !knownMethods.isEmpty() && !knownMethods.contains(method);
-        boolean protectedPath = path.equals("/api/account/me") || authPath || (studioFixtureEnabled && studioPath)
+        boolean protectedPath = path.equals("/api/account/me") || authPath || ((studioFixtureEnabled || studioEnabled) && studioPath)
                 || (adminPath && !path.equals("/api/site/announcement")) || videoPath || worksPath || promptPath;
         if (!paymentPath && !compatibilityPath && !methodMismatch) {
             boolean wrongHost = !origin.hostAllowed(request.getHeader("Host"))
@@ -158,8 +168,8 @@ public final class OfflineBoundary extends OncePerRequestFilter {
             } else if (path.endsWith("/live")) {
                 write(request, response, 200, Map.of("status", "ok", "component", "java-api"));
             } else {
-                write(request, response, 503, Map.of("ready", false, "phase", "M10-a",
-                        "reason", "BUSINESS_MIGRATION_PENDING"));
+                Map<String,Object> result=readiness==null ? Map.of("ready",false,"reason","OFFLINE") : readiness.check();
+                write(request,response,Boolean.TRUE.equals(result.get("ready")) ? 200 : 503,result);
             }
             return;
         }
@@ -183,7 +193,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } else if (authEnabled && !maintenance && authPath && method.equals("POST")) {
             chain.doFilter(request, response);
-        } else if (studioFixtureEnabled && studioPath) {
+        } else if ((studioFixtureEnabled || studioEnabled) && studioPath) {
             chain.doFilter(request, response);
         } else if (paymentPath || adminPath || videoPath || worksPath || promptPath || compatibilityPath) {
             chain.doFilter(request, response);

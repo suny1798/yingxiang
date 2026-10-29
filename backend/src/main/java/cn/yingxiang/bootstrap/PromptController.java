@@ -12,6 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 
 /** M16实时编辑入口：状态公开；令牌要求本人会话、精确来源与编辑访问凭据。 */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
 @ConditionalOnProperty(name = "migration.prompt-enabled", havingValue = "true")

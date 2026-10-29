@@ -88,10 +88,9 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
         maxAttempts = (int) Math.min(10, positive(env, "migration.worker-max-attempts", 3L));
         key = env.getProperty("migration.video-key", "").strip();
         providerBase = env.getProperty("migration.video-provider-url", "").replaceAll("/+$", "");
+        if (RuntimePolicy.runtime(env)) RuntimePolicy.tokenKey(key, true);
         URI uri = URI.create(providerBase.isEmpty() ? "http://127.0.0.1:1" : providerBase);
-        if (!(uri.getHost() != null && Set.of("127.0.0.1", "localhost", "::1").contains(uri.getHost()))) {
-            throw new IllegalStateException("M17 worker provider must be loopback");
-        }
+        RuntimePolicy.endpoint(uri, "api.decart.ai", "", RuntimePolicy.runtime(env));
         client = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5))
                 .followRedirects(HttpClient.Redirect.NEVER).build();
     }
@@ -108,10 +107,15 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     @Override public void setEnvironment(Environment environment) { this.environment = environment; }
     public String workerId() { return workerId; }
 
+    @org.springframework.context.event.EventListener(org.springframework.boot.context.event.ApplicationReadyEvent.class)
+    public void ready() { System.out.println("YINGXIANG_WORKER_READY"); }
+
     @Override public void start() {
+        if (!"worker".equals(environment.getProperty("migration.role", "api")))
+            throw new IllegalStateException("Worker role required");
         if (!running.compareAndSet(false, true)) return;
         thread = new Thread(this::loop, "yingxiang-worker-" + workerId);
-        thread.setDaemon(true);
+        thread.setDaemon(false);
         thread.start();
     }
 

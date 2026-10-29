@@ -69,13 +69,13 @@ public interface StripeGateway {
                 .followRedirects(HttpClient.Redirect.NEVER).build();
 
         public Http(String base, String secret) {
-            URI uri = URI.create(base);
-            String host = uri.getHost();
-            if (!Set.of("http", "https").contains(uri.getScheme()) || host == null
-                    || !(host.equals("127.0.0.1") || host.equals("localhost") || host.equals("::1"))
-                    || uri.getQuery() != null || uri.getFragment() != null || uri.getUserInfo() != null) {
-                throw new IllegalStateException("Stripe fixture base must be loopback");
-            }
+            this(base, secret, false);
+        }
+
+        public Http(String base, String secret, boolean runtime) {
+            try { RuntimePolicy.endpoint(URI.create(base), "api.stripe.com", "", runtime); }
+            catch (IllegalArgumentException failure) { throw new IllegalStateException("Stripe endpoint rejected"); }
+            if (runtime && !secret.matches("^(rk|sk)_test_.+")) throw new IllegalStateException("Only Stripe sandbox permitted");
             this.base = base.replaceAll("/+$", "");
             this.secret = secret;
         }

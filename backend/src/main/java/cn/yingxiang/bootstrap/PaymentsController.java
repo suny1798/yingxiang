@@ -12,6 +12,7 @@ import tools.jackson.databind.json.JsonMapper;
 import java.io.IOException;
 
 /** M13-a路由；支付门禁先于来源/请求体检查，与旧入口顺序一致。 */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
 @ConditionalOnProperty(name = "migration.payments-enabled", havingValue = "true")

@@ -61,7 +61,7 @@ public class PaymentsService {
         this.secret = env.getProperty("migration.stripe-secret", "");
         this.webhookSecret = env.getProperty("migration.stripe-webhook-secret", "");
         this.expectedAccount = env.getProperty("migration.stripe-expected-account", "");
-        this.gateway = new StripeGateway.Http(env.getRequiredProperty("migration.stripe-api-base"), secret);
+        this.gateway = new StripeGateway.Http(env.getRequiredProperty("migration.stripe-api-base"), secret, RuntimePolicy.runtime(env));
         transaction = new TransactionTemplate(manager);
         transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
         transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);

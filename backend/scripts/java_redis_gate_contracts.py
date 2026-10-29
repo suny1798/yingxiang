@@ -115,6 +115,7 @@ class RedisProxy:
             def handle(self):
                 try:
                     upstream = socket.create_connection((REDIS_HOST, REDIS_PORT), timeout=5)
+                    upstream.settimeout(None)
                 except OSError:
                     return
                 with proxy.lock:
@@ -268,28 +269,30 @@ def start_worker(schema, storage, provider_port):
         'java', '-Djdk.httpclient.disableRetryConnect=true', '-Djdk.httpclient.enableAllMethodRetry=false',
         '-jar', str(JAR), f'--server.port={port}', f'--migration.db-schema={schema}',
         '--migration.auth-enabled=true', '--migration.maintenance=false', '--migration.account-read-enabled=true',
-        '--migration.worker-enabled=true', f'--migration.worker-id=m19-worker',
+        '--migration.role=worker', '--migration.worker-enabled=true', f'--migration.worker-id=m19-worker',
         f'--migration.storage-root={storage}', f'--migration.video-key={KEY}',
         f'--migration.video-provider-url=http://127.0.0.1:{provider_port}',
         '--migration.worker-lease-ms=5000', '--migration.worker-retry-ms=300', '--migration.worker-poll-ms=100',
         f'--migration.public-origin={ORIGIN}', '--spring.datasource.hikari.read-only=false',
     ], cwd=BACKEND, stdout=log, stderr=log)
-    deadline = time.monotonic() + 60
+    deadline=time.monotonic()+60
     while True:
-        assert process.poll() is None, 'worker process exited; raw log suppressed'
-        try:
-            connection = http.client.HTTPConnection('127.0.0.1', port, timeout=2)
-            try:
-                connection.request('GET', '/api/internal/live', headers={'Host': HOST})
-                if connection.getresponse().status == 200:
-                    break
-            finally:
-                connection.close()
-        except OSError:
-            pass
-        if time.monotonic() > deadline:
-            raise AssertionError('worker startup deadline exceeded')
+        if process.poll() is not None:
+            import re
+            log.seek(0)
+            safe=log.read().decode('utf-8',errors='replace')
+            beans=re.findall("Error creating bean with name '([A-Za-z0-9]+)'",safe)
+            causes=re.findall(r'Caused by: ([A-Za-z0-9.$]+)',safe)
+            raise AssertionError('worker startup failed: beans='+str(beans)+' causes='+str(causes)+' exit='+str(process.returncode)+' summary='+str([line for line in safe.splitlines() if any(word in line for word in ['WebApplicationType','required a bean','Consider defining','non-web','APPLICATION FAILED','Web server failed'])]))
+        log.seek(0)
+        ready=b'YINGXIANG_WORKER_READY' in log.read()
+        log.seek(0,2)
+        if ready: break
+        assert time.monotonic()<deadline, 'worker startup timeout'
         time.sleep(.1)
+    with socket.socket() as probe:
+        probe.settimeout(1)
+        check(probe.connect_ex(('127.0.0.1',port))!=0, 'worker has no HTTP listener')
     return process
 
 
@@ -358,6 +361,8 @@ def main():
     proxy.start()
     for key in ('auth:global', 'auth:m19_alice', 'signup', 'video-prepare:global'):
         redis('DEL', 'yingxiang:migration:test:rate:' + key)
+    # 目标已有更小计数和更短窗口，必须原子提升至旧库窗口。
+    redis("SET", "yingxiang:migration:test:rate:auth:m19_alice", 1, "PX", 60000)
     api = worker = None
     try:
         api, request = start_api(schema, storage, stub.port, proxy_port)
@@ -378,7 +383,11 @@ def main():
         check(int(redis('GET', 'yingxiang:migration:test:rate:auth:m19_alice')) == 11,
               'redis count advanced from imported floor')
 
-        holder = fixture('upload-acquire', schema, {'owner': 'fixture-holder', 'leaseMs': 30000})
+        check(redis('PTTL','yingxiang:migration:test:rate:auth:m19_alice') > 60000, 'import does not shorten old window')
+        stop(api)
+        api, request=start_api(schema,storage,stub.port,proxy_port)
+        check(int(redis('GET','yingxiang:migration:test:rate:auth:m19_alice'))==11, 'repeat import neither adds nor reduces count')
+        holder = fixture('upload-acquire' , schema, {'owner': 'fixture-holder', 'leaseMs': 30000})
         check(holder.get('acquired') is True, 'fixture holds global upload slot')
         busy = prepare(request)
         check(busy[0] == 503 and json.loads(busy[2])['error']['code'] == 'VIDEO_BUSY',

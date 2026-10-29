@@ -1,0 +1,37 @@
+# 模板不自动加载。PG/Redis连接继续用私有config/application-local.yml；不复制密钥。
+# 正式切换仍须M21/M22/G3；本文件不构成切流或费用授权。
+migration:
+  runtime-enabled: true
+  role: api                       # worker角色另设worker-enabled=true；自动无HTTP
+  worker-enabled: false
+  db-schema: yingxiang_migration
+  maintenance: true               # sealed导入、Flyway、存储就绪后才允许显式解除
+  auth-enabled: false
+  account-read-enabled: true
+  allow-external-providers: false
+  scenes-enabled: false
+  studio-fixture-enabled: false
+  studio-enabled: false
+  studio-token-url: https://api.decart.ai/v1/client/tokens
+  studio-key: ${YINGXIANG_DECART_KEY:}
+  prompt-enabled: false
+  prompt-token-url: https://api.decart.ai/v1/client/tokens
+  prompt-key: ${YINGXIANG_DECART_KEY:}
+  prompt-allowed-usernames: suny
+  prompt-unlimited-usernames: suny
+  video-enabled: false
+  video-provider-url: https://api.decart.ai
+  video-key: ${YINGXIANG_DECART_KEY:}
+  video-allowed-usernames: suny
+  video-budget-usd: '5'
+  video-max-jobs: '20'
+  payments-enabled: false
+  stripe-api-base: https://api.stripe.com
+  stripe-secret: ${YINGXIANG_STRIPE_TEST_KEY:}
+  stripe-webhook-secret: ${YINGXIANG_STRIPE_WEBHOOK_SECRET:}
+  stripe-expected-account: ${YINGXIANG_STRIPE_ACCOUNT:}
+  stripe-live-enabled: false
+  admin-enabled: false
+  works-enabled: false
+  compatibility-enabled: false
+  # storage-root及redis-namespace须使用正式独立私有路径和命名空间，不复用测试目录。

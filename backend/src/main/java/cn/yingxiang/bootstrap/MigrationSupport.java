@@ -39,6 +39,10 @@ final class MigrationSupport {
 
     static String requireIsolatedSchema(JdbcTemplate jdbc, Environment env, String purpose) {
         String target = env.getRequiredProperty("migration.db-schema");
+        if (RuntimePolicy.runtime(env)) {
+            if (!"yingxiang_migration".equals(target)) throw new IllegalStateException("Runtime requires the designated schema");
+            return quotedSchema(env);
+        }
         if (!target.matches("yingxiang_migration_it_[a-f0-9]{12}")) {
             throw new IllegalStateException(purpose + " requires a temporary schema");
         }

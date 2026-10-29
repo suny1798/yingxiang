@@ -26,6 +26,13 @@ public class RateLimitService implements ApplicationRunner {
                     + "if existed==0 then redis.call('PEXPIRE',KEYS[1],ARGV[1]) end;"
                     + "return {count,redis.call('PTTL',KEYS[1]),existed}", List.class);
 
+    // 合并旧窗口与已有窗口：不叠加、不降低计数、不缩短TTL，同一脚本原子执行。
+    static final DefaultRedisScript<List> IMPORT = new DefaultRedisScript<>(
+            "local old=redis.call('GET',KEYS[1]);"
+            + "local count=math.max(tonumber(old or '0'),tonumber(ARGV[1]));"
+            + "local ttl=math.max(redis.call('PTTL',KEYS[1]),tonumber(ARGV[2]));"
+            + "redis.call('SET',KEYS[1],tostring(count),'PX',ttl);return {count,ttl}", List.class);
+
     private final JdbcTemplate jdbc;
     private final StringRedisTemplate redis;
     private final MigrationAccounts accounts;
@@ -97,7 +104,7 @@ public class RateLimitService implements ApplicationRunner {
         }
     }
 
-    /** 将旧PG限流窗口原样导入Redis；键已存在时不增加也不减小计数。 */
+    /** 原子合并旧PG与Redis窗口；取较大计数及较长TTL，重复导入不叠加。 */
     public void importWindows() {
         if (!enabled || !importWindows) return;
         long now = System.currentTimeMillis();
@@ -107,9 +114,11 @@ public class RateLimitService implements ApplicationRunner {
             long count = MigrationSupport.number(row, "count");
             long until = MigrationSupport.number(row, "until");
             String redisKey = namespace + ":rate:" + key;
-            Boolean created = redis.opsForValue().setIfAbsent(redisKey, Long.toString(count),
-                    Duration.ofMillis(Math.max(1, until - now)));
-            if (Boolean.TRUE.equals(created)) shadow(key, count, until);
+            List<?> merged = redis.execute(IMPORT, List.of(redisKey), Long.toString(count),
+                    Long.toString(Math.max(1, until - System.currentTimeMillis())));
+            if (merged == null || merged.size() != 2) throw unavailable();
+            shadow(key, ((Number) merged.get(0)).longValue(),
+                    System.currentTimeMillis() + ((Number) merged.get(1)).longValue());
         }
     }
 

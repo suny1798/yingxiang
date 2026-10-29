@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 /** M15作品入口：本人会话＋精确来源＋可选X-Work-Owner绑定；文件支持Range。 */
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @RestController
 @Profile("local")
 @ConditionalOnProperty(name = "migration.works-enabled", havingValue = "true")
