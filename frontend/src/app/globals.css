@@ -1,3 +1,17 @@
+@font-face {
+  font-family: "Inter";
+  src: url('/assets/fonts/inter-4.1/InterVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url('/assets/fonts/inter-4.1/InterVariable-Italic.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
 :root {
   color-scheme: light;
   --paper: #f8f7f4;
@@ -13,8 +27,8 @@
   --error: #9b4037;
   --on-accent: #fffefa;
   --preview-background: #eeebe6;
-  /* 拉丁字符共用清晰的系统无衬线；中文标题仍保留原宋体风格。 */
-  --font-latin: "Segoe UI", "Helvetica Neue", Arial;
+  /* 拉丁字符自托管 Inter，跨平台保持一致；中文继续使用本地字体。 */
+  --font-latin: "Inter", "Helvetica Neue", Arial;
   --font-body: var(--font-latin), "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
   --font-display: var(--font-latin), "Songti SC", "STSong", "SimSun", serif;
   --font-scale: 1.15;
@@ -38,7 +52,7 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; scroll-padding-top: 89px; scrollbar-gutter: stable both-edges; }
-body { margin: 0; background: var(--paper); color: var(--ink); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(14px * var(--font-scale))); line-height: 1.6; font-family: var(--font-body);; padding-bottom: 0; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(14px * var(--font-scale))); line-height: 1.6; font-family: var(--font-body); font-optical-sizing: auto; padding-bottom: 0; -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; }
 button, a, input { -webkit-tap-highlight-color: transparent; }
 button, a { touch-action: manipulation; }
@@ -69,5 +83,12 @@ body { background-color:var(--paper); background-image:url('/assets/ambient-pebb
 :root:lang(en) { --font-display: var(--font-body); }
 :root:lang(en) body :is(h1, h2, h3, h4, h5, h6) {
   letter-spacing: -.02em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+:root:lang(en) body h1 { line-height: 1.12; letter-spacing: -.035em; }
+:root:lang(en) body :is(h3, h4, h5, h6) { line-height: 1.4; }
+:root:lang(en) body p { line-height: 1.65; }
+:root:lang(en) body :is(button, header nav a) {
   font-weight: 500;
 }

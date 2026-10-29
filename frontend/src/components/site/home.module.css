@@ -24,3 +24,4 @@
 .ownership h2 { margin:16px 0 0; font:400 max(var(--font-min),calc(32px * var(--font-scale)))/1.6 var(--font-display); }.ownership h2 span { display:block; color:var(--accent); }
 .principles p { display:flex; gap:20px; padding:15px 0; border-bottom:1px solid var(--line); }.principles strong { flex-shrink:0; font-size:max(var(--font-min),calc(12px * var(--font-scale))); font-weight:500; }.principles p span { font-size:max(var(--font-min),calc(12px * var(--font-scale))); line-height:1.8; color:var(--muted); }.principles>a { display:inline-flex; gap:25px; margin-top:20px; color:var(--accent); font-size:max(var(--font-min),calc(12px * var(--font-scale))); }
 @media(prefers-reduced-motion:reduce) { .sceneArt img { transition:none; }.sceneFeature:hover .sceneArt img { transform:none; } }
+:global(html[lang="en"]) .principles p span { line-height: 1.65; }

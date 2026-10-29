@@ -152,9 +152,15 @@
 :global(html[lang="en"]) .brand,
 :global(html[lang="en"]) .footerBrand {
   font-family: var(--font-body);
-  font-weight: 500;
-  letter-spacing: .04em;
+  font-weight: 600;
+  letter-spacing: -.03em;
 }
 :global(html[lang="en"]) .eyebrow { letter-spacing: .08em; }
 :global(html[lang="en"]) .accountItemText strong,
 :global(html[lang="en"]) .accountSignout { letter-spacing: normal; }
+:global(html[lang="en"]) .stepTop > span:first-child {
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: -.04em;
+}
+:global(html[lang="en"]) .heroDescription { line-height: 1.65; }
