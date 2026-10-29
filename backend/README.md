@@ -297,3 +297,16 @@ Worker不提交生成、不读取正式库、不记录媒体或凭据；M18已�
 默认`migration.studio-fixture-enabled=false`，不开放生成。完整验收使用`.venv/Scripts/python.exe -m scripts.java_studio_contracts`：工具自建有所有权标记的随机临时PG schema、回环HTTP替身和实际Jar，结束清理；不读取旧业务.env，不访问真实模型／支付。正式yingxiang_migration不允许启用此替身。
 
 替身JVM明确传入`-Djdk.httpclient.disableRetryConnect=true -Djdk.httpclient.enableAllMethodRetry=false`，只接受数字回环URL与内置synthetic凭据。不要给替身填真实模型key。运行前先Wrapper verify；需要本机config/application-local.yml中已验证的PG连接。最终28项JUnit、75项签发／观测／崩溃对照、31项权益回归通过，见[M12-b3报告](../docs/reports/2026-10-27-M12-b3-替身签发与观测闭环.md)。Vue页面、同源入口及迁移后真实模型复验仍未完成。
+
+
+## 正式运行收尾配置（M20-r）
+
+`config/application-runtime.example.yml`仅为安全模板，**不自动加载**。实际PG/Redis连接仍在私有`config/application-local.yml`；以`--spring.config.additional-location=file:<私有运行覆盖文件>`显式叠加运行配置。默认维护、场景关闭及Stripe正式支付关闭不变；`runtime-enabled=true`不代表G3已通过，也不会自动导入或调用供应商。
+
+- 默认隔离模式仍只允许临时schema和本机替身。正式模式只接受`yingxiang_migration`与固定HTTPS `api.decart.ai`／`api.stripe.com`，Stripe仅接受test密钥。模型／SDK／提示模板未升级。正式视频白名单不能为空，实时编辑不限次账号必须在允许名单内。
+- 正式解除维护前，启动检查Flyway全部版本及校验和、私有卷与唯一sealed导入批次。导入工具正式目标扩展、最终停写与切流仍属于M21/M22；不要手工伪造sealed状态绕过准入。
+- API角色为`migration.role=api`、`worker-enabled=false`；Worker为`migration.role=worker`、`worker-enabled=true`，同Jar自动启动非Web上下文，不注册Controller／安全过滤链、不监听HTTP。API误开Worker或Worker未开任务均拒绝启动。Worker输出固定`YINGXIANG_WORKER_READY`，任务状态仍以PG为准；不输出媒体、密钥或用户信息。
+- `/api/internal/live`仅检查进程；`/api/internal/ready`真实核对schema、Flyway、必要私有卷和运行角色，成功200，失败脱敏503。Redis故障仍通过业务门禁返回503，不阻断已提交任务读取与收尾；连接和命令超时固定默认2秒。
+- Redis旧窗口以Lua原子取较大计数、较长TTL；重复导入不叠加。测试前置中已有较小Redis计数也须提升到旧库值。
+
+隔离全套回归：`./mvnw.cmd -q package`后运行`.venv/Scripts/python.exe -m scripts.runtime_closure_contracts`，自建并清理临时PG15／Redis6（Redis回环56379和容器名`yingxiang-m17-redis`须空闲），不读取本机密钥配置、不访问正式数据库或真实供应商。PG18验证、真实效果／账单和正式切流均未包含。

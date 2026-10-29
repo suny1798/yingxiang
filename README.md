@@ -145,3 +145,6 @@ Git 不自动提交或推送；改动与验证先供审核，收到明确同意�
 
 
 作品媒体位于`backend/data/users/<用户UUID>/works/<作品UUID>/`，与SQLite索引分开、按用户隔离，不在public或静态目录暴露；访问/下载/参考图均逐请求鉴权，Range请求经同源代理。备份须同时保存SQLite和用户文件目录。接口及验收依据FR46/T47，实际合成验证见[作品验收报告](docs/reports/2026-10-26-默认保存与我的作品.md)。
+
+
+2026-10-29已补[正式运行与门禁收尾M20-r](docs/reports/2026-10-29-M20-r-正式运行与门禁收尾.md)：显式正式schema／HTTPS供应商适配、Redis窗口原子合并、实际readiness与无HTTP Worker已在隔离环境验证。默认维护／场景关闭，8787仍Vue入口、8788仍FastAPI；未执行正式后端切流。安全配置模板与运行说明见[后端手册](backend/README.md#正式运行收尾配置m20-r)。
