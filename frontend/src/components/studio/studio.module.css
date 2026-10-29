@@ -311,7 +311,7 @@
 @media(prefers-reduced-motion:reduce) { .floating-card, .imagine-orbit, .imagine-orbit:after, .connection-sweep:after { animation: none !important; }.connection-sweep:after { left: 30%; } }
 
 /* 创作工作区按窗口分配空间，不以隐藏页面滚动裁掉主要操作。 */
-.studio { --frame-heading: 38px; --frame-toolbar: 46px; --frame-controls: 42px; --frame-details: 84px; height: 100dvh; min-height: 0; padding-bottom: 0; display: flex; flex-direction: column; }
+.studio { --frame-heading: 38px; --frame-toolbar: 46px; --frame-controls: 56px; --frame-details: 0px; height: 100dvh; min-height: 0; padding-bottom: 0; display: flex; flex-direction: column; }
 .studio > header { flex: none; }
 .studio .creation-shell { position: relative; flex: 1; min-height: 0; width: min(1760px, calc(100% - 48px)); max-width: 1760px; margin-inline: auto; display: flex; flex-direction: column; padding: 12px 0 8px 132px; }
 .studio .workbench-title { flex: none; margin-bottom: 10px; }
@@ -460,4 +460,24 @@
 /* 桌面端把录制说明变成一条完整底栏，避免详情行只剩一个复选框和空白。 */
 @media (min-width: 1101px) {
   .studio[data-mode=realtime] .recording-bar { height: 100%; min-height: 0; align-items: center; padding: 0; }
+}
+
+/* 桌面创作区与衣装灵感同宽：只保留一行画面操作，将详情移到素材栏。 */
+@media (min-width: 1101px) {
+  .studio { --frame-controls: 56px; --frame-details: 0px; }
+  .studio .creation-shell { width: min(1600px, calc(100% - 112px)); max-width: 1600px; }
+  .studio [data-preview-controls] { display: flex; flex-wrap: nowrap; gap: 14px; }
+  .studio .preview-actions { flex-shrink: 0; margin-left: auto; }
+  .studio .recording-bar { flex: 1; flex-wrap: nowrap; min-width: 0; gap: 8px; border: 0; }
+  .studio .recording-bar .record-toggle { min-width: 0; flex-shrink: 1; }
+  .studio .recording-bar .record-toggle > span { min-width: 0; }
+  .studio .recording-bar .record-toggle strong { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .studio .recording-bar [role=status] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .studio .recording-bar > div { gap: 9px; flex-shrink: 0; }
+}
+@media (min-width: 1101px) and (max-width: 1270px) {
+  .studio .creation-shell { width: calc(100% - 72px); padding-left: 120px; }
+  .studio .creation-shell .workspace { grid-template-columns: 250px minmax(0, 1fr); gap: 18px; }
+  .studio [data-preview-controls] { gap: 8px; }
+  .studio .recording-bar .record-toggle strong { font-size: 10px; }
 }

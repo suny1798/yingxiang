@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WorkspacePreview from './WorkspacePreview.vue';
 import { computed,ref,watch } from 'vue';
 import type { CameraPreviewState } from '../lib/media/camera-preview-session';
 import type { LocalCamera } from '../lib/media/local-camera';
@@ -45,7 +46,7 @@ function onConsent(event:Event){emit('consent',(event.target as HTMLInputElement
 function onDownload(){if(downloadBusy.value)cancelDownload();else download(frame.value.mirrored);}
 </script>
 <template>
-  <section data-workspace-preview id="preview" :class="[base['mirror-panel'],base.panel,base['compact-mirror']]" :aria-label="t('相机与映想画面')">
+  <WorkspacePreview id="preview" :class="[base['mirror-panel'],base.panel,base['compact-mirror']]" :aria-label="t('相机与映想画面')">
     <div data-preview-heading :class="base['mirror-heading']"><h2>{{t('画面')}}</h2><span :class="base['session-status']" role="status"><span :class="[base['status-dot'],{[base.neutral]:!stream}]"/>{{t(status)}}</span></div>
     <div data-preview-toolbar :class="base['duration-bar']"><span>{{t('本次时长')}}</span><div role="group" :aria-label="t('每次换装时长')"><button v-for="seconds in DURATION_OPTIONS" :key="seconds" type="button" :disabled="active||checking" :aria-pressed="snapshot.durationSec===seconds" @click="emit('duration',seconds)">{{t(durationLabel(seconds))}}</button></div><span :class="base['duration-note']">{{t(active?snapshot.deadlineAt===null?'连接中 · 出画后计时':'出画后计时 · 换衣不续时':snapshot.durationSec===15?'免费体验':loggedIn&&remaining>0?`可用${remaining}次`:'需对应权益')}}</span></div>
     <div data-preview-viewport :class="base['preview-viewport']"><div ref="stage" data-preview-stage :class="[base['mirror-stage'],base['preview-frame']]" :data-state="snapshot.phase">
@@ -71,14 +72,14 @@ function onDownload(){if(downloadBusy.value)cancelDownload();else download(frame
       </div>
     </div></div>
     <div data-preview-controls :class="base['preview-controls']"><div :class="base['view-switch']" role="group" :aria-label="t('画面切换')"><button type="button" :aria-pressed="!generated" :class="!generated?base.selected:''" @click="selectView('original')">{{t('相机原画')}}</button><button type="button" :aria-pressed="generated" :class="generated?base.selected:viewHint?base['view-hint']:''" @click="selectView('generated')">{{t('映想画面 ')}}<span aria-hidden="true">✳</span></button></div>
+      <div data-preview-save :class="base['recording-bar']">
+        <RouterLink :class="base['record-toggle']" to="/works"><span><strong>{{t('自动保存 · 我的作品 ↗')}}</strong></span></RouterLink>
+        <span role="status">{{t(save.message??(save.phase==='error'?'保存未完成，请查看我的作品':save.phase==='saved'?'已保存到我的作品':recording.phase==='recording'?'正在录制并后台保存…':save.phase==='saving'?'后台保存中…':recording.message??''))}}</span>
+        <div v-if="recording.url"><button type="button" :aria-pressed="showReplay" @click="toggleReplay">{{t(showReplay?'返回实时画面':'回放视频')}}</button><button type="button" :class="base['download-button']" @click="onDownload">{{t(downloadBusy?'取消导出':'下载视频 ↓')}}</button><button type="button" @click="clearReplay">{{t('清除回放')}}</button></div>
+      </div>
       <div :class="base['preview-actions']"><button v-if="active" type="button" :class="base['stop-button']" @click="emit('stop')"><span :class="base['stop-square']"/>{{t('结束换装')}}</button><MirrorButton :mirrored="frame.mirrored" :disabled="downloadBusy" @toggle="toggleMirror"/><button type="button" :class="base['camera-button']" :aria-pressed="Boolean(stream)||requesting" @click="emit('cameraToggle')"><StudioIcon name="camera"/>{{t(requesting?'取消打开':stream?'关闭相机':'打开相机')}}</button></div>
     </div>
-    <div data-preview-details :class="base['recording-bar']">
-      <RouterLink :class="base['record-toggle']" to="/works"><span><strong>{{t('自动保存到我的作品 ↗')}}</strong><small>{{t('生成视频与本次服装参考图')}}</small></span></RouterLink>
-      <span role="status">{{t(save.message??(save.phase==='error'?'保存未完成，请查看我的作品':save.phase==='saved'?'已保存到我的作品':recording.phase==='recording'?'正在录制并后台保存…':save.phase==='saving'?'后台保存中…':recording.message??''))}}</span>
-      <div v-if="recording.url"><button type="button" :aria-pressed="showReplay" @click="toggleReplay">{{t(showReplay?'返回实时画面':'回放视频')}}</button><button type="button" :class="base['download-button']" @click="onDownload">{{t(downloadBusy?'取消导出':'下载视频 ↓')}}</button><button type="button" @click="clearReplay">{{t('清除回放')}}</button></div>
-      <span v-if="!recording.url&&!recording.message&&recording.phase==='idle'" :class="base['record-hint']">{{t('仅生成画面 · 无音频')}}</span>
-    </div>
+
     <p v-if="previewState.message" :class="base['camera-error']" role="alert">{{t(previewState.message)}}</p>
-  </section>
+  </WorkspacePreview>
 </template>

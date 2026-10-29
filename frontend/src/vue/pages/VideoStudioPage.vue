@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import WorkspacePreview from '../WorkspacePreview.vue';
 import { computed,onMounted,onUnmounted,ref,watch } from 'vue';
 import { useLocalVideoStudio } from '../use-local-video-studio';
 import { useVideoJobs } from '../use-video-jobs';
@@ -98,8 +99,13 @@ async function submit(){
         <div v-if="jobsState.preparing" :class="s.preparation" role="status"><strong>{{t(preparationLabel)}}</strong><progress :aria-label="t('视频处理进度')" max="100" :value="jobsState.preparation?.percent"/><button type="button" @click="cancelPreparation">{{t('取消处理')}}</button></div>
         <div v-else-if="video.validating" :class="s.preparation" role="status"><strong>{{t('正在检查视频…')}}</strong><button type="button" @click="cancel">{{t('取消')}}</button></div>
         <p v-if="video.error" role="alert" :class="s.error">{{t(video.error)}}</p>
+        <div :class="s.submitArea">
+          <label :class="s.consent"><input v-model="consent" type="checkbox" :disabled="jobsState.submitting||jobsState.preparing"/><span>{{t('同意云端处理 · ')}}<RouterLink to="/privacy#video" target="_blank" rel="noopener noreferrer">{{t('隐私说明 ↗')}}</RouterLink><span> · </span><RouterLink to="/works">{{t('自动保存 · 我的作品 ↗')}}</RouterLink></span></label>
+          <div :class="s.submitRow"><p :class="service&&!service.available?undefined:s.submitHint">{{t(hint)}}</p><button type="button" :class="s.generate" :disabled="!canSubmit" @click="submit">{{t(submitLabel)}}<span aria-hidden="true">↗</span></button></div>
+          <p v-if="jobsState.error||accountSnapshot.error" role="alert" :class="s.error">{{t(jobsState.error??accountSnapshot.error??'')}}</p>
+        </div>
       </section>
-      <div ref="slot" :class="base['preview-slot']"><section data-workspace-preview :class="s.output" aria-labelledby="video-preview-title">
+      <div ref="slot" :class="base['preview-slot']"><WorkspacePreview :class="s.output" aria-labelledby="video-preview-title">
         <div data-preview-heading :class="s.outputHeading"><h2 id="video-preview-title">{{t(showResult&&resultUrl?'换装结果':'视频预览')}}</h2><span>{{t(status)}}</span><button v-if="selectedJob" type="button" :class="s.returnCreate" @click="returnCreate">{{t('返回创作')}}</button></div>
         <div data-preview-toolbar :class="base['frame-toolbar']"><span>{{t('MP4 · 最长 ')}}{{VIDEO_POLICY.maxSeconds}}{{t(' 秒 · 自动移除音轨')}}</span><span>{{t(video.url?`本地预览 · ${video.seconds?.toFixed(1)} 秒`:'生成后可预览与下载')}}</span></div>
         <div data-preview-viewport :class="base['preview-viewport']"><div ref="stage" data-preview-stage :class="s.stage">
@@ -116,12 +122,7 @@ async function submit(){
           <div v-if="processing" role="status" :class="s.processing"><span :class="s.spinner" aria-hidden="true"/>{{t(selectedJob?VIDEO_STATE_LABEL[selectedJob.state]:'')}}<small>{{t('可离开页面，稍后回来查看')}}</small></div>
         </div></div>
         <div data-preview-controls :class="s.previewActions"><div :class="s.switch"><button type="button" :aria-pressed="!showResult" :disabled="!video.url" @click="showResult=false">{{t('原视频')}}</button><button type="button" :aria-pressed="showResult" :disabled="!resultUrl" @click="showResult=true">{{t('换装结果')}}</button></div><div :class="s.videoActions"><MirrorButton :mirrored="frame.mirrored" :disabled="downloadBusy" @toggle="toggleMirror"/><button v-if="resultUrl" type="button" data-preview-action :class="action.button" @click="onDownload"><StudioIcon name="download"/>{{t(downloadBusy?'取消导出':'下载视频')}}</button><button v-else type="button" data-preview-action :class="action.button" disabled :title="t('生成完成后可下载MP4')"><StudioIcon name="download"/>{{t('下载视频')}}</button></div></div>
-        <div data-preview-details :class="s.submitArea">
-          <label :class="s.consent"><input v-model="consent" type="checkbox" :disabled="jobsState.submitting||jobsState.preparing"/><span>{{t('同意云端处理 · ')}}<RouterLink to="/privacy#video" target="_blank" rel="noopener noreferrer">{{t('隐私说明 ↗')}}</RouterLink><span> · </span><RouterLink to="/works">{{t('自动保存 · 我的作品 ↗')}}</RouterLink></span></label>
-          <div :class="s.submitRow"><p :class="service&&!service.available?undefined:s.submitHint">{{t(hint)}}</p><button type="button" :class="s.generate" :disabled="!canSubmit" @click="submit">{{t(submitLabel)}}<span aria-hidden="true">↗</span></button></div>
-          <p v-if="jobsState.error||accountSnapshot.error" role="alert" :class="s.error">{{t(jobsState.error??accountSnapshot.error??'')}}</p>
-        </div>
-      </section></div>
+      </WorkspacePreview></div>
     </div>
     <footer :class="base['creation-footer']"><RouterLink to="/privacy#video" target="_blank" rel="noopener noreferrer">{{t('隐私与使用说明 ↗')}}</RouterLink><RouterLink to="/works">{{t('我的作品')}} ↗</RouterLink></footer>
   </main>

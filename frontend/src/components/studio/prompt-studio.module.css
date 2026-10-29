@@ -58,6 +58,16 @@
 .editDetails .inputRow textarea { height:100%; min-height:0; font-size:max(var(--font-min), calc(12px * var(--font-scale))); line-height:1.7; }
 .editDetails .send { padding:6px 12px; min-height:30px; font-size:max(var(--font-min), calc(11px * var(--font-scale))); }
 .editDetails .composerFooter { margin-top:3px; }
+.editor .editDetails { margin-bottom:12px; }
+.editor .editDetails .composer { display:block; padding:12px; }
+.editor .editDetails .composer > label { position:static; width:auto; height:auto; overflow:visible; clip-path:none; }
+.editor .editDetails .composer > label > span { display:none; }
+.editor .editDetails .inputRow { flex-direction:column; align-items:stretch; margin-top:10px; }
+.editor .editDetails .inputRow textarea { height:80px; }
+.editor .editDetails .send { justify-content:center; }
+.editor .editDetails .composerFooter { flex-wrap:wrap; margin-top:10px; }
+.editor .editDetails .examples { flex-wrap:wrap; gap:5px; }
+.editor .editDetails .counter { margin-left:auto; }
 .editDetails .examples button { padding:2px 8px; font-size:max(var(--font-min), calc(9px * var(--font-scale))); }
 
 @media(max-width:620px) { .editDetails .inputRow textarea { font-size:max(var(--font-min), calc(11px * var(--font-scale))); }.editDetails .examples button { padding:2px 5px; } }
