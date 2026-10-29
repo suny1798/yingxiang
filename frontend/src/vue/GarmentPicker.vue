@@ -16,6 +16,7 @@ function drop(event:DragEvent){dragging.value=false;emit('upload',Array.from(eve
 <template>
   <section :class="[s['garment-panel'],s.panel,s['compact-picker']]" aria-labelledby="garment-title">
     <div :class="s['section-heading']"><h2 id="garment-title">{{t('服装参考图')}}</h2><span :class="s['wardrobe-count']">{{input.garments.length}} / {{MAX_GARMENTS}}</span></div>
+    <slot name="settings" />
     <input ref="file" :class="s['visually-hidden']" type="file" multiple accept="image/jpeg,image/png,image/webp" tabindex="-1" :aria-label="t('选择服装参考图，可多选')" @change="change"/>
     <button :class="[s['upload-zone'],{[s['has-image']]:selected,[s['drag-over']]:dragging}]" type="button" :aria-label="t('添加服装参考图')" aria-describedby="file-help" @click="file?.click()" @dragover.prevent="dragging=true" @dragleave="dragging=false" @drop.prevent="drop">
       <span v-if="!selected" :class="s['upload-empty']"><img :class="s['upload-sample']" src="/assets/garment-sample.svg" alt="" aria-hidden="true"/><span :class="s['upload-icon']"><StudioIcon name="upload"/></span><strong>{{t('点击或拖入多张图片')}}</strong><span>{{t('平铺或挂拍的服装图效果更好')}}</span></span>

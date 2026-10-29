@@ -42,7 +42,7 @@ const active=(path:string)=>route.path===path||(path!=='/'&&route.path.startsWit
       </div>
     </div><SiteAnnouncement /></header>
     <RouterView />
-    <footer v-if="!route.path.startsWith('/studio')" :class="s.footer"><div><RouterLink to="/" :class="s.footerBrand">{{t('映想 ')}}<span>✳</span></RouterLink><p>{{t('让想象，在眼前发生。')}}</p></div>
+    <footer v-if="!route.path.startsWith('/studio')&&route.path!=='/pricing'" :class="s.footer"><div><RouterLink to="/" :class="s.footerBrand">{{t('映想 ')}}<span>✳</span></RouterLink><p>{{t('让想象，在眼前发生。')}}</p></div>
       <nav :aria-label="t('页脚导航')"><RouterLink v-for="[path,label] in footerLinks" :key="path" :to="path">{{t(label!)}}</RouterLink></nav>
       <p :class="s.footerNote">{{t('实时换装 · 视频换装 · 实时编辑')}}<br/>{{t('不采集音频；生成内容自动保存，可随时下载。')}}</p>
     </footer>

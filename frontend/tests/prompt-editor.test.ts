@@ -67,6 +67,23 @@ test('组合按顺序增删、超过12条拒绝，全删结束生成并回到相
   t.editor.dispose(); t.s.client.clear();
 });
 
+test('四条提示词可前后翻页，删除最后一页内容后返回首页', () => {
+  const t = setup();
+  for (let index = 1; index <= 4; index++) t.editor.add(`提示词${index}`);
+  const visible = () => {
+    const state = t.editor.getSnapshot();
+    return state.instructions.slice(state.currentPage * state.pageSize, (state.currentPage + 1) * state.pageSize).map(item => item.text);
+  };
+  assert.deepEqual(visible(), ['提示词4']);
+  t.editor.setPage(0);
+  assert.deepEqual(visible(), ['提示词1', '提示词2', '提示词3']);
+  t.editor.setPage(1);
+  assert.deepEqual(visible(), ['提示词4']);
+  t.editor.remove(4);
+  assert.deepEqual(visible(), ['提示词1', '提示词2', '提示词3']);
+  t.editor.dispose(); t.s.client.clear();
+});
+
 test('同连接增删同步完整组合，不重新签发、不续时', async () => {
   const t = setup();
   await t.s.changeIdentity('user-1');

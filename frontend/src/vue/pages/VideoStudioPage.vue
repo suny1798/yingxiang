@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PreviewControls from '../PreviewControls.vue';
 import WorkspacePreview from '../WorkspacePreview.vue';
 import { computed,onMounted,onUnmounted,ref,watch } from 'vue';
 import { useLocalVideoStudio } from '../use-local-video-studio';
@@ -18,7 +19,6 @@ import MediaTools from '../MediaTools.vue';
 import MirrorButton from '../MirrorButton.vue';
 import base from '../../components/studio/studio.module.css';
 import s from '../../components/studio/video-studio.module.css';
-import action from '../../components/studio/preview-action.module.css';
 const {media,video,input,selected,choose,uploadImages,remove,cancel}=useLocalVideoStudio();
 const {state:jobsState,jobs}=useVideoJobs();
 const {snapshot:accountSnapshot,refresh}=useAccountView();
@@ -37,7 +37,6 @@ const showJobNotice=computed(()=>Boolean(jobNotice.value&&!processing.value));
 const canSubmit=computed(()=>Boolean(video.value.file&&selected.value?.blob&&consent.value&&!video.value.validating&&!input.value.processing&&!jobsState.value.submitting&&!jobsState.value.preparing&&!checking.value&&(needsLogin.value||service.value?.available)));
 const submitLabel=computed(()=>jobsState.value.submitting?(jobsState.value.preparing?'正在准备…':'正在提交…'):needsLogin.value?'登录后生成':'生成换装视频');
 const preparationLabel=computed(()=>{const progress=jobsState.value.preparation;return progress?.stage==='processing'?'正在自动移除音轨…':progress?.stage==='download'?'正在接收处理结果…':progress?'正在上传视频…':'正在准备你的视频…';});
-const hint=computed(()=>service.value&&!service.value.available?service.value.message:'生成视频与服装参考图自动保存');
 const {snapshot:frame,toggleMirror,toggleFullscreen,capture}=useFrameTools({stage:()=>stage.value,video:()=>mediaElement.value,stem:()=>resultVisible.value?resultStem.value:'映想-本地人物视频',mirrored:false});
 const {busy:downloadBusy,download,cancel:cancelDownload}=useOrientedDownload(()=>resultUrl.value,()=>resultStem.value,()=>account.value?.user?.id??null);
 let stopLayout:(()=>void)|undefined;
@@ -88,7 +87,7 @@ async function submit(){
         <div :class="s.fieldHeading"><h2>{{t('人物视频')}}</h2><span>{{t('1—15秒')}}</span></div>
         <input ref="fileInput" :class="base['visually-hidden']" type="file" accept="video/mp4,.mp4" :aria-label="t('选择人物视频')" tabindex="-1" @change="pickVideo"/>
         <button type="button" :class="s.videoUpload" :title="video.file?.name" :disabled="jobsState.submitting||jobsState.preparing" @click="fileInput?.click()"><span v-if="video.file&&!video.validating" :class="s.uploadReady" aria-hidden="true"><StudioIcon name="check"/></span><span v-else aria-hidden="true">▷</span><strong>{{t(video.validating?'正在检查视频…':video.file?'视频已就绪':'选择人物视频')}}</strong><small>{{t(video.file?'点击更换':'MP4 · 最长15秒 · 最大25MB')}}</small></button>
-        <div v-if="video.file&&!video.validating" :class="s.fileRow"><span :title="video.file.name">{{video.file.name}}</span><span :class="s.videoDuration">{{video.seconds?.toFixed(1)}}{{t(' 秒')}}</span><button type="button" :disabled="jobsState.submitting||jobsState.preparing" @click="removeVideo">{{t('移除')}}</button></div>
+        <div v-if="video.file&&!video.validating" :class="s.fileRow"><span :class="s.fileIcon" aria-hidden="true">▷</span><div :class="s.fileInfo"><span :class="s.fileName" :title="video.file.name">{{video.file.name}}</span><span :class="s.videoDuration">{{video.seconds?.toFixed(1)}}{{t(' 秒')}} · MP4</span></div><button type="button" :disabled="jobsState.submitting||jobsState.preparing" @click="removeVideo">{{t('移除')}}</button></div>
         <p v-if="video.file&&video.hasAudio&&!video.validating" :class="s.note" role="status">{{t('检测到音轨；本机预览为静音，云端提交时会自动移除。')}}</p>
         <div :class="s.fieldHeading"><h2>{{t('服装参考图')}}</h2></div>
         <input ref="imageInput" :class="base['visually-hidden']" type="file" accept="image/jpeg,image/png,image/webp" :aria-label="t('选择视频换装服装图')" tabindex="-1" @change="pickImages"/>
@@ -100,14 +99,13 @@ async function submit(){
         <div v-else-if="video.validating" :class="s.preparation" role="status"><strong>{{t('正在检查视频…')}}</strong><button type="button" @click="cancel">{{t('取消')}}</button></div>
         <p v-if="video.error" role="alert" :class="s.error">{{t(video.error)}}</p>
         <div :class="s.submitArea">
-          <label :class="s.consent"><input v-model="consent" type="checkbox" :disabled="jobsState.submitting||jobsState.preparing"/><span>{{t('同意云端处理 · ')}}<RouterLink to="/privacy#video" target="_blank" rel="noopener noreferrer">{{t('隐私说明 ↗')}}</RouterLink><span> · </span><RouterLink to="/works">{{t('自动保存 · 我的作品 ↗')}}</RouterLink></span></label>
-          <div :class="s.submitRow"><p :class="service&&!service.available?undefined:s.submitHint">{{t(hint)}}</p><button type="button" :class="s.generate" :disabled="!canSubmit" @click="submit">{{t(submitLabel)}}<span aria-hidden="true">↗</span></button></div>
+          <label :class="s.consent"><input v-model="consent" type="checkbox" :disabled="jobsState.submitting||jobsState.preparing"/><span>{{t('同意云端处理 · ')}}<RouterLink to="/privacy#video" target="_blank" rel="noopener noreferrer">{{t('隐私说明 ↗')}}</RouterLink></span></label>
+          <div :class="s.submitRow"><p v-if="service&&!service.available" role="status">{{t(service.message)}}</p><button type="button" :class="s.generate" :disabled="!canSubmit" @click="submit">{{t(submitLabel)}}<span aria-hidden="true">↗</span></button></div>
           <p v-if="jobsState.error||accountSnapshot.error" role="alert" :class="s.error">{{t(jobsState.error??accountSnapshot.error??'')}}</p>
         </div>
       </section>
       <div ref="slot" :class="base['preview-slot']"><WorkspacePreview :class="s.output" aria-labelledby="video-preview-title">
         <div data-preview-heading :class="s.outputHeading"><h2 id="video-preview-title">{{t(showResult&&resultUrl?'换装结果':'视频预览')}}</h2><span>{{t(status)}}</span><button v-if="selectedJob" type="button" :class="s.returnCreate" @click="returnCreate">{{t('返回创作')}}</button></div>
-        <div data-preview-toolbar :class="base['frame-toolbar']"><span>{{t('MP4 · 最长 ')}}{{VIDEO_POLICY.maxSeconds}}{{t(' 秒 · 自动移除音轨')}}</span><span>{{t(video.url?`本地预览 · ${video.seconds?.toFixed(1)} 秒`:'生成后可预览与下载')}}</span></div>
         <div data-preview-viewport :class="base['preview-viewport']"><div ref="stage" data-preview-stage :class="s.stage">
           <div v-if="jobsState.preparing" :class="s.empty" role="status"><h3>{{t('正在准备你的视频')}}</h3><p>{{t('音轨会自动移除，完成后即可提交。')}}</p></div>
           <div v-else-if="video.validating" :class="s.empty"><h3>{{t('正在准备你的视频')}}</h3><p>{{t('音轨会自动移除，完成后即可预览。')}}</p></div>
@@ -121,7 +119,10 @@ async function submit(){
           <MediaTools :fullscreen="frame.fullscreen" :supported="frame.supported" :capturing="frame.capturing" :disabled="!previewReady||showJobNotice||(!resultVisible&&!localVisible)" @fullscreen="toggleFullscreen" @capture="capture"/>
           <div v-if="processing" role="status" :class="s.processing"><span :class="s.spinner" aria-hidden="true"/>{{t(selectedJob?VIDEO_STATE_LABEL[selectedJob.state]:'')}}<small>{{t('可离开页面，稍后回来查看')}}</small></div>
         </div></div>
-        <div data-preview-controls :class="s.previewActions"><div :class="s.switch"><button type="button" :aria-pressed="!showResult" :disabled="!video.url" @click="showResult=false">{{t('原视频')}}</button><button type="button" :aria-pressed="showResult" :disabled="!resultUrl" @click="showResult=true">{{t('换装结果')}}</button></div><div :class="s.videoActions"><MirrorButton :mirrored="frame.mirrored" :disabled="downloadBusy" @toggle="toggleMirror"/><button v-if="resultUrl" type="button" data-preview-action :class="action.button" @click="onDownload"><StudioIcon name="download"/>{{t(downloadBusy?'取消导出':'下载视频')}}</button><button v-else type="button" data-preview-action :class="action.button" disabled :title="t('生成完成后可下载MP4')"><StudioIcon name="download"/>{{t('下载视频')}}</button></div></div>
+        <PreviewControls :view-label="t('画面切换')">
+          <template #views><button type="button" :aria-pressed="!showResult" :disabled="!video.url" @click="showResult=false">{{t('原视频')}}</button><button type="button" :aria-pressed="showResult" :disabled="!resultUrl" @click="showResult=true">{{t('换装结果')}}</button></template>
+          <template #actions><MirrorButton :mirrored="frame.mirrored" :disabled="downloadBusy" @toggle="toggleMirror"/><button v-if="resultUrl" type="button" data-preview-action data-preview-primary @click="onDownload"><StudioIcon name="download"/>{{t(downloadBusy?'取消导出':'下载视频')}}</button><button v-else type="button" data-preview-action data-preview-primary disabled :title="t('生成完成后可下载MP4')"><StudioIcon name="download"/>{{t('下载视频')}}</button></template>
+        </PreviewControls>
       </WorkspacePreview></div>
     </div>
     <footer :class="base['creation-footer']"><RouterLink to="/privacy#video" target="_blank" rel="noopener noreferrer">{{t('隐私与使用说明 ↗')}}</RouterLink><RouterLink to="/works">{{t('我的作品')}} ↗</RouterLink></footer>

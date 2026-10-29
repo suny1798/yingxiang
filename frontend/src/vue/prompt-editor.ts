@@ -62,7 +62,10 @@ export class PromptEditor {
 
   setDraft(draft: string) { this.publish({ draft }); }
   setView(view: PromptView) { this.publish({ view }); }
-  setPage(page: number) { this.publish({ page: Math.min(Math.max(0, page), this.state.pages - 1) }); }
+  setPage(page: number) {
+    const currentPage = Math.min(Math.max(0, page), this.state.pages - 1);
+    this.publish({ page: currentPage, currentPage });
+  }
   setPageSize(pageSize: number) {
     const value = [1, 2, 3].includes(pageSize) ? pageSize : 3;
     this.publish({ pageSize: value, page: 0, ...this.layout(this.state.instructions, value, 0) });

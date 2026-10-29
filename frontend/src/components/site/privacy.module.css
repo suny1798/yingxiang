@@ -10,3 +10,13 @@
 .page section p { font-size:max(var(--font-min), calc(15px * var(--font-scale))); line-height:1.95; margin:12px 0; }
 .back { display:inline-block; margin-top:24px; font-size:max(var(--font-min), calc(14px * var(--font-scale))); }
 @media(max-width:620px) { .page { padding:30px 22px 44px; }.page h1 { font-size:max(var(--font-min), calc(28px * var(--font-scale))); }.page section p { font-size:max(var(--font-min), calc(14px * var(--font-scale))); } }
+
+/* 桌面正文统一宽度，并为内容保留充足间距。 */
+@media(min-width:1051px) {
+ .page { width:var(--page-content-width); max-width:none; padding:56px 0 80px; display:grid; grid-template-columns:240px minmax(0,1fr); column-gap:64px; align-items:start; }
+ .page > header { grid-column:1 / -1; margin-bottom:32px; }
+ .page nav { grid-column:1; grid-row:2 / span 7; position:sticky; top:112px; align-self:start; flex-direction:column; align-items:flex-start; gap:18px; padding:24px; margin:0; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+ .page section { grid-column:2; padding:0 0 36px; scroll-margin-top:112px; }
+ .page section p { max-width:960px; margin-block:16px; line-height:2; }
+ .back { grid-column:2; margin:0 0 36px; }
+}

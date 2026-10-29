@@ -229,6 +229,10 @@
 .duration-bar button[aria-pressed="true"] { background: var(--accent); color: light-dark(#fff, var(--on-accent)); }
 .duration-bar button:disabled { cursor: default; }
 .duration-bar .duration-note { margin-left: auto; font-size: max(var(--font-min), calc(9px * var(--font-scale))); }
+.duration-settings { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 16px; padding: 0; }
+.duration-settings > div { grid-column: 1 / -1; grid-row: 2; }
+.duration-settings button { flex: 1; padding-inline: 10px; }
+.duration-settings .duration-note { grid-column: 2; grid-row: 1; }
 @media(max-width:620px) { .duration-bar { gap: 8px; padding: 0 3px 12px; font-size: max(var(--font-min), calc(9px * var(--font-scale))); }.duration-bar button { font-size: max(var(--font-min), calc(10px * var(--font-scale))); padding: 7px 10px; }.duration-bar .duration-note { margin-left: 0; } }
 .compact-picker .garment-preview > img { padding: 10px 13px 30px; }
 .compact-mirror { padding: var(--preview-padding); }
@@ -262,7 +266,7 @@
   .demo-prompt span { font-size: max(var(--font-min), calc(10px * var(--font-scale))); }
   .demo-prompt .primary-button { min-height: 38px; padding: 8px 13px; font-size: max(var(--font-min), calc(12px * var(--font-scale))); }
 }
-.preview-badges { position: absolute; z-index: 3; top: 16px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; pointer-events: none; }
+.preview-badges { position: absolute; z-index: 3; top: 16px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: flex-start; gap: 10px; pointer-events: none; }
 .preview-badges > span { color: light-dark(#665c55, var(--muted)); background: light-dark(#fffefae6, color-mix(in srgb, var(--surface) 90%, transparent)); border: 1px solid light-dark(#ddd7cf, var(--line)); border-radius: 20px; padding: 4px 10px; font-size: max(var(--font-min), calc(9px * var(--font-scale))); }
 .preview-badges .timer { font-weight: normal; font-style: normal; font-size: max(var(--font-min), calc(12px * var(--font-scale))); line-height: normal; font-family: Consolas, monospace;; font-variant-numeric: tabular-nums; }
 .preview-controls { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 14px 5px 0; }
@@ -311,7 +315,7 @@
 @media(prefers-reduced-motion:reduce) { .floating-card, .imagine-orbit, .imagine-orbit:after, .connection-sweep:after { animation: none !important; }.connection-sweep:after { left: 30%; } }
 
 /* 创作工作区按窗口分配空间，不以隐藏页面滚动裁掉主要操作。 */
-.studio { --frame-heading: 38px; --frame-toolbar: 46px; --frame-controls: 56px; --frame-details: 0px; height: 100dvh; min-height: 0; padding-bottom: 0; display: flex; flex-direction: column; }
+.studio { --media-tools-top: 16px; --frame-heading: 38px; --frame-toolbar: 0px; --frame-controls: 56px; --frame-details: 0px; height: 100dvh; min-height: 0; padding-bottom: 0; display: flex; flex-direction: column; }
 .studio > header { flex: none; }
 .studio .creation-shell { position: relative; flex: 1; min-height: 0; width: min(1760px, calc(100% - 48px)); max-width: 1760px; margin-inline: auto; display: flex; flex-direction: column; padding: 12px 0 8px 132px; }
 .studio .workbench-title { flex: none; margin-bottom: 10px; }
@@ -471,7 +475,7 @@
   .studio .recording-bar { flex: 1; flex-wrap: nowrap; min-width: 0; gap: 8px; border: 0; }
   .studio .recording-bar .record-toggle { min-width: 0; flex-shrink: 1; }
   .studio .recording-bar .record-toggle > span { min-width: 0; }
-  .studio .recording-bar .record-toggle strong { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .studio .recording-bar .record-toggle strong { display: block; overflow: hidden; text-overflow: ellipsis; font-size: 13px; color: var(--muted); white-space: nowrap; }
   .studio .recording-bar [role=status] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .studio .recording-bar > div { gap: 9px; flex-shrink: 0; }
 }
@@ -479,5 +483,12 @@
   .studio .creation-shell { width: calc(100% - 72px); padding-left: 120px; }
   .studio .creation-shell .workspace { grid-template-columns: 250px minmax(0, 1fr); gap: 18px; }
   .studio [data-preview-controls] { gap: 8px; }
-  .studio .recording-bar .record-toggle strong { font-size: 10px; }
+  .studio .recording-bar .record-toggle strong { font-size: 13px; }
+}
+
+/* 浮层只统一文字层级，沿用原来的定位、间距与按钮布局。 */
+@media(min-width:621px) {
+ .studio :is(.demo-prompt strong,.floating-card h3) { font-size:14px; font-weight:500; line-height:1.5; }
+ .studio .demo-prompt > p > span { font-size:12px; line-height:1.5; }
+ .studio :is(.demo-prompt,.floating-card) .primary-button { font-size:13px; font-weight:500; line-height:1.5; }
 }

@@ -108,3 +108,14 @@ body { background-color:var(--paper); background-image:url('/assets/ambient-pebb
 :root:lang(en) body h1 { line-height: 1.12; letter-spacing: -.035em; }
 :root:lang(en) body :is(h3, h4, h5, h6) { line-height: 1.4; }
 :root:lang(en) body p { line-height: 1.65; }
+
+/* 桌面正文与衣装灵感／创作空间共用宽度标准。 */
+@media(min-width:1051px) {
+ :root { --page-content-width:min(1600px,calc(100% - 112px)); }
+}
+@media(min-width:1051px) and (max-width:1270px) {
+ :root { --page-content-width:calc(100% - 72px); }
+}
+
+/* 套餐页采用纯色底，将注意力集中在方案卡片。 */
+body:has([data-pricing-page]) { background-image:none; }

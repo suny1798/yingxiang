@@ -26,7 +26,7 @@ async(page)=>{
   async function waitTitle(expected){await page.waitForFunction(value=>document.title===value,expected,{timeout:10000});}
 
   // 1. 匿名：价格确认只打开登录，不创建订单；订单页与后台门禁。
-  await page.goto(origin+'/pricing');await page.getByRole('heading',{name:'选择适合你的创作套餐',exact:true}).waitFor();
+  await page.goto(origin+'/pricing');await page.getByRole('heading',{name:'套餐与积分',exact:true}).waitFor();
   await choosePlan('选择创作包');await dialog().getByRole('button',{name:'登录后继续',exact:true}).click();
   await dialog().getByRole('heading',{name:'登录账号',exact:true}).waitFor();
   check(checkoutPosts.length===0,'Anonymous checkout must not post');

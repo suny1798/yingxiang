@@ -62,3 +62,11 @@
 @media(max-width:1100px) { .indexBar { align-items:stretch; flex-direction:column; }.search { width:100%; }.indexActions { justify-content:flex-end; } }
 @media (min-width:761px) and (max-width:1100px) { .page { width:calc(100% - 64px); }.grid { grid-template-columns:repeat(2,minmax(0,1fr)); }.toolbar>span { max-width:180px; text-align:right; }.detailGrid { grid-template-columns:minmax(0,1fr) 210px; } }
 @media(prefers-reduced-motion:reduce) { .card { transition:none; } }
+
+/* 桌面正文统一宽度，并为内容保留充足间距。 */
+@media(min-width:1051px) {
+ .page { width:var(--page-content-width); padding-top:56px; }
+ .heading { margin-bottom:32px; }
+ .grid { gap:28px; }
+ .cardBody { padding:22px; }
+}

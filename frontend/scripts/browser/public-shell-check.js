@@ -12,7 +12,7 @@ async (page) => {
     const response=await page.goto(origin+path);check(response.status()===200,'Public deep link status');
     await page.locator('main h1').waitFor();
     check(JSON.stringify(await page.getByRole('navigation',{name:'主导航',exact:true}).locator('a').evaluateAll(links=>links.map(link=>link.getAttribute('href'))))===JSON.stringify(expectedNav),'Original main navigation');
-    check(JSON.stringify(await page.getByRole('navigation',{name:'页脚导航',exact:true}).locator('a').evaluateAll(links=>links.map(link=>link.getAttribute('href'))))===JSON.stringify(expectedFooter),'Original footer navigation');
+    check(JSON.stringify(await page.getByRole('navigation',{name:'页脚导航',exact:true}).locator('a').evaluateAll(links=>links.map(link=>link.getAttribute('href'))))===JSON.stringify(path==='/pricing'?[]:expectedFooter),'Footer navigation follows the page layout');
     check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'Desktop overflow');
   }
   await page.goto(origin+'/help/feedback');

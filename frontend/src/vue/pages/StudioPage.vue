@@ -8,6 +8,7 @@ import { useTryOnSession } from '../use-try-on-session';
 import { sessionScope } from '../runtime';
 import { mountPreviewSurface } from '../../lib/media/preview-layout';
 import type { View } from '../../lib/try-on/types';
+import { DURATION_OPTIONS,durationLabel } from '../../lib/studio/policy';
 import { t } from '../preferences';
 import GarmentPicker from '../GarmentPicker.vue';
 import PreviewPanel from '../PreviewPanel.vue';
@@ -69,10 +70,16 @@ function selectView(next:View){view.value=next;controller.setView(next);}
     <div :class="s['workbench-title']"><h1>{{t('创作空间')}}</h1><span>{{t('实时换装')}}</span><RouterLink to="/account">{{t(account?.user?`剩余 ${account.durations.reduce((sum,item)=>sum+item.remaining,0)} 次`:'我的权益')}} ↗</RouterLink></div>
     <StudioModes active="realtime"/>
     <div :class="s.workspace">
-      <div class="library-picker"><RouterLink to="/wardrobe" class="library-entry"><StudioIcon name="hanger"/><span>{{t('从衣装灵感选图')}}</span><span aria-hidden="true">↗</span></RouterLink><p v-if="importing" role="status" class="library-import">{{t('正在装入所选衣装…')}} <button type="button" @click="cancelImport">{{t('取消')}}</button></p><p v-if="importError" role="alert" class="library-import">{{t(importError)}} <button type="button" @click="importLooks">{{t('重试')}}</button></p><GarmentPicker ref="picker" :input="garment" @upload="upload" @select="input.select" @remove="input.remove" @cancel="cancelImport"/></div>
+      <div class="library-picker"><RouterLink to="/wardrobe" class="library-entry"><StudioIcon name="hanger"/><span>{{t('从衣装灵感选图')}}</span><span aria-hidden="true">↗</span></RouterLink><p v-if="importing" role="status" class="library-import">{{t('正在装入所选衣装…')}} <button type="button" @click="cancelImport">{{t('取消')}}</button></p><p v-if="importError" role="alert" class="library-import">{{t(importError)}} <button type="button" @click="importLooks">{{t('重试')}}</button></p><GarmentPicker ref="picker" :input="garment" @upload="upload" @select="input.select" @remove="input.remove" @cancel="cancelImport">
+        <template #settings><div :class="[s['duration-bar'],s['duration-settings']]">
+          <span>{{t('本次时长')}}</span>
+          <div role="group" :aria-label="t('每次换装时长')"><button v-for="seconds in DURATION_OPTIONS" :key="seconds" type="button" :disabled="active||checking" :aria-pressed="snapshot.durationSec===seconds" @click="controller.setDuration(seconds)">{{t(durationLabel(seconds))}}</button></div>
+          <span :class="s['duration-note']">{{t(active?snapshot.deadlineAt===null?'连接中 · 出画后计时':'出画后计时 · 换衣不续时':snapshot.durationSec===15?'免费体验':account?.user&&remaining>0?`可用${remaining}次`:'需对应权益')}}</span>
+        </div></template>
+      </GarmentPicker></div>
       <div ref="slot" :class="s['preview-slot']">
         <PreviewPanel :owner="account?.user?.id??null" :snapshot="snapshot" :view="view" :camera="camera" :stream="stream" :preview-state="previewState" :remote="remote" :remote-stream="remoteStream" :unavailable="unavailable" :processing="garment.processing" :checking="checking" :logged-in="Boolean(account?.user)" :exhausted="exhausted" :remaining="remaining"
-          @start="start" @stop="controller.stop()" @camera-toggle="cameraToggle" @view="selectView" @duration="value=>controller.setDuration(value)" @consent="value=>controller.setConsent(value)" @choose="picker?.open()"/>
+          @start="start" @stop="controller.stop()" @camera-toggle="cameraToggle" @view="selectView" @consent="value=>controller.setConsent(value)" @choose="picker?.open()"/>
       </div>
     </div>
     <footer :class="s['creation-footer']"><span/><RouterLink to="/privacy#realtime" target="_blank" rel="noopener noreferrer">{{t('隐私与使用说明 ↗')}}</RouterLink></footer>

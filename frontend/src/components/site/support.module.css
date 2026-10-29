@@ -46,3 +46,14 @@
 .links a { color: var(--accent); font-size: 14px; }
 .page :is(button,a,input,textarea,select):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
 @media (prefers-reduced-motion: reduce) { .option { transition: none; } }
+
+/* 桌面正文统一宽度，并为内容保留充足间距。 */
+@media(min-width:1051px) {
+ .page { width:var(--page-content-width); padding-top:56px; }
+ .layout { grid-template-columns:260px minmax(0,1fr); gap:56px; }
+ .panel { padding:36px; }
+ .form { gap:28px; }
+ .row { gap:24px; }
+ .section { padding-block:32px; }
+ .section p,.notice { max-width:960px; }
+}

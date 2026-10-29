@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PreviewControls from '../PreviewControls.vue';
 import WorkspacePreview from '../WorkspacePreview.vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useAccountView } from '../use-account';
@@ -8,7 +9,6 @@ import { usePromptSession } from '../use-prompt-session';
 import { sessionScope } from '../runtime';
 import { mountPreviewSurface } from '../../lib/media/preview-layout';
 import { PROMPT_EXAMPLES, PROMPT_POLICY } from '../../lib/prompt/policy';
-import { CONNECTION_STAGE_LABELS } from '../../lib/prompt/connection-diagnostics';
 import { notify } from '../../lib/notices';
 import { t } from '../preferences';
 import CameraPreview from '../CameraPreview.vue';
@@ -16,7 +16,6 @@ import MediaTools from '../MediaTools.vue';
 import MirrorButton from '../MirrorButton.vue';
 import StudioIcon from '../StudioIcon.vue';
 import StudioModes from '../StudioModes.vue';
-import WorkspaceInfo from '../WorkspaceInfo.vue';
 import base from '../../components/studio/studio.module.css';
 import s from '../../components/studio/prompt-studio.module.css';
 const { editor, editorState, snapshot, camera, stream, preview, previewState, remote, remoteStream, status, unavailable } = usePromptSession();
@@ -92,8 +91,7 @@ function start() {
     <StudioModes active="prompt" />
     <div :class="base.workspace">
       <section :class="s.editor" aria-labelledby="prompt-title">
-        <div :class="s.heading"><h2 id="prompt-title">{{ t('我的提示词') }}<span :class="s.count">{{ editorState.instructions.length }}</span></h2><span>{{ t('本次组合') }}</span></div>
-        <p :class="s.intro">{{ t('按顺序添加提示词，组合会实时同步到当前画面。') }}</p>
+        <div :class="s.heading"><h2 id="prompt-title">{{ t('我的提示词') }}<span :class="s.count">{{ editorState.instructions.length }}</span></h2></div>
         <div :class="s.history">
           <ol v-if="editorState.instructions.length" :class="s.cards" :aria-label="t('已发送的提示词')">
             <li v-for="item in paged" :key="item.id" :class="s.card">
@@ -101,31 +99,19 @@ function start() {
               <button :class="s.remove" type="button" :aria-label="t(`删除提示词 ${item.id}`)" @click="editor.remove(item.id)"><StudioIcon name="close" /></button>
             </li>
           </ol>
-          <div v-else :class="s.historyEmpty"><span :class="[s.seed, 'star-hover-spin']" aria-hidden="true">✳</span><h3>{{ t('暂无提示词') }}</h3><p>{{ t('添加提示词') }}<br />{{ t('每条提示词可单独移除。') }}</p></div>
+          <div v-else :class="s.historyEmpty"><span :class="[s.seed, 'star-hover-spin']" aria-hidden="true">✳</span><h3>{{ t('暂无提示词') }}</h3><p>{{ t('从下方输入，或选一个灵感') }}</p></div>
         </div>
-        <div :class="s.pagination"><span>{{ t(editorState.instructions.length ? `${editorState.instructions.length} 条提示词` : '尚未添加提示词') }}</span><div><button type="button" :aria-label="t('上一页提示词')" :disabled="currentPage === 0" @click="editor.setPage(currentPage - 1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7-5 5 5 5" /></svg></button><span>{{ currentPage + 1 }} / {{ pages }}</span><button type="button" :aria-label="t('下一页提示词')" :disabled="currentPage === pages - 1" @click="editor.setPage(currentPage + 1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 7 5 5-5 5" /></svg></button></div></div>
-        <div :class="s.layerNote"><span aria-hidden="true">＋</span><p>{{ t('当前提示词共同组成画面。') }}<br /><span>{{ t('移除一条后，剩余提示词继续生效。') }}</span></p></div>
-        <div :class="s.editDetails"><form :class="s.composer" @submit.prevent="send">
-          <label for="edit-prompt">{{ t('添加提示词') }}<span>{{ t('新提示词会追加到当前组合') }}</span></label>
-          <div :class="s.inputRow"><textarea ref="input" id="edit-prompt" :maxlength="PROMPT_POLICY.maxPromptLength" rows="2" :placeholder="t('例如：将上衣改为米白色针织开衫，保留人物面部和动作。')" :value="editorState.draft" @input="onDraft" @keydown="onKeydown" /><button :class="s.send" type="submit" :disabled="!editorState.draft.trim()"><span>{{ t('发送') }}</span><StudioIcon name="arrow" /></button></div>
-          <div :class="s.composerFooter"><div :class="s.examples" role="group" :aria-label="t('提示词示例')"><button v-for="item in PROMPT_EXAMPLES" :key="item.label" type="button" @click="example(item.text)">{{ t(item.label) }}<span aria-hidden="true">＋</span></button></div><span :class="s.counter">{{ editorState.draft.length }}/500</span></div>
-        </form></div>
-        <WorkspaceInfo :label="t('使用说明')">
-          <p>{{ t('先打开相机并添加提示词，再确认云端处理并开始编辑。连接中新增或删除提示词会同步当前完整组合，不重新连接、不延长时间；移除全部提示词会结束生成并恢复相机原画。') }}</p>
-          <p>{{ t('收到服务方视频并开始播放后才启动15秒倒计时；连接等待不扣体验时间，另设30秒超时。切到相机原画不会暂停云端处理；指令接受与实际效果以生成画面核对。') }}</p>
-          <p>{{ t('开始后，相机视频和提示词经模型连接发送给Decart；不采集音频。生成视频及本轮已同步的提示词组合保存到我的作品，未发送草稿不保存。每条最多500字、本次最多12条；关闭相机、换账号、切后台或离开会停止连接，不自动重连。') }}</p>
-        </WorkspaceInfo>
-        <WorkspaceInfo :label="t('连接诊断')">
-          <p>{{ t('仅保留本页最近一次连接的阶段与耗时，不含画面、提示词或令牌。刷新后清空；出现错误时请先记录这里的信息。') }}</p>
-          <ol v-if="snapshot.connectionSteps.length"><li v-for="(step, index) in snapshot.connectionSteps" :key="index">{{ (step.elapsedMs / 1000).toFixed(1) }}s · {{ t(CONNECTION_STAGE_LABELS[step.stage]) }}</li></ol>
-          <p v-else>{{ t('本页还没有连接诊断记录。') }}</p>
-          <p v-if="snapshot.message">{{ t(snapshot.message) }}</p>
-        </WorkspaceInfo>
+        <div v-if="pages > 1" :class="s.pagination"><div><button type="button" :aria-label="t('上一页提示词')" :disabled="currentPage === 0" @click="editor.setPage(currentPage - 1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7-5 5 5 5" /></svg></button><span>{{ currentPage + 1 }} / {{ pages }}</span><button type="button" :aria-label="t('下一页提示词')" :disabled="currentPage === pages - 1" @click="editor.setPage(currentPage + 1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 7 5 5-5 5" /></svg></button></div></div>
+        <form :class="s.promptComposer" @submit.prevent="send">
+          <div :class="s.composeHeading"><label for="edit-prompt">{{ t('添加提示词') }}</label><span :class="s.counter">{{ editorState.draft.length }}/500</span></div>
+          <textarea ref="input" id="edit-prompt" :maxlength="PROMPT_POLICY.maxPromptLength" rows="4" :placeholder="t('描述你想改变的画面…')" :value="editorState.draft" @input="onDraft" @keydown="onKeydown" />
+          <div :class="s.ideaGrid" role="group" :aria-label="t('提示词示例')"><button v-for="(item, index) in PROMPT_EXAMPLES" :key="item.label" type="button" :title="t(item.text)" @click="example(item.text)"><StudioIcon :name="index === 0 ? 'hanger' : index === 1 ? 'sun' : 'star'" /><span>{{ t(item.label) }}</span></button></div>
+          <button :class="s.send" type="submit" :disabled="!editorState.draft.trim()"><span>{{ t('发送') }}</span><StudioIcon name="arrow" /></button>
+        </form>
       </section>
       <div ref="slot" :class="base['preview-slot']">
         <WorkspacePreview :class="[base.panel, s.preview]" :aria-label="t('实时编辑画面')">
-          <div data-preview-heading :class="s.previewHeading"><h2>{{ t(generated ? '映想画面' : '相机原画') }}</h2><span><i :data-on="Boolean(stream)" />{{ t(requesting ? '等待相机授权' : stream ? '相机已开启' : '相机未开启') }}</span></div>
-          <div data-preview-toolbar :class="base['frame-toolbar']"><span>{{ t(phaseLabel) }}</span><span role="status">{{ active ? snapshot.deadlineAt === null ? t('连接中 · 出画后计时') : `${snapshot.remaining}s` : t('出画后计时 · 最多15秒') }}</span></div>
+          <div data-preview-heading :class="s.previewHeading"><h2>{{ t(generated ? '映想画面' : '相机原画') }}</h2><span role="status"><i :data-on="Boolean(stream)" />{{ t(active ? phaseLabel : requesting ? '等待相机授权' : stream ? '相机已开启' : '相机未开启') }}<template v-if="active && snapshot.deadlineAt !== null"> · {{ snapshot.remaining }}s</template></span></div>
           <div data-preview-viewport :class="base['preview-viewport']"><div ref="stage" data-preview-stage :class="s.stage">
             <CameraPreview v-if="stream" ref="localPreview" :stream="stream" :camera="camera" :visible="!generated" :mirrored="frame.mirrored" />
             <CameraPreview v-if="remoteStream" ref="remotePreview" :stream="remoteStream" :camera="remote" :visible="generated" remote :mirrored="frame.mirrored" />
@@ -145,7 +131,10 @@ function start() {
             <MediaTools :fullscreen="frame.fullscreen" :supported="frame.supported" :capturing="frame.capturing" :disabled="!captureAvailable" @fullscreen="toggleFullscreen" @capture="capture" />
             <div :class="s.badges"><span>{{ t(showRemote ? '映想画面 ✳ · AI生成' : generated ? '映想画面 ✳' : '相机原画') }}</span><span v-if="editorState.instructions.length > 0">{{ editorState.instructions.length }} {{ t(' 条提示词') }}</span></div>
           </div></div>
-          <div data-preview-controls :class="s.controls"><div :class="s.views" role="group" :aria-label="t('实时编辑视图')"><button type="button" :aria-pressed="!generated" @click="editor.setView('original')">{{ t('相机原画') }}</button><button type="button" :aria-pressed="generated" @click="editor.setView('generated')">{{ t('映想画面 ') }}<span aria-hidden="true">✳</span></button></div><div :class="s.cameraActions"><button v-if="active" type="button" :class="s.stop" @click="editor.closeCamera('实时编辑已结束。')">{{ t(snapshot.phase === 'connecting' ? '取消连接' : '结束编辑') }}</button><MirrorButton :mirrored="frame.mirrored" :disabled="false" @toggle="toggleMirror" /><button type="button" :class="s.cameraButton" :aria-pressed="Boolean(stream) || requesting" @click="toggleCamera"><StudioIcon name="camera" />{{ t(requesting ? '取消打开' : stream ? '关闭相机' : '打开相机') }}</button></div></div>
+          <PreviewControls :view-label="t('实时编辑视图')">
+            <template #views><button type="button" :aria-pressed="!generated" @click="editor.setView('original')">{{ t('相机原画') }}</button><button type="button" :aria-pressed="generated" @click="editor.setView('generated')">{{ t('映想画面 ') }}<span aria-hidden="true">✳</span></button></template>
+            <template #actions><button v-if="active" type="button" data-preview-stop @click="editor.closeCamera('实时编辑已结束。')">{{ t(snapshot.phase === 'connecting' ? '取消连接' : '结束编辑') }}</button><MirrorButton :mirrored="frame.mirrored" :disabled="false" @toggle="toggleMirror" /><button type="button" data-preview-primary :aria-pressed="Boolean(stream) || requesting" @click="toggleCamera"><StudioIcon name="camera" />{{ t(requesting ? '取消打开' : stream ? '关闭相机' : '打开相机') }}</button></template>
+          </PreviewControls>
         </WorkspacePreview>
       </div>
     </div>

@@ -68,3 +68,11 @@
 .checklist ul { margin: 15px 0; padding-left: 20px; font-size: 14px; line-height: 2.1; }
 .checklist li::marker { color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .question summary > span { transition: none; } }
+
+/* 桌面正文统一宽度，并为内容保留充足间距。 */
+@media(min-width:1051px) {
+ .page { width:var(--page-content-width); }
+ .hero { gap:96px; padding-bottom:72px; }
+ .guide { padding:36px; }
+ .guide li + li { margin-top:8px; }
+}

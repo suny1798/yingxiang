@@ -170,3 +170,14 @@
   letter-spacing: 0;
 }
 :global(html[lang="zh-CN"]) .heroDescription { line-height: 1.75; }
+
+/* 桌面正文统一宽度，并为内容保留充足间距。 */
+@media(min-width:1051px) {
+ .footer { padding-block:14px; }
+ .container { width:var(--page-content-width); }
+ .accountLayout { grid-template-columns:200px minmax(0,1fr); gap:48px; padding-block:56px 80px; }
+ .accountBenefits { gap:28px; margin-block:36px; }
+ .accountBenefits > div,.accountSection { padding:32px; }
+ .accountDetails > div { padding-block:20px; }
+ .historyTable td,.historyTable th { padding:20px 12px; }
+}

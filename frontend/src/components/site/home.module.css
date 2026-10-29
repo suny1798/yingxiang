@@ -25,3 +25,12 @@
 .principles p { display:flex; gap:20px; padding:15px 0; border-bottom:1px solid var(--line); }.principles strong { flex-shrink:0; font-size:max(var(--font-min),calc(12px * var(--font-scale))); font-weight:500; }.principles p span { font-size:max(var(--font-min),calc(12px * var(--font-scale))); line-height:1.8; color:var(--muted); }.principles>a { display:inline-flex; gap:25px; margin-top:20px; color:var(--accent); font-size:max(var(--font-min),calc(12px * var(--font-scale))); }
 @media(prefers-reduced-motion:reduce) { .sceneArt img { transition:none; }.sceneFeature:hover .sceneArt img { transform:none; } }
 :global(html[lang="en"]) .principles p span { line-height: 1.65; }
+
+/* 桌面正文统一宽度，并为内容保留充足间距。 */
+@media(min-width:1051px) {
+ .heroInner > div { transform:none; width:45%; max-width:600px; }
+ .scenes { width:var(--page-content-width); }
+ .sceneList { row-gap:144px; }
+ .sceneFeature { column-gap:clamp(48px,6vw,100px); }
+ .ownership { gap:80px; padding-block:56px 64px; }
+}

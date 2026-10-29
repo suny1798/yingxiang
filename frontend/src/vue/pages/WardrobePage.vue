@@ -17,7 +17,10 @@ let previousFirst:string|null=null;try{previousFirst=sessionStorage.getItem('yin
 const browseOrder=freshLooks(libraryLooks,previousFirst);
 try{sessionStorage.setItem('yingxiang-look-first',browseOrder[0]!.id);}catch{}
 const english=computed(()=>preferences.locale.value==='en');
-const filtered=computed(()=>filterLooks(browseOrder.filter(item=>(!onlyChosen.value||chosen.value.includes(item.id))&&(!favoritesOnly.value||favoriteState.value.ids.includes(item.id))),{seasons:selectedSeasons.value,tags:selectedTags.value,search:search.value}));
+const filtered=computed(()=>filterLooks(
+  (favoritesOnly.value?favoriteState.value.ids.map(id=>lookById(id)!):browseOrder).filter(item=>!onlyChosen.value||chosen.value.includes(item.id)),
+  {seasons:selectedSeasons.value,tags:selectedTags.value,search:search.value},
+));
 const randomized=ref<LibraryLook[]|null>(null);
 const ordered=computed(()=>{if(!randomized.value)return filtered.value;const eligible=new Set(filtered.value.map(item=>item.id));return randomized.value.filter(item=>eligible.has(item.id));});
 const rows=ref(4),columns=ref(4),grid=ref<HTMLElement|null>(null),loadTrigger=ref<HTMLElement|null>(null);
@@ -43,7 +46,7 @@ const dialog=ref<HTMLDialogElement|null>(null), preview=ref<LibraryLook|null>(nu
 const label=(tag:string)=>english.value?tag:tagLabels[tag]??tag;
 const seasonLabel=(season:string)=>english.value?({春:'Spring',夏:'Summer',秋:'Autumn',冬:'Winter'}[season]??season):`${season}装`;
 const title=(item:LibraryLook)=>lookTitle(item,english.value);
-watch([search,selectedSeasons,selectedTags,onlyChosen,favoritesOnly],async()=>{
+watch([search,selectedSeasons,selectedTags,onlyChosen,favoritesOnly,()=>favoritesOnly.value?favoriteState.value.ids:null],async()=>{
   rows.value=4;randomized.value=null;
   await nextTick();
   const heading=document.getElementById('looks-heading');

@@ -46,3 +46,13 @@
 .dialog p { font-size: 14px; line-height: 1.8; white-space: pre-wrap; overflow-wrap: anywhere; }
 .dialog footer { display: flex; justify-content: end; gap: 10px; margin-top: 24px; }
 .page :is(button,a,input,select,textarea):focus-visible, .dialog button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* 桌面正文统一宽度，并为内容保留充足间距。 */
+@media(min-width:1051px) {
+ .page { width:var(--page-content-width); padding-top:40px; }
+ .layout { grid-template-columns:200px minmax(0,1fr); gap:32px; }
+ .panel { padding:28px; margin-bottom:28px; }
+ .stats { gap:20px; }
+ .toolbar { gap:16px; margin-bottom:24px; }
+ .table th,.table td { padding:16px; }
+}
