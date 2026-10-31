@@ -29,7 +29,7 @@ import java.util.Set;
 
 public interface PromptService {
 
-    public static final String MODEL = "lucy-2.5";
+    public static final String MODEL = "lucy-2.6";
 
     public static final String CONSENT = "2026-10-26-prompt-history-v1";
 

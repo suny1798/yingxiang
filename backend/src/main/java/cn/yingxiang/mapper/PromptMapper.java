@@ -31,9 +31,9 @@ public interface PromptMapper {
     List<String> lockCampaign(@Param("schema") String schema);
 
     @Insert("INSERT INTO ${schema}usage_attempts(id,user_id,scene,seconds,state,created_at) "
-            + "VALUES (#{ident},#{userId},'prompt',15,'unknown',#{now})")
+            + "VALUES (#{ident},#{userId},'prompt',#{seconds},'unknown',#{now})")
     int insertAttempt(@Param("schema") String schema, @Param("ident") String ident, @Param("userId") String userId,
-                      @Param("now") long now);
+                      @Param("now") long now, @Param("seconds") int seconds);
 
     @Insert("INSERT INTO ${schema}budget_reservations(id,scene,user_id,micro_usd,lease_until,created_at) "
             + "VALUES (#{ident},'prompt',#{userId},#{microUsd},#{leaseUntil},#{now})")

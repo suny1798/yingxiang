@@ -30,7 +30,8 @@
 .section-heading h2 { font-size: max(var(--font-min), calc(17px * var(--font-scale))); letter-spacing: -.5px; font-weight: 500; }
 .section-heading .icon { width: 22px; height: 22px; }
 .section-description { font-size: max(var(--font-min), calc(12px * var(--font-scale))); margin-top: 6px; color: var(--muted); }
-.upload-zone { width: 100%; min-height: 192px; height: 192px; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; border: 1px dashed light-dark(#cbc4bd, var(--line)); border-radius: 10px; background: light-dark(#f6f4f0, var(--surface)); margin-top: 21px; padding: 0; }
+.upload-zone { width: 100%; min-height: 192px; height: 192px; display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; overflow: hidden; position: relative; border: 1px dashed light-dark(#cbc4bd, var(--line)); border-radius: 10px; background: light-dark(#f6f4f0, var(--surface)); margin-top: 21px; padding: 8px 10px 9px; }
+.upload-surface { width: 100%; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; }
 .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: light-dark(#f3ecec, var(--surface)); }
 .upload-zone.has-image { border-style: solid; background: light-dark(#f0eee9, var(--surface)); }
 .upload-empty { display: flex; align-items: center; flex-direction: column; }
@@ -203,6 +204,8 @@
 .workbench-title h1 { font-size: max(var(--font-min), calc(19px * var(--font-scale))); line-height: 1.6; font-weight: 500; letter-spacing: -.4px; }
 .workbench-title > span { font-size: max(var(--font-min), calc(10px * var(--font-scale))); color: var(--muted); border-left: 1px solid var(--line); padding-left: 16px; }
 .workbench-title > a { margin-left: auto; font-size: max(var(--font-min), calc(11px * var(--font-scale))); color: var(--accent); }
+.workbench-title > .credit-hint { margin-left: auto; font-size: max(var(--font-min), calc(10px * var(--font-scale))); color: var(--muted); white-space: nowrap; }
+.workbench-title > .credit-link { margin-left: 0; }
 .compact-picker { align-self: start; padding: 22px 20px 14px; }
 .compact-picker .section-heading h2 { font-size: max(var(--font-min), calc(14px * var(--font-scale))); letter-spacing: 0; }
 .compact-picker .section-heading .icon { width: 19px; height: 19px; color: var(--muted); }
@@ -229,10 +232,11 @@
 .duration-bar button[aria-pressed="true"] { background: var(--accent); color: light-dark(#fff, var(--on-accent)); }
 .duration-bar button:disabled { cursor: default; }
 .duration-bar .duration-note { margin-left: auto; font-size: max(var(--font-min), calc(9px * var(--font-scale))); }
-.duration-settings { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; margin-top: 16px; padding: 0; }
+.duration-settings { display: grid; grid-template-columns: minmax(0, 1fr) auto; row-gap: 8px; column-gap: 0; margin-top: 16px; padding: 0; }
 .duration-settings > div { grid-column: 1 / -1; grid-row: 2; }
 .duration-settings button { flex: 1; padding-inline: 10px; }
-.duration-settings .duration-note { grid-column: 2; grid-row: 1; }
+.duration-settings .duration-note { grid-column: 2; grid-row: 1; margin-left: 10px; }
+.duration-settings > h2 { color:var(--ink); font-size:14px; }
 @media(max-width:620px) { .duration-bar { gap: 8px; padding: 0 3px 12px; font-size: max(var(--font-min), calc(9px * var(--font-scale))); }.duration-bar button { font-size: max(var(--font-min), calc(10px * var(--font-scale))); padding: 7px 10px; }.duration-bar .duration-note { margin-left: 0; } }
 .compact-picker .garment-preview > img { padding: 10px 13px 30px; }
 .compact-mirror { padding: var(--preview-padding); }
@@ -308,7 +312,7 @@
 @keyframes card-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes orbit-breathe { 50% { box-shadow: 0 0 0 7px #793d500a; } }
 @keyframes connection-sweep { from { left: -40%; } to { left: 100%; } }
-@media(min-width:1101px) { .creation-shell .workspace { grid-template-columns: 280px minmax(0, 1fr); gap: 22px; } }
+@media(min-width:1101px) { .creation-shell .workspace { grid-template-columns: 320px minmax(0, 1fr); gap: 22px; } }
 @media(max-width:850px) { .preview-controls { flex-wrap: wrap; }.preview-actions { margin-left: auto; }.preview-controls .view-switch button { padding: 8px 11px; }.floating-card { right: 12px; bottom: 12px; }.compact-picker .upload-zone { height: 225px; } }
 @media(max-width:620px) { .creation-shell { padding-top: 18px; }.workbench-title { margin-bottom: 14px; gap: 11px; }.workbench-title h1 { font-size: max(var(--font-min), calc(17px * var(--font-scale))); }.workbench-title > span { font-size: max(var(--font-min), calc(9px * var(--font-scale))); padding-left: 11px; }.workbench-title > a { font-size: max(var(--font-min), calc(10px * var(--font-scale))); }.creation-shell .workspace { gap: 13px; }.compact-picker { padding: 15px 16px 10px; width: 100%; }.compact-picker .upload-zone { height: 118px; min-height: 118px; margin-top: 12px; }.compact-picker .upload-icon { height: 30px; width: 30px; margin-bottom: 8px; }.compact-picker .upload-empty strong { font-size: max(var(--font-min), calc(11px * var(--font-scale))); }.compact-picker .section-heading h2 { font-size: max(var(--font-min), calc(13px * var(--font-scale))); }.compact-picker .upload-meta { margin-top: 8px; }.studio { --preview-height: 420px; --preview-padding: 0 9px 11px; --preview-heading-height: 42px; }.preview-controls { gap: 10px; padding: 12px 0 0; }.preview-controls .view-switch button { font-size: max(var(--font-min), calc(10px * var(--font-scale))); padding: 8px 10px; }.camera-button { font-size: max(var(--font-min), calc(10px * var(--font-scale))); padding: 8px 11px; min-height: 35px; }.camera-button .icon { width: 13px; height: 13px; }.preview-actions .stop-button { font-size: max(var(--font-min), calc(10px * var(--font-scale))); min-height: 35px; padding: 8px 11px; }.floating-card { right: 10px; bottom: 10px; }.floating-consent { font-size: max(var(--font-min), calc(10px * var(--font-scale))); }.creation-footer { font-size: max(var(--font-min), calc(9px * var(--font-scale))); padding-top: 14px; }.creation-footer button { font-size: max(var(--font-min), calc(9px * var(--font-scale))); }.preview-badges { inset-inline: 12px; top: 12px; } }
 @media(max-width:380px) { .preview-actions { width: 100%; justify-content: flex-end; }.preview-controls .view-switch { margin-inline: auto; } }
@@ -317,7 +321,7 @@
 /* 创作工作区按窗口分配空间，不以隐藏页面滚动裁掉主要操作。 */
 .studio { --media-tools-top: 16px; --frame-heading: 38px; --frame-toolbar: 0px; --frame-controls: 56px; --frame-details: 0px; height: 100dvh; min-height: 0; padding-bottom: 0; display: flex; flex-direction: column; }
 .studio > header { flex: none; }
-.studio .creation-shell { position: relative; flex: 1; min-height: 0; width: min(1760px, calc(100% - 48px)); max-width: 1760px; margin-inline: auto; display: flex; flex-direction: column; padding: 12px 0 8px 132px; }
+.studio .creation-shell { position: relative; flex: 1; min-height: 0; width: min(1760px, calc(100% - 48px)); max-width: 1760px; margin-inline: auto; display: flex; flex-direction: column; padding: 12px 0 8px; }
 .studio .workbench-title { flex: none; margin-bottom: 10px; }
 .studio .creation-shell > nav { position: absolute; left: var(--workspace-inset, 0px); top: 50px; width: 112px; margin: 0; }
 .studio .workspace { flex: 1; min-height: 0; grid-template-rows: minmax(0, 1fr); align-items: stretch; padding-inline: var(--workspace-inset, 0px); }
@@ -336,8 +340,9 @@
 .studio [data-preview-stage] video, .studio [data-preview-stage] .demo-poster { object-fit: contain; background: transparent; }
 .studio [data-preview-stage] .demo-video, .studio [data-preview-stage] .demo-poster { transform: none; }
 .studio .creation-footer { flex: none; height: 28px; min-height: 28px; padding: 8px 0 0; }
-.studio .compact-picker { align-self: stretch; display: flex; flex-direction: column; padding: 16px; }
-.studio .compact-picker .upload-zone { flex: 1; min-height: 80px; height: auto; margin-top: 12px; }
+.studio .compact-picker { align-self: stretch; display: flex; flex-direction: column; padding: 16px; height: 100%; min-height: 0; }
+.studio .library-picker { height: 100%; }
+.studio .compact-picker .upload-zone { flex: 1 1 auto; min-height: 258px; height: auto; margin-top: 12px; }
 .studio .compact-picker .upload-empty { max-height: 100%; }
 .studio .compact-picker .upload-sample { max-height: min(16dvh, 125px); width: auto; max-width: 75%; }
 .studio .compact-picker .upload-icon { width: 26px; height: 26px; margin-bottom: 6px; }
@@ -354,6 +359,7 @@
   .studio .creation-shell > nav { left: auto; right: 0; top: 12px; width: 338px; }
   .studio .workbench-title { min-height: 48px; padding-right: 350px; }
   .studio .workbench-title > span, .studio .workbench-title > a { display: none; }
+  .studio .workbench-title > .credit-hint { display: none; }
   .studio .workbench-title h1 { white-space: nowrap; }
 }
 @media (max-width: 620px) {
@@ -445,7 +451,7 @@
   .studio .workspace > section { order: 2; width: 100%; }
   .studio .creation-shell > .workbench-title, .studio .creation-shell > .creation-footer { margin-inline: 0; }
   .studio .compact-picker { flex: none; padding: 14px 16px; }
-  .studio .compact-picker .upload-zone { flex: none; height: 172px; min-height: 172px; margin-top: 10px; }
+  .studio .compact-picker .upload-zone { flex: 1 1 auto; height: auto; min-height: 258px; margin-top: 10px; }
   .studio .compact-picker .upload-sample { max-height: 82px; }
   .studio .compact-picker .wardrobe-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
   .studio .compact-picker .wardrobe-choice, .studio .compact-picker .wardrobe-add { height: 64px; }
@@ -480,8 +486,8 @@
   .studio .recording-bar > div { gap: 9px; flex-shrink: 0; }
 }
 @media (min-width: 1101px) and (max-width: 1270px) {
-  .studio .creation-shell { width: calc(100% - 72px); padding-left: 120px; }
-  .studio .creation-shell .workspace { grid-template-columns: 250px minmax(0, 1fr); gap: 18px; }
+  .studio .creation-shell { width: calc(100% - 72px); }
+  .studio .creation-shell .workspace { grid-template-columns: 300px minmax(0, 1fr); gap: 18px; }
   .studio [data-preview-controls] { gap: 8px; }
   .studio .recording-bar .record-toggle strong { font-size: 13px; }
 }
@@ -491,4 +497,27 @@
  .studio :is(.demo-prompt strong,.floating-card h3) { font-size:14px; font-weight:500; line-height:1.5; }
  .studio .demo-prompt > p > span { font-size:12px; line-height:1.5; }
  .studio :is(.demo-prompt,.floating-card) .primary-button { font-size:13px; font-weight:500; line-height:1.5; }
+}
+
+/* 素材区使用统一侧栏容器；时长、参考图和来源依次排列。 */
+.studio [data-garment-picker] { padding:0; border:0; border-radius:0; background:transparent; }
+.studio [data-garment-picker] .duration-settings { margin:0; row-gap:10px; column-gap:0; font-size:13px; }
+.studio [data-garment-picker] .duration-settings > div { padding:3px; border-radius:20px; }
+.studio [data-garment-picker] .duration-settings button { min-height:34px; border-radius:18px; font-size:12px; }
+.studio [data-garment-picker] .duration-note { font-size:11px; font-weight:400; color:var(--muted); }
+.studio [data-garment-picker] .section-heading { margin-top:22px; padding-top:22px; border-top:1px solid var(--line); }
+.studio [data-garment-picker] .section-heading h2 { font-size:14px; }
+.studio [data-garment-picker] .wardrobe-count { font-size:12px; font-variant-numeric:tabular-nums; }
+.studio [data-garment-picker] .upload-zone { flex:1 1 auto; height:auto; min-height:258px; margin-top:12px; border-radius:10px; }
+.studio [data-garment-picker] .upload-sample { max-height:94px; }
+.studio [data-garment-picker] .upload-icon { display:none; }
+.studio [data-garment-picker] .upload-empty strong { margin-top:12px; font-size:13px; font-weight:500; color:var(--ink); }
+.studio [data-garment-picker] .upload-empty > span:last-child { font-size:11px; }
+.studio [data-garment-picker] .upload-meta { margin-top:9px; min-height:0; font-size:11px; line-height:1.6; }
+.studio [data-garment-picker] .wardrobe-grid { margin-top:16px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+
+/* 桌面恢复铺满画框；仅预览等比裁切，不改变录制、下载与截图源。 */
+@media (min-width:1101px) {
+  .studio [data-preview-stage]:not(:fullscreen):not([data-video-preview]) video,
+  .studio [data-preview-stage]:not(:fullscreen) .demo-poster { object-fit:cover; }
 }

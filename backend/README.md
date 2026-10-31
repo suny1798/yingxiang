@@ -32,10 +32,8 @@ MyBatis-Plus 已覆盖主要业务 SQL：账号（`UserMapper`、`AccountQueryMa
 
 配置入口：
 
-- `src/main/resources/application.yml`：公共配置，默认local，回环端口8792，统一 `/api` 上下文。
-- `src/main/resources/application-local.yml`：本机覆盖导入入口，不在此填密码。
-- `config/application-local.yml`：本机真实连接参数，已适配参考项目Redis连接信息；PG库名与用户名均为用户指定的 `yingxiang`。Git忽略、不进入Jar。
-- `config/application-local.example.yml`：可提交的无密钥示例。
+- `src/main/resources/application.yml`：代码内公共默认值，默认local，回环端口8792，统一 `/api` 上下文；不是部署配置。
+- `config/application-local.yml`：后端唯一配置文件，保存PG／Redis、供应商密钥、Stripe、场景开关和测试名单。Git忽略、不进入Jar；API与Worker共用，Worker通过命令行指定角色。
 - `src/main/resources/application-offline.yml`：显式offline时关闭数据源和Redis自动配置，供无本机配置的测试使用。
 
 ```powershell
@@ -43,6 +41,8 @@ MyBatis-Plus 已覆盖主要业务 SQL：账号（`UserMapper`、`AccountQueryMa
 .\mvnw.cmd spring-boot:run
 # 已构建时也可直接运行Jar
 java -jar target/yingxiang-backend-0.1.0.jar
+# Worker；与API共用config/application-local.yml，仅用命令行区分角色
+java -jar target/yingxiang-backend-0.1.0.jar --migration.role=worker --migration.worker-enabled=true --migration.worker-id=live-worker-1
 # 直接访问，不需要手动设置Host
 curl.exe http://localhost:8792/api/internal/live
 # 仅运行一次脱敏的只读连接检查
@@ -99,16 +99,9 @@ java -jar target/yingxiang-backend-0.1.0.jar --migration.auth-enabled=true --mig
 
 旧FastAPI对照脚本 `scripts.java_quota_contracts`／`scripts.java_studio_contracts` 已随M25退役；31项真实PG领域检查与28项JUnit历史结果分别见[M12-a报告](../docs/reports/2026-10-27-M12-a-权益原子预留与确认.md)与[M12-b3报告](../docs/reports/2026-10-27-M12-b3-替身签发与观测闭环.md)。
 
-## 迁移环境配置（M02）
+## 配置（M02）
 
-请在本机填写 [backend/.env.migration.local](.env.migration.local)，不要改当前运行的 `.env`。已按用户要求创建空凭据配置，并确认被Git忽略；无密钥示例为 [.env.migration.example](.env.migration.example)。填写PostgreSQL的host／port／独立测试库／schema／username／password／TLS，以及Redis的host／port／可选ACL用户名／password／TLS／测试命名空间。含特殊字符的密码按dotenv格式加引号，不把密码发到聊天或提交仓库。
-
-```powershell
-# backend/；只离线检查，尚未连接数据库／Redis
-.venv/Scripts/python.exe -m scripts.migration_env
-```
-
-未填写时退出码2并只报告缺少字段；格式通过时退出0，但不等于连通性／权限／迁移已通过。此文件为历史Python工具入口，Java已改为上方的config/application-local.yml；现有FastAPI不读取该文件。不要解除维护或开启外部供应商／生成／正式支付。此历史Python检查器仍按原TLS模板校验；当前Java本机协议以用户要求参考的可运行配置及私有YAML为准。隔离库／schema／Redis前缀要求带migration标记，但命名不能替代真实的独立账号／ACL／权限隔离。
+配置已收敛为后端唯一文件 [config/application-local.yml](config/application-local.yml)，保存PG／Redis连接、供应商密钥、Stripe、场景开关和测试名单；Git忽略，不进入Jar。`scripts.java_connections`、`java_schema`、各合同脚本与 `spring-boot:run` 均读取该文件。旧`.env`、`.env.migration.*`、`config/application-*.example.yml` 与 `src/main/resources/application-local.yml` 已删除；不要恢复多份配置或把密码提交到仓库。隔离测试仍使用临时schema和临时配置覆盖，不修改该文件。
 
 ## 当前合同对照（M01）
 
@@ -178,7 +171,7 @@ python -m venv .venv
 按FR26/T28，POST /api/video/prepare接收≤25MB普通H.264 MP4，在内存中只保留视频chunk、重建offset，真实删除音频数据；不转码、不落媒体盘、不调用模型、不消耗生成次数。无需登录或模型开启，同源校验、全局30次/10分钟、共享单上传槽。返回video/mp4及X-Video-Audio-Removed。视频任务提交也调用相同逻辑兜底。特殊/碎片容器仍拒绝，不提供通用格式转换。
 
 
-测试账号访问范围可配置`YINGXIANG_VIDEO_ALLOWED_USERNAMES=suny`、`YINGXIANG_PROMPT_ALLOWED_USERNAMES=suny`；逗号分隔、与库内用户名精确匹配，空值保留原全局语义。该白名单同时校验状态读取与生成预留。当前仅suny开放视频/编辑，各预算US$5、20次累计上限，保留原消费；真实新测试仍需具体素材、预算与停止条件，不由高额度自动触发。
+2026-10-31起视频换装与实时编辑默认对登录用户开放，旧的`YINGXIANG_VIDEO_ALLOWED_USERNAMES`／`YINGXIANG_PROMPT_ALLOWED_USERNAMES`允许名单不再参与状态读取或生成预留。视频每个账号一次10秒免费体验，由`migration.video-free-trial-once=true`开启，上传由服务端复核为1—10秒，超过10秒拒绝并提示重新上传；`YINGXIANG_VIDEO_UNLIMITED_USERNAMES`仅保留测试账号不限次。两个场景仍受本机US$5、20次累计预算上限保护，真实新测试仍需具体素材、预算与停止条件。
 
 
 ## 视频历史管理与0002升级
@@ -196,7 +189,7 @@ credits-v1-light/creator/plus支持沙盒Checkout、验签回调/主动查单和
 
 ## 提示词未知签发恢复（2026-10-25）
 
-提示词unknown不再永久锁住整个场景：保留原申请、US$0.30风险占用和次数，等待max(创建+60秒、最后更新+60秒、lease_until)后，可由用户手动新开。旧UUID永远不能再签发，预算/次数/白名单/暂停及活动lease仍约束；预留缺失或不足继续失败关闭。此规则只适用于固定10秒TTL/15秒会话的prompt，不适用于视频任务。等待结束不代表实际零收费或核对完成。无需删库、清记录、补额度或人工改issued。
+提示词unknown不再永久锁住整个场景：保留原申请、US$0.30风险占用和次数，等待max(创建+60秒、最后更新+60秒、lease_until)后，可由用户手动新开。旧UUID永远不能再签发，预算/次数/暂停及活动lease仍约束；预留缺失或不足继续失败关闭。此规则只适用于固定10秒TTL/15秒会话的prompt，不适用于视频任务。等待结束不代表实际零收费或核对完成。无需删库、清记录、补额度或人工改issued。
 
 今后签发失败会在当前申请observation保存固定tokenFailure类别与HTTP状态，不保存原响应、密钥、提示词、媒体或完整异常。历史unknown没有该诊断时不能推断失败原因。
 
@@ -292,9 +285,9 @@ Worker不提交生成、不读取正式库、不记录媒体或凭据；M18已�
 
 ## 正式运行收尾配置（M20-r）
 
-`config/application-runtime.example.yml`仅为安全模板，**不自动加载**。实际PG/Redis连接仍在私有`config/application-local.yml`；以`--spring.config.additional-location=file:<私有运行覆盖文件>`显式叠加运行配置。默认维护、场景关闭及Stripe正式支付关闭不变；`runtime-enabled=true`不代表G3已通过，也不会自动导入或调用供应商。
+`config/application-local.yml`是唯一后端配置，同时包含PG／Redis连接、运行开关、供应商与Stripe密钥；API和Worker都自动读取该文件，Worker仅用命令行指定角色。原`application-runtime.example.yml`与额外`--spring.config.additional-location`已取消；`runtime-enabled=true`不代表G3已通过，也不会自动导入或调用供应商。
 
-- 默认隔离模式仍只允许临时schema和本机替身。正式模式只接受`yingxiang_migration`与固定HTTPS `api.decart.ai`／`api.stripe.com`，Stripe仅接受test密钥。模型／SDK／提示模板未升级。正式视频白名单不能为空，实时编辑不限次账号必须在允许名单内。
+- 默认隔离模式仍只允许临时schema和本机替身。正式模式只接受`yingxiang_migration`与固定HTTPS `api.decart.ai`／`api.stripe.com`，Stripe仅接受test密钥。模型／SDK／提示模板未升级。视频与实时编辑默认对登录用户开放，不再要求非空允许名单。
 - 正式解除维护前，启动检查Flyway全部版本及校验和、私有卷与唯一sealed导入批次。导入工具正式目标扩展、最终停写与切流仍属于M21/M22；不要手工伪造sealed状态绕过准入。
 - API角色为`migration.role=api`、`worker-enabled=false`；Worker为`migration.role=worker`、`worker-enabled=true`，同Jar自动启动非Web上下文，不注册Controller／安全过滤链、不监听HTTP。API误开Worker或Worker未开任务均拒绝启动。Worker输出固定`YINGXIANG_WORKER_READY`，任务状态仍以PG为准；不输出媒体、密钥或用户信息。
 - `/api/internal/live`仅检查进程；`/api/internal/ready`真实核对schema、Flyway、必要私有卷和运行角色，成功200，失败脱敏503。Redis故障仍通过业务门禁返回503，不阻断已提交任务读取与收尾；连接和命令超时固定默认2秒。
@@ -307,7 +300,7 @@ Worker不提交生成、不读取正式库、不记录媒体或凭据；M18已�
 
 默认隔离schema限制保留；只有正式`yingxiang_migration`加`--formal-plan <私有计划>`才开放正式工具路径。`python -m ops formal-plan`要求已验证的`joint_snapshot`停写快照和对应恢复源，绑定源指纹／目标数据库与账号身份／卷／批次，2小时有效，原地覆盖计划被拒绝。此声明不能替代实际停写，正式导入不允许故障注入。所有导入／核对客户端持有同一schema会话锁，退出释放，避免并发初始化／发布媒体。
 
-命令及切流步骤见[M22检查表](../docs/migration/M22-正式切流检查表.md)。目标卷根含`users/`；Java的`migration.storage-root`必须设为该`users`目录，不能设成卷根。恢复目录有`INCOMPLETE`时readiness返回503，不能运行半成品。正式`application-runtime.example.yml`要求独立运行账号，不能继承迁移账号。
+命令及切流步骤见[M22检查表](../docs/migration/M22-正式切流检查表.md)。目标卷根含`users/`；Java的`migration.storage-root`必须设为该`users`目录，不能设成卷根。恢复目录有`INCOMPLETE`时readiness返回503，不能运行半成品。正式运行账号不能继承迁移账号，连接信息同样只写在后端唯一配置中。
 
 - `python -m ops.pg_backup snapshot|verify|restore`：PG schema和媒体共同备份／校验／恢复；逐表行数与内容哈希、dump哈希与媒体哈希一致。写命令必须`--offline`，恢复目标必须新schema／新卷。原生`pg_dump`／`pg_restore`需安装与PG18兼容的官方工具，凭据通过环境变量传递，错误只回固定分类。
 - `python -m scripts.formal_pg18_rehearsal`：一次性官方PG18.0，32项正式导入／最小权限／Java会话与Range／联合恢复检查；不读写正式云库，不调用供应商。镜像固定摘要在脚本内。官方直连仓库路径用于绕开本机镜像源返回HTML的故障，不修改Docker全局配置。

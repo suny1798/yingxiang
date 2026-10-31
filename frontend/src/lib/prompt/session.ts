@@ -6,13 +6,13 @@ import { connectionTimeoutMessage, CONNECTION_STAGE_LABELS, type ConnectionStep 
 export type PromptPhase = 'idle' | 'connecting' | 'live' | 'updating' | 'ended' | 'error';
 export interface PromptSnapshot {
   phase: PromptPhase; draft: string; applied: string | null; applying: string | null;
-  consent: boolean; remaining: number; deadlineAt: number | null; message: string | null;
+  consent: boolean; durationSec:15|30; remaining: number; deadlineAt: number | null; message: string | null;
   connectionSteps: ConnectionStep[];
   history: WorkPromptState[];
 }
 export const promptActive = (phase: PromptPhase) => ['connecting', 'live', 'updating'].includes(phase);
 export class PromptSession {
-  private snapshot: PromptSnapshot = { phase: 'idle', draft: '', applied: null, applying: null, consent: false, remaining: PROMPT_POLICY.durationSec, deadlineAt: null, message: null, connectionSteps: [], history: [] };
+  private snapshot: PromptSnapshot = { phase: 'idle', draft: '', applied: null, applying: null, consent: false, durationSec:15, remaining: PROMPT_POLICY.durationSec, deadlineAt: null, message: null, connectionSteps: [], history: [] };
   private listeners = new Set<() => void>();
   private operation: AbortController | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -26,8 +26,8 @@ export class PromptSession {
   private patch(value: Partial<PromptSnapshot>) { this.snapshot = { ...this.snapshot, ...value }; this.listeners.forEach((listener) => listener()); }
   private current(signal: AbortSignal) { return this.operation?.signal === signal && !signal.aborted; }
   private confirmedHistory(instructions: string[]) {
-    const began = (this.snapshot.deadlineAt ?? this.now()) - PROMPT_POLICY.durationSec * 1000;
-    return [...this.snapshot.history, { atMs: Math.min(15_000, Math.max(0, this.now() - began)), instructions }];
+    const began = (this.snapshot.deadlineAt ?? this.now()) - this.snapshot.durationSec * 1000;
+    return [...this.snapshot.history, { atMs: Math.min(this.snapshot.durationSec*1000, Math.max(0, this.now() - began)), instructions }];
   }
   setDraft(draft: string, instructions: readonly string[] = [draft]) { this.draftInstructions = [...instructions]; this.patch({ draft }); }
   /** UI列表变化只在已有连接内同步；空组合直接回到相机原画。 */
@@ -37,6 +37,7 @@ export class PromptSession {
     if (this.operation) this.apply();
   }
   setConsent(consent: boolean) { if (!consent) this.stop('已取消云端处理确认。'); this.patch({ consent }); }
+  setDuration(durationSec:15|30) { if(!promptActive(this.snapshot.phase)&&[15,30].includes(durationSec))this.patch({durationSec,remaining:durationSec}); }
   tick = () => {
     if (!this.operation) return;
     if (this.connectionDeadlineAt !== null && this.now() >= this.connectionDeadlineAt) {
@@ -58,10 +59,10 @@ export class PromptSession {
     const instructions = [...this.draftInstructions];
     const startedAt = this.now();
     this.connectionDeadlineAt = startedAt + PROMPT_POLICY.connectionTimeoutMs;
-    this.patch({ phase: 'connecting', applied: null, applying: prompt, message: null, deadlineAt: null, remaining: PROMPT_POLICY.durationSec, connectionSteps: [], history: [] });
+    this.patch({ phase: 'connecting', applied: null, applying: prompt, message: null, deadlineAt: null, remaining: this.snapshot.durationSec, connectionSteps: [], history: [] });
     this.timer = setInterval(this.tick, 200);
     try {
-      await this.adapter.connect({ prompt, signal: operation.signal, onError: (error) => this.fail(error, operation.signal), onProgress: (stage) => {
+      await this.adapter.connect({ prompt, durationSec:this.snapshot.durationSec, signal: operation.signal, onError: (error) => this.fail(error, operation.signal), onProgress: (stage) => {
         if (!this.current(operation.signal) || !Object.hasOwn(CONNECTION_STAGE_LABELS, stage) || this.snapshot.connectionSteps.at(-1)?.stage === stage) return;
         this.patch({ connectionSteps: [...this.snapshot.connectionSteps, { stage, elapsedMs: Math.min(120_000, Math.max(0, this.now() - startedAt)) }].slice(-20) });
       } });
@@ -69,7 +70,7 @@ export class PromptSession {
       this.tick(); if (!this.current(operation.signal)) return;
       // 适配器仅在远端视频实际开始播放后完成；此前的状态读取/签发/建连不扣体验时间。
       this.connectionDeadlineAt = null;
-      this.patch({ phase: 'live', applied: prompt, applying: null, deadlineAt: this.now() + PROMPT_POLICY.durationSec * 1000, remaining: PROMPT_POLICY.durationSec, history: [{ atMs: 0, instructions }] });
+      this.patch({ phase: 'live', applied: prompt, applying: null, deadlineAt: this.now() + this.snapshot.durationSec * 1000, remaining: this.snapshot.durationSec, history: [{ atMs: 0, instructions }] });
       if (this.pending) void this.flush();
     } catch (error) { this.fail(error, operation.signal); }
   }

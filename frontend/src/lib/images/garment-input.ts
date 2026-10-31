@@ -19,7 +19,8 @@ export class GarmentInput {
   subscribe = (listener: () => void): (() => void) => { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; };
   private patch(patch: Partial<typeof this.snapshot>) { this.snapshot = { ...this.snapshot, ...patch }; this.listeners.forEach((listener) => listener()); }
   upload = async (file?: File): Promise<void> => { if (file) await this.uploadMany([file]); };
-  uploadMany = async (files: readonly File[]): Promise<void> => {
+  replace = async (file: File): Promise<void> => { await this.uploadMany([file], true); };
+  uploadMany = async (files: readonly File[], replace = false): Promise<void> => {
     if (!files.length) return;
     this.operation?.abort();
     const current = new AbortController(); this.operation = current;
@@ -27,7 +28,7 @@ export class GarmentInput {
     const prepared: Array<{ blob: Blob; name: string }> = [];
     const errors: string[] = [];
     try {
-      const room = MAX_GARMENTS - this.snapshot.garments.length;
+      const room = replace ? 1 : MAX_GARMENTS - this.snapshot.garments.length;
       if (files.length > room) errors.push(`最多保留${MAX_GARMENTS}张，请移除后再添加。`);
       for (const file of files.slice(0, room)) {
         try {
@@ -41,6 +42,13 @@ export class GarmentInput {
       }
       if (current.signal.aborted || this.operation !== current) return;
       const added = prepared.map(({ blob, name }) => ({ id: this.images.id(), name, previewUrl: this.images.createURL(blob), blob }));
+      if (replace && added.length) {
+        const previous = this.snapshot.garments;
+        this.patch({ garments: added, selectedId: added[0].id, error: errors.join(' ') || null });
+        this.onChange(added[0]);
+        previous.forEach(item => this.images.revokeURL(item.previewUrl));
+        return;
+      }
       const selected = this.snapshot.selectedId ? null : added[0];
       this.patch({ garments: [...this.snapshot.garments, ...added], selectedId: this.snapshot.selectedId ?? selected?.id ?? null, error: errors.join(' ') || null });
       if (selected) this.onChange(selected);

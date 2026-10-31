@@ -11,6 +11,17 @@ import type { RealtimeSdkFactory } from '../src/lib/media/decart-realtime';
 import { safeConnectionStage, type ConnectionStage } from '../src/lib/prompt/connection-diagnostics';
 
 const settle = () => new Promise<void>((resolve) => setImmediate(resolve));
+
+test('实时编辑可选择30秒，实际播放后开始计时且同连接更新不续时', async () => {
+  const s=sessionSetup(),wait=deferred();s.controller.setDuration(30);s.connectWait(wait.promise);
+  const pending=s.controller.start();s.setNow(2000);wait.resolve();await pending;
+  assert.equal(s.connections[0].durationSec,30);
+  assert.equal(s.controller.getSnapshot().deadlineAt,32000);
+  s.controller.setDuration(15);assert.equal(s.controller.getSnapshot().durationSec,30);
+  s.setNow(12000);s.controller.tick();assert.equal(s.controller.getSnapshot().remaining,20);
+  s.controller.syncComposition('更换背景');await settle();
+  assert.equal(s.controller.getSnapshot().deadlineAt,32000);s.controller.dispose();
+});
 const deferred = () => { let resolve!: () => void; const promise = new Promise<void>((done) => { resolve = done; }); return { promise, resolve }; };
 
 test('作品记录初始及确认后的用户组合，保留删除前状态，不记录草稿或未发送的中间合并', async () => {
@@ -115,7 +126,7 @@ async function adapterSetup(options: { pending?: boolean; badUpdate?: boolean; f
   };
   const request: typeof fetch = async (input, init) => {
     const target = String(input); requests.push({ url: target, ...(init?.body ? { body: JSON.parse(String(init.body)) } : {}) });
-    return target.endsWith('/status') ? Response.json({ available: true, access: 'unit-access' }) : options.failToken ? Response.json({ error: { message: '签发结果待核查' } }, { status: 503 }) : Response.json({ apiKey: 'ek_unit_test_only', durationSec: 15 });
+    return target.endsWith('/status') ? Response.json({ code: 0, data: { available: true, access: 'unit-access' }, message: 'ok' }) : options.failToken ? Response.json({ code: 50300, data: null, message: '签发结果待核查' }, { status: 503 }) : Response.json({ code: 0, data: { apiKey: 'ek_unit_test_only', durationSec: 15 }, message: 'ok' });
   };
   return { adapter: new DecartPromptAdapter(camera, remote, request, factory), camera, local, remote, output, requests, updates, options: () => args, provider: () => provider(), disconnects: () => disconnects, finish: wait.resolve };
 }
@@ -146,7 +157,7 @@ test('提示词连接取消清理迟到客户端/远端；签发或更新失败�
 
 test('本机已安装SDK能解析固定Lucy2.5模型，准备组件不会签发或建连', async () => {
   let called = false; const connector = await preparePromptSdk(async () => { called = true; throw new Error(); });
-  assert.ok(connector.model); assert.match(JSON.stringify(connector.model), /lucy-2.5/); assert.equal(called, false);
+  assert.ok(connector.model); assert.match(JSON.stringify(connector.model), /lucy-2.6/); assert.equal(called, false);
 });
 
 test('组合保留当前顺序与完整内容，支持12条500字且不会静默截断', () => {

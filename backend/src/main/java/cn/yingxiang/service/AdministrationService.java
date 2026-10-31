@@ -39,7 +39,7 @@ public interface AdministrationService {
 
     public Map<String, Object> userChange(String hashed, String ident, JsonNode body);
 
-    public Map<String, Object> quotaChange(String hashed, String ident, JsonNode body);
+    public Map<String, Object> creditsChange(String hashed, String ident, JsonNode body);
 
     public Map<String, Object> settingsChange(String hashed, String key, JsonNode body);
 

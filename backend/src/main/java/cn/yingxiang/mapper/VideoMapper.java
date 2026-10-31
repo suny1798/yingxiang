@@ -12,6 +12,10 @@ import java.util.Map;
 /** 视频任务、历史、预算预留 SQL；保留原事务与条件更新语义。 */
 @Mapper
 public interface VideoMapper {
+    @Select("SELECT j.result_duration_ms,c.state AS billing_state,c.reserved_credits,c.charged_credits,"
+            + "EXISTS(SELECT 1 FROM ${schema}works w WHERE w.source_id=j.id AND w.state IN ('waiting','saving')) AS result_pending "
+            + "FROM ${schema}video_jobs j LEFT JOIN ${schema}billing_credit_charges c ON c.id=j.id WHERE j.id=#{id}")
+    Map<String,Object> resultMeter(@Param("schema") String schema, @Param("id") String id);
 
     @Select("SELECT value FROM ${schema}admin_settings WHERE key='services'")
     String servicesSetting(@Param("schema") String schema);

@@ -23,7 +23,7 @@ CONFIG = BACKEND / 'config/application-local.yml'
 ORIGIN = 'http://127.0.0.1:8791'
 HOST = '127.0.0.1:8791'
 KEY = 'synthetic-prompt-key'
-MODEL = 'lucy-2.5'
+MODEL = 'lucy-2.6'
 CONSENT = '2026-10-26-prompt-history-v1'
 ALICE = 'yingxiang_session=' + '6' * 64
 BOB = 'yingxiang_session=' + '7' * 64
@@ -193,11 +193,7 @@ def main():
             return request(method, path, cookie, headers, body)
 
         anonymous = call('GET', '/api/prompt/status')
-        check(anonymous[0] == 200 and parse(anonymous)['available'] is False and 'access' not in parse(anonymous),
-              'anonymous prompt status with allowlist')
-        denied = call('GET', '/api/prompt/status', cookie=BOB)
-        check(denied[0] == 200 and parse(denied)['available'] is False
-              and '仅向指定测试账号' in parse(denied)['message'], 'allowlist denies bob')
+        check(anonymous[0] == 200 and 'access' not in parse(anonymous), 'anonymous prompt status has no access')
         status = call('GET', '/api/prompt/status', cookie=ALICE)
         check(status[0] == 200 and parse(status)['available'] is True and len(parse(status)['access']) == 64,
               'alice prompt access')
@@ -256,10 +252,6 @@ def main():
                           headers={'Content-Type': 'application/json', 'X-Studio-Access': suny_access},
                           body=body_json({'attemptId': str(uuid4()), 'consentVersion': CONSENT, 'durationSec': 15}))
         check(suny_issue[0] == 200, 'suny exception can issue')
-        bob_issue = call('POST', '/api/prompt/token', cookie=BOB,
-                         headers={'Content-Type': 'application/json', 'X-Studio-Access': suny_access},
-                         body=body_json({'attemptId': str(uuid4()), 'consentVersion': CONSENT, 'durationSec': 15}))
-        check(bob_issue[0] == 409, 'suny exception does not widen allowlist')
 
         # 提示词历史
         owner = {'X-Work-Owner': ALICE_ID, 'Content-Type': 'application/json'}

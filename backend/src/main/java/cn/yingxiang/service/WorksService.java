@@ -78,6 +78,11 @@ public interface WorksService {
 
     public void reference(String userId, String ident, String refId, String mime, byte[] data);
 
+    /** 视频提交时补建作品并保存本轮服装参考图，返回作品ID;失败由调用方决定是否继续生成。 */
+    public String videoReference(String userId, String jobId, String mime, byte[] data);
+
+    public void failVideoReference(String jobId);
+
     public Map<String, Object> change(String userId, String ident, JsonNode body);
 
     public void removeFiles(Work work);

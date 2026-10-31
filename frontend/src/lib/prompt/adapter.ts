@@ -5,12 +5,12 @@ import { PROMPT_POLICY } from './policy';
 import { promptStateText } from './composition';
 import type { ConnectionStage } from './connection-diagnostics';
 export const preparePromptSdk = sdkFor(PROMPT_POLICY.model);
-export interface PromptConnectOptions { prompt: string; signal: AbortSignal; onError: (error: Error) => void; onProgress?: (stage: ConnectionStage) => void }
+export interface PromptConnectOptions { prompt: string; durationSec?:15|30; signal: AbortSignal; onError: (error: Error) => void; onProgress?: (stage: ConnectionStage) => void }
 export interface PromptAdapter { connect(options: PromptConnectOptions): Promise<void>; update(prompt: string, signal: AbortSignal): Promise<void>; stop(): void }
 export class DecartPromptAdapter extends DecartRealtime implements PromptAdapter {
   constructor(camera: LocalCamera, remote: RemotePreview, request: typeof fetch = browserRequest, factory: RealtimeSdkFactory = preparePromptSdk) {
     super(camera, remote, request, factory, { keepLocalPreview: true }, { status: '/api/prompt/status', token: '/api/prompt/token', consentVersion: PROMPT_POLICY.consentVersion });
   }
-  async connect(options: PromptConnectOptions) { await this.connectState({ ...options, state: { prompt: promptStateText(options.prompt) }, durationSec: PROMPT_POLICY.durationSec, onPhase: () => {} }); }
+  async connect(options: PromptConnectOptions) { await this.connectState({ ...options, state: { prompt: promptStateText(options.prompt) }, durationSec: options.durationSec??PROMPT_POLICY.durationSec, onPhase: () => {} }); }
   async update(prompt: string, signal: AbortSignal) { await this.updateState({ prompt: promptStateText(prompt) }, signal); }
 }

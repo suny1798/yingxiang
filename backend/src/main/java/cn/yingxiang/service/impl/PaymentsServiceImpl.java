@@ -2,6 +2,8 @@ package cn.yingxiang.service.impl;
 
 import cn.yingxiang.service.PaymentsService;
 import cn.yingxiang.common.MigrationSupport;
+import cn.yingxiang.common.BillingPolicy;
+import cn.yingxiang.service.BillingService;
 import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.manager.StripeGateway;
 import cn.yingxiang.config.RuntimePolicy;
@@ -65,10 +67,12 @@ public class PaymentsServiceImpl implements PaymentsService {
     private final String expectedAccount;
 
     private final StripeGateway gateway;
+    private final BillingService billing;
 
     public PaymentsServiceImpl(JdbcTemplate jdbc, PaymentMapper payments, MigrationAccounts accounts,
                                RateLimitService rateLimit, PlatformTransactionManager manager, Environment env,
-                               JsonMapper json) {
+                               JsonMapper json, BillingService billing) {
+            this.billing = billing;
             this.jdbc = jdbc; this.payments = payments; this.accounts = accounts; this.rateLimit = rateLimit; this.json = json;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M13 payments");
             this.secret = env.getProperty("migration.stripe-secret", "");
@@ -94,6 +98,10 @@ public class PaymentsServiceImpl implements PaymentsService {
         }
 
     public static Product product(String sku) {
+            if (BillingPolicy.isTopup(sku)) {
+                var plan = BillingPolicy.topup(sku);
+                return new Product(sku, null, null, plan.paidMinor(), "usd", plan.id(), plan.credits(), "credits-v2");
+            }
             for (var entry : CREDIT_PLANS.entrySet()) {
                 if (sku != null && sku.equals("credits-v1-" + entry.getKey())) {
                     Plan plan = entry.getValue();
@@ -112,11 +120,13 @@ public class PaymentsServiceImpl implements PaymentsService {
 
     public static Map<String, Object> checkoutParams(Order order, String publicOrigin) {
             String suffix = suffix(order.id());
-            String name = order.planId() != null
+            boolean wallet = BillingPolicy.isTopup(order.sku());
+            String name = wallet ? "映想" + BillingPolicy.topup(order.sku()).name() + " · "
+                    + order.credits() + "积分（沙盒，1秒1积分）" : order.planId() != null
                     ? "映想" + CREDIT_PLANS.get(order.planId()).name() + " · " + order.credits() + "积分（沙盒，积分不过期）"
                     : "映想实时换装 · " + order.seconds() + "秒 × " + order.count() + "次（沙盒）";
-            String accountPath = order.planId() != null ? "/account/orders" : "/account";
-            String returnQuery = order.planId() != null ? "&orderId=" + order.id() : "";
+            String accountPath = wallet || order.planId() != null ? "/account/orders" : "/account";
+            String returnQuery = wallet || order.planId() != null ? "&orderId=" + order.id() : "";
             Map<String, Object> priceData = new LinkedHashMap<>();
             priceData.put("currency", order.currency());
             priceData.put("unit_amount", order.amount());
@@ -191,6 +201,7 @@ public class PaymentsServiceImpl implements PaymentsService {
                     Order unknown = find("SELECT * FROM " + schema + "orders WHERE user_id=? AND sku=? AND state='creating' "
                             + "AND session_id IS NULL FOR UPDATE", user.id(), sku);
                     if (unknown != null) return unknown;
+                    if (!BillingPolicy.isTopup(sku)) throw new BusinessFailure("PRODUCT_RETIRED", "原体验包已停止新购，请选择按秒充值。", 409);
                     if (rateLimit.exceeded("checkout:" + user.id(), 10, 60 * 60_000L)) {
                         throw new BusinessFailure("RATE_LIMITED", "操作过于频繁，请稍后再试。", 429);
                     }
@@ -205,7 +216,7 @@ public class PaymentsServiceImpl implements PaymentsService {
                             null, null, null, null, snapshot);
                     payments.insertOrder(schema, created.id(), created.userId(), created.requestId(), created.sku(),
                             created.seconds(), created.count(), created.amount(), created.planId(), created.credits(),
-                            created.currency(), created.state(), created.createdAt(), created.requestSnapshot());
+                            created.currency(), created.state(), created.createdAt(), created.requestSnapshot(), item.templateVersion());
                     return created;
                 });
             } catch (DataIntegrityViolationException error) {
@@ -329,7 +340,9 @@ public class PaymentsServiceImpl implements PaymentsService {
                 String state = order.state();
                 if ("complete".equals(value.get("status")) && "paid".equals(value.get("payment_status"))) {
                     if (fulfilledAt == null) {
-                        if (order.planId() != null) {
+                        if (BillingPolicy.isTopup(order.sku())) {
+                            billing.fundSandbox(order.userId(), order.id(), order.sku(), order.amount(), order.currency());
+                        } else if (order.planId() != null) {
                             payments.insertPack(schema, order.id(), order.userId(), order.planId(), order.credits(),
                                     json.writeValueAsString(CREDIT_PLANS.get(order.planId()).scenes()),
                                     System.currentTimeMillis());

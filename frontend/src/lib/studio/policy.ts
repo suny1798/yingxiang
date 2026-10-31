@@ -7,7 +7,7 @@ export const durationLabel = (seconds: DurationSec) => seconds === 60 ? '1分钟
 export const STUDIO_POLICY = {
   batchId: 'studio-manual-v1',
   model: 'lucy-vton-3.6',
-  sdk: '0.2.12',
+  sdk: '0.2.14',
   consentVersion: '2026-10-26-preview-cloud-save-v1',
   approvedBudgetUsd: 5,
   tokenTtlSec: 10,

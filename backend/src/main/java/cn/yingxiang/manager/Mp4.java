@@ -10,7 +10,7 @@ import java.util.Set;
 /** M14：普通H.264 MP4的内存校验与去音轨；只读字节，不落盘、不解码。 */
 public final class Mp4 {
     public static final int MAX_BYTES = 26_214_400;
-    public static final double MAX_SECONDS = 15.0;
+    public static final double MAX_SECONDS = 30.0;
     private static final byte[] FTYP = ascii("ftyp"), MOOV = ascii("moov"), MDAT = ascii("mdat");
     private static final Set<String> TABLE = Set.of("stsd", "stts", "stss", "stsc", "stsz", "stco", "co64",
             "ctts", "sdtp", "sbgp", "sgpd");
@@ -21,6 +21,33 @@ public final class Mp4 {
     public static final class Builder { int count; }
 
     private Mp4() {}
+
+    /** 后台下载结果的画面呈现时长；不使用上传时长或浏览器自报值。 */
+    public static long resultDurationMillis(byte[] data) {
+        Builder builder = new Builder();
+        List<Box> top = boxes(data, 0, data.length, builder);
+        one(top, "ftyp"); one(top, "mdat");
+        if (top.stream().anyMatch(box -> box.type().equals("moof"))) fail("结果时长暂无法核验。");
+        List<Box> movie = children(data, one(top, "moov"), builder);
+        Box mvhd = one(movie, "mvhd"); length(mvhd, 20);
+        int version = data[mvhd.start()] & 255;
+        if (version > 1) fail(null);
+        length(mvhd, version == 1 ? 32 : 20);
+        long scale = uint(data, mvhd.start() + (version == 1 ? 20 : 12));
+        List<Box> tracks = movie.stream().filter(box -> box.type().equals("trak")).filter(box -> {
+            var media = children(data, one(children(data, box, builder), "mdia", builder), builder);
+            Box handler = one(media, "hdlr"); length(handler, 12);
+            return text(data, handler.start() + 8, 4).equals("vide");
+        }).toList();
+        if (tracks.size() != 1 || scale == 0) fail(null);
+        Box header = one(children(data, tracks.getFirst(), builder), "tkhd"); length(header, 24);
+        int trackVersion = data[header.start()] & 255;
+        if (trackVersion > 1) fail(null);
+        length(header, trackVersion == 1 ? 36 : 24);
+        long ticks = uint(data, header.start() + (trackVersion == 1 ? 28 : 20), trackVersion == 1 ? 8 : 4);
+        if (ticks <= 0 || ticks > scale * 60) fail("结果时长暂无法核验。");
+        return (ticks * 1000 + scale - 1) / scale;
+    }
 
     private static byte[] ascii(String value) { return value.getBytes(StandardCharsets.ISO_8859_1); }
 
@@ -85,7 +112,7 @@ public final class Mp4 {
         }
         double seconds = ticks / (double) mediaTiming.scale();
         if (sampleCount > 15_000 || seconds > MAX_SECONDS + 0.001 || Math.abs(seconds - mediaTiming.seconds()) > 0.05) {
-            fail("视频时间表异常或超过15秒，请重新裁剪导出。");
+            fail("视频时间表异常或超过30秒，请重新上传30秒以内的视频。");
         }
         Box stsz = one(samples, "stsz", builder);
         length(stsz, 12);
@@ -377,7 +404,8 @@ public final class Mp4 {
         long scale = uint(data, box.start() + (version != 0 ? 20 : 12));
         long ticks = version != 0 ? uint(data, box.start() + 24, 8) : uint(data, box.start() + 16);
         double seconds = scale != 0 ? ticks / (double) scale : 0;
-        if (scale == 0 || seconds < 1 || seconds > maximum) fail("首版支持1—15秒视频，请先裁剪后再上传。");
+        if (scale == 0 || seconds < 1 || seconds > maximum) fail(seconds > maximum
+                ? "视频超过30秒，请重新上传30秒以内的视频。" : "视频时长不足1秒，请重新上传。");
         return new Timing(seconds, scale);
     }
 

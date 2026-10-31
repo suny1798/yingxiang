@@ -5,8 +5,9 @@ import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { fileURLToPath, URL } from 'node:url';
 
-// 只接受独立回环测试后端；默认8790，不自动接原8788业务服务。
-const target = process.env.MIGRATION_BACKEND_URL ?? 'http://127.0.0.1:8790';
+// 只接受独立回环测试后端；默认8792，不自动接原8788业务服务。
+const frontendConfig = JSON.parse(readFileSync(new URL('./config/frontend.json', import.meta.url), 'utf8')) as { apiProxyTarget?: string };
+const target = process.env.MIGRATION_BACKEND_URL ?? frontendConfig.apiProxyTarget ?? 'http://127.0.0.1:8792';
 const backend = new URL(target);
 if (backend.protocol !== 'http:' || backend.hostname !== '127.0.0.1' || !backend.port || backend.username || backend.password
     || backend.pathname !== '/' || backend.search || backend.hash) throw new Error('Migration backend must be numeric loopback');

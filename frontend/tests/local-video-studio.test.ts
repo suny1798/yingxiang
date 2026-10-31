@@ -1,3 +1,5 @@
+import {readFileSync} from 'node:fs';
+import {inspectVideo} from '../src/lib/video/mp4';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createPinia } from 'pinia';
@@ -88,3 +90,10 @@ test('卸载后迟到读取不创建URL，重复卸载不重复释放',async()=>
   assert.equal(p.urls.length,0);assert.equal(p.revoked.length,0);assert.equal(p.notices.length,0);
   s.client.clear();
 });
+
+ test('视频容器接受超过10秒但不超过30秒，超过30秒拒绝',()=>{
+ const original=readFileSync(new URL('../public/assets/try-on-demo.mp4',import.meta.url));
+ const stretch=(factor:number)=>{const bytes=new Uint8Array(original);const view=new DataView(bytes.buffer);for(const name of ['mvhd','mdhd']){const offset=original.indexOf(name)+16;view.setUint32(offset,view.getUint32(offset)/factor);}return bytes;};
+ assert.ok(inspectVideo(stretch(2)).seconds>10);
+ assert.throws(()=>inspectVideo(stretch(4)),/超过30秒/);
+ });

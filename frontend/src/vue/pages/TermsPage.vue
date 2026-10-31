@@ -16,7 +16,7 @@ const pick = (copy: Copy) => copy[preferences.locale.value === 'en' ? 1 : 0];
       <RouterLink to="/privacy">{{t('隐私与使用说明')}} ↗</RouterLink><RouterLink to="/help/feedback">{{t('问题反馈')}} ↗</RouterLink>
     </aside><article :class="s.panel">
       <div :class="s.notice"><strong>{{pick(['开始前，先知道这三件事','Three things to know before starting'])}}</strong>
-        <p>{{pick(['相机预览不等于上传；当前支付仅为沙盒；实时编辑仅向指定测试账号开放。实际生成需要另行确认，并受服务开放和账号权益限制。','Camera preview is not an upload. Payments are sandbox-only. Live editing is limited to designated test accounts. Generation requires a separate confirmation and is subject to availability and account entitlements.'])}}</p>
+        <p>{{pick(['相机预览不等于上传；当前支付仅为沙盒；实时换装、视频换装与实时编辑已向登录用户开放。实际生成需要另行确认，并受服务开放和账号权益限制。','Camera preview is not an upload. Payments are sandbox-only. Live try-on, video try-on, and live editing are open to signed-in users. Generation requires a separate confirmation and is subject to availability and account entitlements.'])}}</p>
       </div>
       <section v-for="section in sections" :id="section.id" :key="section.id" :class="s.section"><h2>{{pick(section.title)}}</h2><p v-for="(paragraph,index) in section.paragraphs" :key="index">{{pick(paragraph)}}</p></section>
       <div :class="s.links"><RouterLink to="/privacy">{{t('隐私与使用说明')}} ↗</RouterLink><RouterLink to="/help/feedback">{{t('问题反馈')}} ↗</RouterLink><RouterLink to="/pricing">{{t('价格方案')}} ↗</RouterLink></div>

@@ -17,7 +17,7 @@ public interface EntitlementMapper {
             + "AND (value::jsonb -> 'studio')='true'::jsonb)")
     boolean paused(@Param("schema") String schema);
 
-    @Select("SELECT u.id,s.expires_at FROM ${schema}users u JOIN ${schema}auth_sessions s ON s.user_id=u.id "
+    @Select("SELECT u.id,u.username,s.expires_at FROM ${schema}users u JOIN ${schema}auth_sessions s ON s.user_id=u.id "
             + "WHERE s.hash=#{hash} AND u.disabled=0 FOR UPDATE OF u,s")
     List<Map<String, Object>> lockSession(@Param("schema") String schema, @Param("hash") String hash);
 

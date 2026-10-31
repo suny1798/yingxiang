@@ -102,6 +102,14 @@ export class PromptEditor {
     return true;
   }
 
+  clear(): boolean {
+    if (!this.state.instructions.length) return false;
+    this.update([], { page: 0, view: 'original' });
+    this.sync([]);
+    this.message('已移除全部提示词，已恢复相机原画。');
+    return true;
+  }
+
   /** 只设置本轮完整组合并交给既有控制器；登录、服务与相机门禁由页面先核对。 */
   start(): boolean {
     if (!this.state.owner) { this.platform.openLogin(); return false; }

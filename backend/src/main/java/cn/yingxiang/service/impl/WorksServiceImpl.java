@@ -148,7 +148,7 @@ public class WorksServiceImpl implements WorksService {
             body.propertyNames().forEach(fields::add);
             JsonNode at = body.get("atMs"), instructions = body.get("instructions");
             if (!fields.equals(Set.of("atMs", "instructions")) || at == null || !at.isIntegralNumber()
-                    || at.asLong() < 0 || at.asLong() > 15_000 || instructions == null || !instructions.isArray()
+                    || at.asLong() < 0 || at.asLong() > 30_000 || instructions == null || !instructions.isArray()
                     || instructions.size() < 1 || instructions.size() > 12) {
                 throw invalidPrompts();
             }
@@ -370,6 +370,22 @@ public class WorksServiceImpl implements WorksService {
             }
             transaction.executeWithoutResult(status -> works.insertReference(schema, refId, ident, mime, extension,
                     data.length, System.currentTimeMillis()));
+        }
+
+    public String videoReference(String userId, String jobId, String mime, byte[] data) {
+            works.ensureVideoWork(schema, jobId, System.currentTimeMillis());
+            Map<String, Object> row = works.videoWork(schema, jobId);
+            if (row == null || !userId.equals(row.get("user_id"))) {
+                throw new BusinessFailure("WORK_NOT_FOUND", "找不到这件作品。", 404);
+            }
+            String ident = (String) row.get("id");
+            reference(userId, ident, MigrationSupport.uuid(), mime, data);
+            return ident;
+        }
+
+    public void failVideoReference(String jobId) {
+            transaction.executeWithoutResult(status ->
+                    works.markVideoReferenceFailed(schema, jobId, System.currentTimeMillis()));
         }
 
     public Map<String, Object> change(String userId, String ident, JsonNode body) {

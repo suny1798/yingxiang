@@ -24,13 +24,13 @@ public interface PaymentMapper {
     List<Map<String, Object>> packs(@Param("schema") String schema, @Param("userId") String userId);
 
     @Insert("INSERT INTO ${schema}orders(id,user_id,request_id,sku,seconds,count,amount,plan_id,credits,"
-            + "currency,state,created_at,request_snapshot) VALUES (#{id},#{userId},#{requestId},#{sku},#{seconds},"
-            + "#{count},#{amount},#{planId},#{credits},#{currency},#{state},#{createdAt},#{snapshot})")
+            + "currency,state,created_at,request_snapshot,template_version) VALUES (#{id},#{userId},#{requestId},#{sku},#{seconds},"
+            + "#{count},#{amount},#{planId},#{credits},#{currency},#{state},#{createdAt},#{snapshot},#{templateVersion})")
     int insertOrder(@Param("schema") String schema, @Param("id") String id, @Param("userId") String userId,
                     @Param("requestId") String requestId, @Param("sku") String sku, @Param("seconds") Integer seconds,
                     @Param("count") Integer count, @Param("amount") int amount, @Param("planId") String planId,
                     @Param("credits") Integer credits, @Param("currency") String currency, @Param("state") String state,
-                    @Param("createdAt") long createdAt, @Param("snapshot") String snapshot);
+                    @Param("createdAt") long createdAt, @Param("snapshot") String snapshot, @Param("templateVersion") String templateVersion);
 
     @Select("SELECT id FROM ${schema}payment_events WHERE id=#{eventId}")
     List<String> eventIds(@Param("schema") String schema, @Param("eventId") String eventId);

@@ -38,7 +38,7 @@ export function inspectVideo(bytes: Uint8Array, options: { allowAudio?: boolean 
     const scale = data.getUint32(box.start + (version ? 20 : 12));
     const ticks = version ? Number(data.getBigUint64(box.start + 24)) : data.getUint32(box.start + 16);
     const seconds = ticks / scale;
-    if (!scale || !Number.isFinite(seconds) || seconds < 1 || seconds > maximum) invalid('首版支持1—15秒视频，请先裁剪后再上传。');
+    if (!scale || !Number.isFinite(seconds) || seconds < 1 || seconds > maximum) invalid(seconds > maximum ? '视频超过30秒，请重新上传30秒以内的视频。' : '视频时长不足1秒，请重新上传。');
     return { seconds, scale };
   };
   const top = boxes(0, bytes.length);
@@ -47,7 +47,7 @@ export function inspectVideo(bytes: Uint8Array, options: { allowAudio?: boolean 
   if (!top.some((box) => box.type === 'mdat' && box.end > box.start)) invalid();
   const movie = one(top, 'moov'), movieBoxes = boxes(movie.start, movie.end);
   if (movieBoxes.some((box) => box.type === 'mvex')) invalid();
-  const movieTime = timing(one(movieBoxes, 'mvhd'), options.allowAudio ? 86400 : 15.001);
+  const movieTime = timing(one(movieBoxes, 'mvhd'), options.allowAudio ? 86400 : VIDEO_POLICY.maxSeconds + 0.001);
   const tracks = movieBoxes.filter((box) => box.type === 'trak');
   const videoTracks: Box[] = [], audioTracks: Box[] = [];
   for (const track of tracks) {
@@ -83,7 +83,7 @@ export function inspectVideo(bytes: Uint8Array, options: { allowAudio?: boolean 
     ticks += number * delta; samples += number;
   }
   const seconds = ticks / mediaTime.scale;
-  if (samples > 15_000 || seconds > VIDEO_POLICY.maxSeconds + 0.001 || Math.abs(seconds - mediaTime.seconds) > 0.05) invalid('视频时间表异常或超过15秒，请重新裁剪导出。');
+  if (samples > 15_000 || seconds > VIDEO_POLICY.maxSeconds + 0.001 || Math.abs(seconds - mediaTime.seconds) > 0.05) invalid('视频时间表异常或超过30秒，请重新上传30秒以内的视频。');
   const stsz = one(sampleBoxes, 'stsz'); length(stsz, 12);
   if (data.getUint32(stsz.start + 8) !== samples) invalid();
   const edits = trackBoxes.filter((box) => box.type === 'edts');

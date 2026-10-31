@@ -12,7 +12,7 @@ import s from '../components/site/admin.module.css';
 defineProps<{username:string}>();
 const say=useSay();
 const {state,admin}=useAdminConsole();
-const tabs=computed<Array<[AdminTab,string]>>(()=>[['overview',say('项目总览','Overview')],['users',say('用户与权益','Users & access')],['usage',say('实时使用记录','Live usage')],['video',say('视频任务','Video tasks')],['orders',say('沙盒订单','Sandbox orders')],['settings',say('服务与内容','Services & content')],['audit',say('操作日志','Audit log')]]);
+const tabs=computed<Array<[AdminTab,string]>>(()=>[['overview',say('项目总览','Overview')],['users',say('用户与积分','Users & credits')],['usage',say('实时使用记录','Live usage')],['video',say('视频任务','Video tasks')],['orders',say('沙盒订单','Sandbox orders')],['settings',say('服务与内容','Services & content')],['audit',say('操作日志','Audit log')]]);
 const recordsTab=computed(()=>state.value.tab==='usage'||state.value.tab==='video'||state.value.tab==='orders'?state.value.tab:null);
 </script>
 <template>

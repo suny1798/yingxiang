@@ -1,6 +1,7 @@
 package cn.yingxiang.service.impl;
 
 import cn.yingxiang.service.VideoService;
+import cn.yingxiang.service.BillingService;
 import cn.yingxiang.common.MigrationSupport;
 import cn.yingxiang.exception.BusinessFailure;
 import cn.yingxiang.manager.Multipart;
@@ -34,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import cn.yingxiang.service.RateLimitService;
+import cn.yingxiang.service.WorksService;
+import org.springframework.beans.factory.ObjectProvider;
 
 @Service
 @Profile("local")
@@ -42,6 +45,9 @@ public class VideoServiceImpl implements VideoService {
 
     private static final Set<String> STATES = Set.of("pending", "processing", "completed", "failed");
 
+    /** 2026-10-31T00:00:00+08:00起，每个账号一次10秒免费视频体验；此前的历史任务不占本次体验。 */
+    private static final long FREE_TRIAL_SINCE = cn.yingxiang.common.FreeTrialPolicy.VIDEO_SINCE;
+
     private final JdbcTemplate jdbc;
 
     private final VideoMapper videos;
@@ -49,6 +55,8 @@ public class VideoServiceImpl implements VideoService {
     private final MigrationAccounts accounts;
 
     private final RateLimitService rateLimit;
+
+    private final ObjectProvider<WorksService> works;
 
     private final JsonMapper json;
 
@@ -64,7 +72,9 @@ public class VideoServiceImpl implements VideoService {
 
     private final int maximum;
 
-    private final Set<String> allowedUsers;
+    private final Set<String> unlimitedUsers;
+
+    private final boolean freeTrialOnce;
 
     private final String providerBase;
 
@@ -73,10 +83,14 @@ public class VideoServiceImpl implements VideoService {
     private final HttpClient client;
 
     private final AtomicBoolean busy = new AtomicBoolean();
+    private final BillingService billing;
 
     public VideoServiceImpl(JdbcTemplate jdbc, VideoMapper videos, MigrationAccounts accounts, RateLimitService rateLimit,
-                            PlatformTransactionManager manager, Environment env, JsonMapper json) {
-            this.jdbc = jdbc; this.videos = videos; this.accounts = accounts; this.rateLimit = rateLimit; this.env = env; this.json = json;
+                            ObjectProvider<WorksService> works, PlatformTransactionManager manager, Environment env,
+                            JsonMapper json, BillingService billing) {
+            this.billing = billing;
+            this.jdbc = jdbc; this.videos = videos; this.accounts = accounts; this.rateLimit = rateLimit; this.works = works;
+            this.env = env; this.json = json;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M14 video");
             transaction = new TransactionTemplate(manager);
             transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -93,9 +107,9 @@ public class VideoServiceImpl implements VideoService {
             }
             budgetMicro = Double.isFinite(budget) ? Math.round(budget * 1_000_000) : 0;
             maximum = Double.isFinite(max) && max == Math.floor(max) && max > 0 && max <= 20 ? (int) max : 0;
-            allowedUsers = new LinkedHashSet<>(Arrays.stream(env.getProperty("migration.video-allowed-usernames", "").split(","))
+            unlimitedUsers = new LinkedHashSet<>(Arrays.stream(env.getProperty("migration.video-unlimited-usernames", "").split(","))
                     .map(String::strip).filter(value -> !value.isEmpty()).toList());
-            if (RuntimePolicy.runtime(env) && allowedUsers.isEmpty()) throw new IllegalStateException("Runtime video whitelist required");
+            freeTrialOnce = Boolean.parseBoolean(env.getProperty("migration.video-free-trial-once", "false"));
             key = env.getProperty("migration.video-key", "").strip();
             providerBase = env.getProperty("migration.video-provider-url", "").replaceAll("/+$", "");
             if (RuntimePolicy.runtime(env)) RuntimePolicy.tokenKey(key, true);
@@ -113,10 +127,19 @@ public class VideoServiceImpl implements VideoService {
 
     public int maximum() { return maximum; }
 
-    public boolean allowed(String userId) {
-            if (allowedUsers.isEmpty()) return true;
+    private boolean unlimited(String userId) {
+            if (userId == null || unlimitedUsers.isEmpty()) return false;
             var user = accounts.byId(userId);
-            return user != null && allowedUsers.contains(user.username());
+            return user != null && unlimitedUsers.contains(user.username());
+        }
+
+    private boolean trialUsed(String userId, List<Job> jobs) {
+            return freeTrialOnce && userId != null && jobs.stream().anyMatch(job -> job.userId().equals(userId)
+                    && job.createdAt() >= FREE_TRIAL_SINCE);
+        }
+
+    private boolean trialAvailable(String userId, List<Job> jobs) {
+            return userId == null || !freeTrialOnce || unlimited(userId) || !trialUsed(userId, jobs);
         }
 
     private boolean paused() {
@@ -137,11 +160,11 @@ public class VideoServiceImpl implements VideoService {
             boolean active = rows.stream().anyMatch(job -> !Set.of("completed", "failed").contains(job.state()));
             long remaining = budgetMicro - rows.stream().mapToLong(Job::microUsd).sum();
             Set<String> archived = new LinkedHashSet<>(videos.archivedJobIds(schema));
-            boolean allowed = userId == null ? allowedUsers.isEmpty() : allowed(userId);
-            boolean available = allowed && enabled && remaining >= USD_PER_SECOND_MICRO && rows.size() < maximum && !active;
+            boolean trial = trialAvailable(userId, rows);
+            boolean available = enabled && trial && remaining >= USD_PER_SECOND_MICRO && rows.size() < maximum && !active;
             String message;
-            if (enabled && !allowed) message = "视频换装目前仅向指定测试账号开放。";
-            else if (!enabled) message = "视频生成待开放，可先预览素材。";
+            if (!enabled) message = "视频生成待开放，可先预览素材。";
+            else if (!trial) message = "免费视频体验已使用，可在我的作品查看。";
             else if (active) message = "有任务正在处理或待核查，请先查看任务。";
             else if (!available) message = "本轮视频额度已用完，请联系开发者。";
             else message = "本轮视频生成已开放。";
@@ -204,11 +227,22 @@ public class VideoServiceImpl implements VideoService {
     public Map<String, Object> submit(String userId, String ident, byte[] video, byte[] image, String mime, double seconds) {
             Reservation reservation = reserve(userId, ident, seconds);
             if (!reservation.fresh()) return view(reservation.job());
+            WorksService store = works.getIfAvailable();
+            if (store != null) {
+                try {
+                    store.videoReference(userId, ident, mime, image);
+                } catch (RuntimeException error) {
+                    // 参考图保存失败不阻断生成，也不重复提交供应商；作品页保留失败原因。
+                    try { store.failVideoReference(ident); } catch (RuntimeException ignored) { }
+                }
+            }
             try {
                 Map<String, Object> value = createJob(video, image, mime);
                 if (value != null) bind(ident, value);
+                else if (billing.enabled()) billing.review(ident);
             } catch (RuntimeException error) {
                 // 已持久化unknown；不重试生成POST。
+                if (billing.enabled()) billing.review(ident);
             }
             return view(own(userId, ident));
         }
@@ -269,7 +303,9 @@ public class VideoServiceImpl implements VideoService {
                 var prepared = Mp4.prepare(data);
                 return new Prepared(prepared.bytes(), prepared.info().seconds(), prepared.removed());
             } catch (IllegalArgumentException error) {
-                throw new BusinessFailure("INVALID_VIDEO_MEDIA", "视频未能自动处理，请确认是1—15秒的普通H.264 MP4后重试。", 400);
+                String message = error.getMessage();
+                throw new BusinessFailure("INVALID_VIDEO_MEDIA", message == null || message.isBlank()
+                        ? "视频未能自动处理，请确认是1—30秒的普通H.264 MP4后重试。" : message, 400);
             }
         }
 
@@ -284,18 +320,22 @@ public class VideoServiceImpl implements VideoService {
                 if (user == null || MigrationSupport.number(user, "disabled") != 0) {
                     throw new BusinessFailure("LOGIN_REQUIRED", "请先登录后继续。", 401);
                 }
-                if (paused() || !configured() || !allowed(userId)) {
-                    throw new BusinessFailure("VIDEO_DISABLED", "视频换装目前仅向指定测试账号开放。", 503);
+                if (paused() || !configured()) {
+                    throw new BusinessFailure("VIDEO_DISABLED", "视频生成待开放，可先预览素材。", 503);
                 }
                 Job existing = find(ident);
                 if (existing != null) {
                     if (!existing.userId().equals(userId)) throw new BusinessFailure("VIDEO_NOT_FOUND", "找不到这个视频任务。", 404);
                     return new Reservation(existing, false);
                 }
+                cn.yingxiang.common.FreeTrialPolicy.validateVideoSeconds(seconds, freeTrialOnce && !unlimited(userId));
                 videos.ensureCampaign(schema, System.currentTimeMillis());
                 // 串行化同一场景的预算预留，避免两进程同时通过上限检查。
                 videos.lockCampaign(schema);
                 List<Job> jobs = allJobs();
+                if (!trialAvailable(userId, jobs)) {
+                    throw new BusinessFailure("VIDEO_TRIAL_USED", "免费视频体验已使用，可在我的作品查看。", 409);
+                }
                 if (jobs.stream().anyMatch(job -> !Set.of("completed", "failed").contains(job.state()))) {
                     throw new BusinessFailure("VIDEO_IN_PROGRESS", "请等待现有任务完成或核查，不要重复提交。", 409);
                 }
@@ -304,6 +344,7 @@ public class VideoServiceImpl implements VideoService {
                     throw new BusinessFailure("VIDEO_BUDGET_LIMIT", "本轮视频额度不足，请联系开发者。", 409);
                 }
                 long now = System.currentTimeMillis();
+                if (billing.enabled()) billing.reserve(userId, "real_usage", ident, "video", (long) Math.ceil(seconds * 1000));
                 Job job = new Job(ident, userId, "unknown", now, now + RESULT_WINDOW_MS,
                         (long) Math.ceil(seconds * 1000), estimate, null, null);
                 videos.insertJob(schema, job.id(), job.userId(), job.state(), job.createdAt(), job.expiresAt(),
@@ -331,13 +372,16 @@ public class VideoServiceImpl implements VideoService {
                 if (Set.of("pending", "processing").contains(job.state())
                         && !(job.state().equals("processing") && state.equals("pending"))) {
                     videos.updateState(schema, ident, state);
+                    billing.settleVideoVerified(ident, state);
                 }
             });
         }
 
     private void bind(String ident, Map<String, Object> value) {
-            transaction.executeWithoutResult(status -> videos.bindProvider(schema, ident,
-                    (String) value.get("job_id"), (String) value.get("status")));
+            transaction.executeWithoutResult(status -> {
+                videos.bindProvider(schema, ident, (String) value.get("job_id"), (String) value.get("status"));
+                billing.settleVideoVerified(ident, (String) value.get("status"));
+            });
         }
 
     private Job own(String userId, String ident) {
@@ -364,15 +408,25 @@ public class VideoServiceImpl implements VideoService {
                     (String) row.get("provider_id"), row.get("checked_at") instanceof Number number ? number.longValue() : null);
         }
 
-    private static Map<String, Object> view(Job job) {
+    private Map<String, Object> view(Job job) {
             long now = System.currentTimeMillis();
-            return MigrationSupport.body("id", job.id(), "state", job.state(),
+            var value = new java.util.LinkedHashMap<String,Object>(MigrationSupport.body("id", job.id(), "state", job.state(),
                     "createdAt", MigrationSupport.iso(job.createdAt()), "expiresAt", MigrationSupport.iso(job.expiresAt()),
                     "seconds", job.secondsMilli() / 1000.0, "estimateUsd", job.microUsd() / 1_000_000.0,
-                    "expired", now >= job.expiresAt());
+                    "expired", now >= job.expiresAt()));
+            var meter = videos.resultMeter(schema, job.id());
+            Object duration = meter.get("result_duration_ms");
+            value.put("resultSeconds", duration instanceof Number number ? number.longValue()/1000.0 : null);
+            value.put("resultPending", Boolean.TRUE.equals(meter.get("result_pending")));
+            Object chargeState = meter.get("billing_state");
+            value.put("billing", chargeState == null ? null : MigrationSupport.body("state", chargeState,
+                    "reservedCredits", meter.get("reserved_credits"), "chargedCredits", meter.get("charged_credits"),
+                    "returnedCredits", meter.get("charged_credits") instanceof Number charged
+                            ? MigrationSupport.number(meter,"reserved_credits")-charged.longValue() : null));
+            return value;
         }
 
-    private static Map<String, Object> historyView(Job job, String title, boolean archived) {
+    private Map<String, Object> historyView(Job job, String title, boolean archived) {
             Map<String, Object> value = new java.util.LinkedHashMap<>(view(job));
             value.put("title", title == null || title.isBlank() ? "视频换装" : title);
             value.put("archived", archived);

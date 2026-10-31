@@ -36,7 +36,7 @@ const meta = (html, name) => html.match(new RegExp(`<meta ${name}[^>]*content="(
 const publicPages = [
   ['/wardrobe', 'wardrobe/index.html', '衣装灵感 · 映想', '下一套，'],
   ['/', 'index.html', '映想 — 让想象，在眼前发生。', '让想象，'],
-  ['/pricing', 'pricing/index.html', '价格方案 · 映想', '套餐与积分'],
+  ['/pricing', 'pricing/index.html', '价格方案 · 映想', '充值与积分'],
   ['/help', 'help/index.html', '帮助中心 · 映想', '使用指南与常见问题'],
   ['/help/feedback', 'help/feedback/index.html', '问题反馈 · 映想', '整理问题反馈'],
   ['/privacy', 'privacy/index.html', '隐私与使用说明 · 映想', '隐私与使用说明'],
@@ -135,7 +135,14 @@ try {
     check(value.headers['cache-control'] === 'no-store', `${path} 不缓存`);
   }
   const videoJobs = await http('/api/video/jobs');
-  check(videoJobs.status === 200 ? JSON.parse(text(videoJobs)).data.available === false : videoJobs.status === 401, '匿名视频任务不泄露数据');
+  if (videoJobs.status === 200) {
+    const status = JSON.parse(text(videoJobs)).data;
+    check(typeof status.available === 'boolean' && Array.isArray(status.jobs) && status.jobs.length === 0,
+      '匿名仅可读取视频开放状态，不返回私有任务');
+  } else {
+    check(videoJobs.status === 401, '匿名视频任务要求登录');
+  }
+  check(videoJobs.headers['cache-control'] === 'no-store', '视频状态与私有任务不缓存');
   const announcement = await http('/api/site/announcement');
   check(announcement.status === 200 && typeof JSON.parse(text(announcement)).data.enabled === 'boolean', '公告公开读取');
   const payments = await http('/api/payments/status');

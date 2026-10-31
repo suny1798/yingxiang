@@ -51,15 +51,17 @@ class AdminValidationTest {
                 "请填写有效操作编号及至少3字的操作原因。");
     }
 
-    @Test void validatesQuotaRangeAndDuration() {
+    @Test void validatesCreditAdjustment() {
         Map<String, Object> input = AdministrationService.validateMutation(
-                body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"补充权益\",\"seconds\":30,\"delta\":-2}"), "quota");
-        assertThat(input).containsEntry("seconds", 30).containsEntry("delta", -2);
+                body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"调整积分\",\"delta\":-2}"), "credits");
+        assertThat(input).containsEntry("delta", -2L).doesNotContainKey("seconds");
+        for (String delta : new String[]{"0", "1000001", "-1000001", "1.5"}) {
+            assertThatThrownBy(() -> AdministrationService.validateMutation(
+                    body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"调整积分\",\"delta\":" + delta + "}"), "credits"))
+                    .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_REQUEST"));
+        }
         assertThatThrownBy(() -> AdministrationService.validateMutation(
-                body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"补充权益\",\"seconds\":45,\"delta\":1}"), "quota"))
-                .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_REQUEST"));
-        assertThatThrownBy(() -> AdministrationService.validateMutation(
-                body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"补充权益\",\"seconds\":15,\"delta\":1000001}"), "quota"))
+                body("{\"requestId\":\"" + REQUEST + "\",\"reason\":\"调整积分\",\"seconds\":30,\"delta\":1}"), "credits"))
                 .isInstanceOfSatisfying(BusinessFailure.class, error -> assertThat(error.getCode()).isEqualTo("INVALID_REQUEST"));
     }
 

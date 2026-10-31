@@ -11,6 +11,38 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class Mp4Test {
+    @Test void resultDurationUsesResultPresentationTimeline() throws Exception {
+        byte[] data = asset();
+        var bytes = java.nio.ByteBuffer.wrap(data);
+        String content = new String(data, StandardCharsets.ISO_8859_1);
+        int movie = content.indexOf("mvhd") + 4;
+        int track = content.indexOf("tkhd") + 4;
+        bytes.putInt(movie + 12, 1000);
+        bytes.putInt(track + 20, 4934);
+        assertThat(Mp4.resultDurationMillis(data)).isEqualTo(4934);
+        bytes.putInt(track + 20, 5000);
+        assertThat(Mp4.resultDurationMillis(data)).isEqualTo(5000);
+        bytes.putInt(track + 20, 0);
+        assertThatThrownBy(()->Mp4.resultDurationMillis(data)).isInstanceOf(IllegalArgumentException.class);
+    }
+    @Test void videoMaximumIsThirtySecondsWhileFreeTrialRemainsTen() throws Exception {
+        byte[] original = asset();
+        for (int factor : new int[]{2, 4}) {
+            byte[] bytes = original.clone();
+            var buffer = java.nio.ByteBuffer.wrap(bytes);
+            String content = new String(original, StandardCharsets.ISO_8859_1);
+            for (String name : new String[]{"mvhd", "mdhd"}) {
+                int offset = content.indexOf(name) + 16;
+                buffer.putInt(offset, buffer.getInt(offset) / factor);
+            }
+            if (factor == 2) assertThat(Mp4.inspect(bytes, false).seconds()).isBetween(10.0, 30.001);
+            else assertThatThrownBy(() -> Mp4.inspect(bytes, false)).hasMessageContaining("超过30秒");
+        }
+        assertThatThrownBy(() -> cn.yingxiang.common.FreeTrialPolicy.validateVideoSeconds(11, true))
+                .isInstanceOf(cn.yingxiang.exception.BusinessFailure.class).hasMessageContaining("免费试用");
+        cn.yingxiang.common.FreeTrialPolicy.validateVideoSeconds(10, true);
+        cn.yingxiang.common.FreeTrialPolicy.validateVideoSeconds(30, false);
+    }
     private static byte[] asset() throws Exception {
         return Files.readAllBytes(Path.of("../frontend/public/assets/try-on-demo.mp4"));
     }
@@ -18,7 +50,7 @@ class Mp4Test {
     @Test void inspectsTheCommittedSyntheticDemoVideo() throws Exception {
         byte[] data = asset();
         Mp4.Info info = Mp4.inspect(data, false);
-        assertThat(info.seconds()).isBetween(1.0, 15.001);
+        assertThat(info.seconds()).isBetween(1.0, 10.001);
         assertThat(info.width()).isBetween(320, 3840);
         assertThat(info.height()).isBetween(320, 3840);
         assertThat(info.hasAudio()).isFalse();

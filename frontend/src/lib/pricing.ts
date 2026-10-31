@@ -1,7 +1,7 @@
-/** 三档展示方案；不作为支付SKU或后端权益，不触发购买、扣分或真实调用。 */
+/** 历史credits-v1目录，仅保留旧订单与旧测试合同；当前充值页使用billing.ts。 */
 export const CREATION_SCENES = {
   tryon: { label: '实时换装', creditsPerSecond: 1, maxSeconds: 60, examples: [15, 30, 60] },
-  video: { label: '视频换装', creditsPerSecond: 2, maxSeconds: 15, examples: [5, 10, 15] },
+  video: { label: '视频换装', creditsPerSecond: 2, maxSeconds: 10, examples: [5, 10] },
   edit: { label: '实时编辑', creditsPerSecond: 1, maxSeconds: 15, examples: [15] },
 } as const;
 export type CreationScene = keyof typeof CREATION_SCENES;

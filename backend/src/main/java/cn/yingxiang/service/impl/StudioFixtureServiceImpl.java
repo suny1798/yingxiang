@@ -26,6 +26,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.*;
 import cn.yingxiang.service.EntitlementReservationService;
+import cn.yingxiang.service.BillingService;
 
 @Service
 @Profile("local")
@@ -51,10 +52,12 @@ public class StudioFixtureServiceImpl implements StudioFixtureService {
     private final String schema;
 
     private final String key;
+    private final BillingService billing;
 
     public StudioFixtureServiceImpl(JdbcTemplate jdbc, StudioMapper studio, PlatformTransactionManager manager,
                                     Environment env, EntitlementReservationService reservations, AccountReader accounts,
-                                    JsonMapper json) throws java.io.IOException {
+                                    JsonMapper json, BillingService billing) throws java.io.IOException {
+            this.billing = billing;
             this.jdbc = jdbc; this.studio = studio; this.reservations = reservations; this.accounts = accounts; this.json = json;
             schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "studio");
             key = RuntimePolicy.runtime(env) ? env.getRequiredProperty("migration.studio-key") : "synthetic-studio-permanent-key";
@@ -68,7 +71,7 @@ public class StudioFixtureServiceImpl implements StudioFixtureService {
     @PreDestroy public void close() { transport.close(); }
 
     public Map<String, Object> status() {
-            boolean enabled = !paused();
+            boolean enabled = !paused() && !billing.enabled();
             var result = new LinkedHashMap<String, Object>();
             result.put("enabled", enabled); result.put("keyConfigured", true); result.put("available", enabled);
             result.put("policy", policy); result.put("state", enabled ? "ready" : "disabled");
@@ -90,6 +93,7 @@ public class StudioFixtureServiceImpl implements StudioFixtureService {
         }
 
     public Map<String, Object> issue(String hashed, JsonNode body, String origin) {
+            billing.requireRealtimeMeter();
             Set<String> fields = new HashSet<>(); body.propertyNames().forEach(fields::add);
             JsonNode consent = body.get("consentVersion"), id = body.get("attemptId");
             if (!(fields.equals(Set.of("attemptId", "consentVersion", "durationSec")) || fields.equals(Set.of("attemptId", "consentVersion")))

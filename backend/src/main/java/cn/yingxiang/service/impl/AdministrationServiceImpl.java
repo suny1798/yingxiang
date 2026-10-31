@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import cn.yingxiang.service.PaymentsService;
 import cn.yingxiang.service.VideoService;
+import cn.yingxiang.service.BillingService;
 
 @Service
 @Profile("local")
@@ -32,8 +33,6 @@ public class AdministrationServiceImpl implements AdministrationService {
     private static final String INVALID = "管理参数无效，请核对填写内容。";
 
     private static final String INVALID_MUTATION = "请填写有效操作编号及至少3字的操作原因。";
-
-    private static final String INSUFFICIENT = "只能回收未使用、未预留的次数。";
 
     private final JdbcTemplate jdbc;
 
@@ -45,6 +44,8 @@ public class AdministrationServiceImpl implements AdministrationService {
 
     private final VideoService video;
 
+    private final BillingService billing;
+
     private final JsonMapper json;
 
     private final TransactionTemplate transaction;
@@ -55,9 +56,10 @@ public class AdministrationServiceImpl implements AdministrationService {
 
     public AdministrationServiceImpl(JdbcTemplate jdbc, AdminMapper admin, MigrationAccounts accounts,
                                      ObjectProvider<PaymentsService> payments, ObjectProvider<VideoService> video,
-                                     PlatformTransactionManager manager, Environment env, JsonMapper json) {
+                                     PlatformTransactionManager manager, Environment env, JsonMapper json,
+                                     BillingService billing) {
             this.jdbc = jdbc; this.admin = admin; this.accounts = accounts; this.payments = payments.getIfAvailable();
-            this.video = video.getIfAvailable(); this.json = json; this.env = env;
+            this.video = video.getIfAvailable(); this.json = json; this.env = env; this.billing = billing;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M13 admin");
             transaction = new TransactionTemplate(manager);
             transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -123,7 +125,7 @@ public class AdministrationServiceImpl implements AdministrationService {
                     items.add(MigrationSupport.body("id", row.get("id"), "username", row.get("username"),
                             "role", row.get("role"), "disabled", MigrationSupport.number(row, "disabled") != 0,
                             "createdAt", MigrationSupport.iso(MigrationSupport.number(row, "created_at")),
-                            "durations", durations((String) row.get("id"))));
+                            "credits", credits((String) row.get("id"))));
                 }
                 return MigrationSupport.body("items", items, "total", total, "page", page,
                         "pages", Math.max(1, (total + 19) / 20));
@@ -229,40 +231,14 @@ public class AdministrationServiceImpl implements AdministrationService {
             });
         }
 
-    public Map<String, Object> quotaChange(String hashed, String ident, JsonNode body) {
-            Map<String, Object> input = validateMutation(body, "quota");
-            return mutate(hashed, "quota.adjust", ident, input, (actor, value) -> {
+    public Map<String, Object> creditsChange(String hashed, String ident, JsonNode body) {
+            Map<String, Object> input = validateMutation(body, "credits");
+            return mutate(hashed, "credits.adjust", ident, input, (actor, value) -> {
                 if (accounts.byId(ident) == null) throw new BusinessFailure("NOT_FOUND", "账号不存在。", 404);
-                int seconds = (Integer) value.get("seconds");
-                int delta = (Integer) value.get("delta");
-                if (delta == 0) throw new BusinessFailure("INVALID_REQUEST", "调整次数不能为0。", 400);
-                List<Map<String, Object>> rows = admin.lockGrants(schema, ident, seconds);
-                long before = 0;
-                for (var row : rows) {
-                    before += MigrationSupport.number(row, "total") - MigrationSupport.number(row, "reserved")
-                            - MigrationSupport.number(row, "used") - MigrationSupport.number(row, "revoked");
-                }
-                if (before + delta < 0) throw new BusinessFailure("INSUFFICIENT_AVAILABLE", INSUFFICIENT, 409);
-                if (delta > 0) {
-                    accounts.grant(ident, seconds, delta, "admin", "admin:" + value.get("requestId"), "real_usage");
-                } else {
-                    int remaining = -delta;
-                    for (var row : rows) {
-                        int quantity = (int) Math.min(remaining, MigrationSupport.number(row, "total")
-                                - MigrationSupport.number(row, "reserved") - MigrationSupport.number(row, "used")
-                                - MigrationSupport.number(row, "revoked"));
-                        if (quantity > 0) {
-                            String grantId = (String) row.get("id");
-                            admin.revoke(schema, grantId, quantity);
-                            admin.insertRevokeEntry(schema, MigrationSupport.uuid(), grantId,
-                                    "admin-revoke:" + value.get("requestId") + ":" + grantId, quantity,
-                                    System.currentTimeMillis());
-                        }
-                        remaining -= quantity;
-                        if (remaining == 0) break;
-                    }
-                }
-                return MigrationSupport.body("before", before, "after", before + delta, "seconds", seconds);
+                long before = credits(ident), delta = MigrationSupport.number(value, "delta");
+                if (delta == 0) throw new BusinessFailure("INVALID_REQUEST", "调整积分不能为0。", 400);
+                long after = billing.adjust(ident, (String) value.get("requestId"), delta);
+                return MigrationSupport.body("before", before, "after", after);
             });
         }
 
@@ -325,7 +301,7 @@ public class AdministrationServiceImpl implements AdministrationService {
     public static Map<String, Object> validateMutation(JsonNode body, String kind) {
             Set<String> expected = switch (kind) {
                 case "user" -> Set.of("requestId", "reason", "role", "disabled");
-                case "quota" -> Set.of("requestId", "reason", "seconds", "delta");
+                case "credits" -> Set.of("requestId", "reason", "delta");
                 default -> Set.of("requestId", "reason", "version", "paused", "enabled", "zh", "en");
             };
             Set<String> fields = new java.util.LinkedHashSet<>();
@@ -355,14 +331,13 @@ public class AdministrationServiceImpl implements AdministrationService {
                     input.put("role", role.asString());
                     input.put("disabled", disabled.asBoolean());
                 }
-                case "quota" -> {
-                    JsonNode seconds = body.get("seconds"), delta = body.get("delta");
-                    if (!seconds.isIntegralNumber() || !List.of(15, 30, 60).contains(seconds.asInt())
-                            || !delta.isIntegralNumber() || delta.asLong() < -1_000_000 || delta.asLong() > 1_000_000) {
+                case "credits" -> {
+                    JsonNode delta = body.get("delta");
+                    if (!delta.isIntegralNumber() || delta.asLong() < -1_000_000 || delta.asLong() > 1_000_000
+                            || delta.asLong() == 0) {
                         throw new BusinessFailure("INVALID_REQUEST", INVALID, 400);
                     }
-                    input.put("seconds", seconds.asInt());
-                    input.put("delta", delta.asInt());
+                    input.put("delta", delta.asLong());
                 }
                 default -> {
                     JsonNode version = body.get("version"), paused = body.get("paused"),
@@ -427,16 +402,11 @@ public class AdministrationServiceImpl implements AdministrationService {
                     "en", enabled ? String.valueOf(value.value().getOrDefault("en", "")) : "");
         }
 
-    private List<Map<String, Object>> durations(String userId) {
-            List<Map<String, Object>> rows = admin.balances(schema, userId);
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (int seconds : List.of(15, 30, 60)) {
-                var row = rows.stream().filter(item -> MigrationSupport.number(item, "seconds") == seconds)
-                        .findFirst().orElse(Map.of());
-                result.add(MigrationSupport.body("seconds", seconds, "limit", MigrationSupport.number(row, "quota"),
-                        "remaining", MigrationSupport.number(row, "remaining")));
-            }
-            return result;    }
+    private long credits(String userId) {
+            List<Map<String, Object>> rows = jdbc.queryForList("SELECT available_credits FROM " + schema
+                    + "billing_credit_wallets WHERE user_id=? AND environment='real_usage'", userId);
+            return rows.isEmpty() ? 0 : MigrationSupport.number(rows.getFirst(), "available_credits");
+        }
 
     private int count(String sql, Object... args) {
             Integer value = jdbc.queryForObject(sql, Integer.class, args);

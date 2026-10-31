@@ -9,18 +9,20 @@
   "scripts": {
     "api:types": "node scripts/generate-api-types.mjs",
     "dev": "vite --host 127.0.0.1 --port 8791 --strictPort",
-    "build": "vite build && tsx scripts/prerender.ts",
+    "build": "npm run billing:check && vite build && tsx scripts/prerender.ts",
     "prerender": "tsx scripts/prerender.ts",
     "start": "vite preview --host 127.0.0.1 --port 8791 --strictPort",
     "typecheck": "vue-tsc --noEmit -p tsconfig.vue.json",
-    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/decart-adapter.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/prompt.test.ts tests/generated-recording.test.ts tests/works-upload.test.ts tests/notices.test.ts tests/video-prepare.test.ts tests/oriented-video.test.ts tests/video-frame.test.ts tests/video-history-selection.test.ts tests/i18n.test.ts tests/vue-preferences.test.ts tests/public-help.test.ts tests/public-feedback.test.ts tests/sandbox-checkout.test.ts tests/home-wheel.test.ts tests/session-scope.test.ts tests/account-coordinator.test.ts tests/local-studio-media.test.ts tests/frame-tools.test.ts tests/studio-icons.test.ts tests/local-video-studio.test.ts tests/works-index.test.ts tests/video-jobs.test.ts tests/prompt-editor.test.ts tests/orders.test.ts tests/admin-console.test.ts tests/public-metadata.test.ts tests/garment-library.test.ts tests/garment-favorites.test.ts",
+    "test": "tsx --test tests/session-controller.test.ts tests/image-validation.test.ts tests/local-camera.test.ts tests/garment-input.test.ts tests/decart-adapter.test.ts tests/pricing.test.ts tests/camera-preview-session.test.ts tests/prompt.test.ts tests/generated-recording.test.ts tests/works-upload.test.ts tests/notices.test.ts tests/video-prepare.test.ts tests/oriented-video.test.ts tests/video-frame.test.ts tests/video-history-selection.test.ts tests/i18n.test.ts tests/vue-preferences.test.ts tests/public-help.test.ts tests/public-feedback.test.ts tests/sandbox-checkout.test.ts tests/home-wheel.test.ts tests/session-scope.test.ts tests/account-coordinator.test.ts tests/local-studio-media.test.ts tests/frame-tools.test.ts tests/studio-icons.test.ts tests/local-video-studio.test.ts tests/works-index.test.ts tests/video-jobs.test.ts tests/prompt-editor.test.ts tests/orders.test.ts tests/admin-console.test.ts tests/public-metadata.test.ts tests/garment-library.test.ts tests/garment-favorites.test.ts tests/billing.test.ts",
     "smoke": "node scripts/vue-smoke.mjs",
     "smoke:entry": "node scripts/entry-switch-check.mjs --origin=http://127.0.0.1:8787",
     "smoke:nginx": "node scripts/nginx-contracts.mjs",
-    "check": "npm run api:types -- --check && npm run typecheck && npm test && npm run build"
+    "check": "npm run api:types -- --check && npm run typecheck && npm test && npm run build",
+    "billing:sync": "node scripts/generate-billing-catalog.mjs",
+    "billing:check": "node scripts/generate-billing-catalog.mjs --check"
   },
   "dependencies": {
-    "@decartai/sdk": "0.2.12",
+    "@decartai/sdk": "0.2.14",
     "@tanstack/vue-query": "5.105.0",
     "pinia": "4.1.0",
     "vue": "3.5.44",

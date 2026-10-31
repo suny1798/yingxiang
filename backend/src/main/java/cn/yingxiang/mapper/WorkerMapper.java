@@ -12,6 +12,10 @@ import java.util.Map;
 /** Worker 对账、任务认领与租约 SQL；保留 FOR UPDATE / SKIP LOCKED 与条件更新。 */
 @Mapper
 public interface WorkerMapper {
+    @Update("UPDATE ${schema}video_jobs SET result_duration_ms=#{milliseconds} WHERE id=#{id} AND result_duration_ms IS NULL")
+    int recordVideoDuration(@Param("schema") String schema, @Param("id") String id, @Param("milliseconds") long milliseconds);
+    @Update("UPDATE ${schema}works SET duration_ms=#{milliseconds} WHERE source_id=#{id} AND kind='video'")
+    int recordVideoWorkDuration(@Param("schema") String schema, @Param("id") String id, @Param("milliseconds") long milliseconds);
 
     @Insert("INSERT INTO ${schema}works(id,user_id,kind,source_id,title,state,mime,extension,bytes,chunks,"
             + "duration_ms,created_at,updated_at,error_code,retries,favorite) "

@@ -54,8 +54,6 @@ public interface VideoService {
 
     public int maximum();
 
-    public boolean allowed(String userId);
-
     public Map<String, Object> status(String userId);
 
     public Map<String, Object> previous(String userId, String ident);

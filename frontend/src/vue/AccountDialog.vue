@@ -24,7 +24,7 @@ onUnmounted(()=>{password.value='';username.value='';confirmed.value=false;dialo
   <div :class="s.studio" style="height:0;min-height:0;padding-bottom:0">
     <dialog ref="dialog" :class="s['account-dialog']" aria-labelledby="account-title" @cancel.prevent="close" @click="backdrop">
       <div :class="s['dialog-heading']"><span :class="s.eyebrow">{{t('映想 · ')}}{{t('账号登录与注册')}}</span><button type="button" :disabled="snapshot.busy" :class="s['icon-button']" :aria-label="t('关闭账号')" @click="close"><svg :class="s.icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div>
-      <h2 id="account-title">{{t(register?'创建账号':'登录账号')}}</h2><p :class="s['account-subtitle']">{{t(register?'创建账号后可获得一次15秒实时换装免费体验。':'登录后查看权益、使用记录与账号信息。')}}</p>
+      <h2 id="account-title">{{t(register?'创建账号':'登录账号')}}</h2><p :class="s['account-subtitle']">{{t(register?'创建账号后可获得一次15秒实时换装免费体验，视频换装可上传10秒以内视频。':'登录后查看权益、使用记录与账号信息。')}}</p>
       <div :class="s['auth-tabs']" role="group" :aria-label="t('账号操作')"><button type="button" :disabled="snapshot.busy" :aria-pressed="!register" @click="mode(false)">{{t('登录')}}</button><button type="button" :disabled="snapshot.busy" :aria-pressed="register" @click="mode(true)">{{t('创建账号')}}</button></div>
       <form :class="s['account-form']" @submit.prevent="submit">
         <label for="account-username">{{t('账号')}}<span>{{t('3—24位字母、数字或下划线')}}</span></label><input id="account-username" v-model="username" name="username" autocomplete="username" autocapitalize="none" :spellcheck="false" required minlength="3" maxlength="24" pattern="[a-zA-Z0-9_]{3,24}" :disabled="snapshot.busy"/>

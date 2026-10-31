@@ -15,12 +15,14 @@ import CameraPreview from '../CameraPreview.vue';
 import MediaTools from '../MediaTools.vue';
 import MirrorButton from '../MirrorButton.vue';
 import StudioIcon from '../StudioIcon.vue';
-import StudioModes from '../StudioModes.vue';
+import StudioSidebar from '../StudioSidebar.vue';
+import { useCredits } from '../use-credits';
 import base from '../../components/studio/studio.module.css';
 import s from '../../components/studio/prompt-studio.module.css';
-const { editor, editorState, snapshot, camera, stream, preview, previewState, remote, remoteStream, status, unavailable } = usePromptSession();
+const { editor, editorState, controller, snapshot, camera, stream, preview, previewState, remote, remoteStream, status, unavailable } = usePromptSession();
 const { snapshot: accountSnapshot } = useAccountView();
 const account = computed(() => accountSnapshot.value.account), owner = computed(() => account.value?.user?.id ?? null);
+const {credits,failed:creditsFailed} = useCredits(owner);
 const generated = computed(() => editorState.value.view === 'generated'), active = computed(() => ['connecting', 'live', 'updating'].includes(snapshot.value.phase));
 const requesting = computed(() => previewState.value.phase === 'requesting'), cameraReady = computed(() => previewState.value.phase === 'ready');
 const showRemote = computed(() => generated.value && Boolean(remoteStream.value));
@@ -29,7 +31,7 @@ const phaseLabel = computed(() => snapshot.value.phase === 'connecting' ? '正�
 const currentPage = computed(() => editorState.value.currentPage), pages = computed(() => editorState.value.pages);
 const paged = computed(() => editorState.value.instructions.slice(currentPage.value * editorState.value.pageSize, (currentPage.value + 1) * editorState.value.pageSize));
 const startDisabled = computed(() => Boolean(account.value?.user) && (!snapshot.value.consent || !cameraReady.value || !editorState.value.instructions.length || Boolean(unavailable.value) || Boolean(accountSnapshot.value.error)));
-const serviceStatus = computed(() => account.value?.user ? unavailable.value ?? status.value?.message ?? '' : '登录后检查实时编辑测试权限。');
+const serviceStatus = computed(() => account.value?.user ? unavailable.value ?? status.value?.message ?? '' : '登录后即可使用实时编辑。');
 const slot = ref<HTMLDivElement | null>(null), stage = ref<HTMLElement | null>(null), input = ref<HTMLTextAreaElement | null>(null);
 const localPreview = ref<{ video: HTMLVideoElement | null } | null>(null), remotePreview = ref<{ video: HTMLVideoElement | null } | null>(null);
 const { snapshot: frame, toggleMirror, toggleFullscreen, capture } = useFrameTools({
@@ -42,7 +44,7 @@ const { save: savedWork } = useGeneratedRecording({
   live: () => ['live', 'updating'].includes(snapshot.value.phase),
   stream: () => remoteStream.value,
   session: () => snapshot.value.deadlineAt,
-  seconds: () => 15,
+  seconds: () => snapshot.value.durationSec,
   owner: () => owner.value,
   kind: 'edit',
   promptHistory: () => snapshot.value.history,
@@ -87,11 +89,20 @@ function start() {
 </script>
 <template>
   <main id="creative-space" :class="[base['page-shell'], base['creation-shell']]">
-    <div :class="base['workbench-title']"><h1>{{ t('创作空间') }}</h1><span>{{ t('提示词实时编辑') }}</span><RouterLink to="/account">{{ t('我的权益 ↗') }}</RouterLink></div>
-    <StudioModes active="prompt" />
+    <div :class="base['workbench-title']"><h1>{{ t('创作空间') }}</h1><span>{{ t('提示词实时编辑') }}</span><small :class="base['credit-hint']">{{ t('1秒=1积分，未用将返还') }}</small><RouterLink to="/account" :class="base['credit-link']">{{t(account?.user?(credits!==null?`剩余 ${credits} 积分`:creditsFailed?'我的权益':'积分读取中…'):'我的权益')}} ↗</RouterLink></div>
     <div :class="base.workspace">
-      <section :class="s.editor" aria-labelledby="prompt-title">
-        <div :class="s.heading"><h2 id="prompt-title">{{ t('我的提示词') }}<span :class="s.count">{{ editorState.instructions.length }}</span></h2></div>
+      <StudioSidebar active="prompt">
+      <section :class="s.editor" data-prompt-editor aria-labelledby="prompt-title">
+        <div :class="[base['duration-bar'],base['duration-settings']]" style="margin-top:0"><h2>{{t('本次时长')}}</h2><div role="group" :aria-label="t('实时编辑时长')"><button v-for="seconds in ([15,30] as const)" :key="seconds" type="button" :aria-pressed="snapshot.durationSec===seconds" :disabled="active" @click="controller.setDuration(seconds)">{{seconds}}{{t('秒')}}</button></div></div>
+        <form :class="s.promptComposer" @submit.prevent="send">
+          <div :class="s.promptInput">
+            <textarea ref="input" id="edit-prompt" :aria-label="t('添加提示词')" :maxlength="PROMPT_POLICY.maxPromptLength" rows="4" :placeholder="t('描述你想改变的画面…')" :value="editorState.draft" @input="onDraft" @keydown="onKeydown" />
+            <span :class="s.counter">{{ editorState.draft.length }}/500</span>
+          </div>
+          <div :class="s.ideaGrid" role="group" :aria-label="t('提示词示例')"><button v-for="(item, index) in PROMPT_EXAMPLES" :key="item.label" type="button" :title="t(item.text)" @click="example(item.text)"><StudioIcon :name="index === 0 ? 'hanger' : index === 1 ? 'sun' : 'star'" /><span>{{ t(item.label) }}</span></button></div>
+          <button :class="s.send" type="submit" :disabled="!editorState.draft.trim()"><span>{{ t('发送') }}</span><StudioIcon name="arrow" /></button>
+        </form>
+        <div :class="s.heading"><h2 id="prompt-title">{{ t('我的提示词') }}</h2><div :class="s.headingActions"><button :class="s.clear" type="button" :disabled="!editorState.instructions.length" :aria-label="t('清空全部提示词')" :title="t('清空全部提示词')" @click="editor.clear()">{{ t('清空') }}</button><span :class="s.count">{{ editorState.instructions.length }}</span></div></div>
         <div :class="s.history">
           <ol v-if="editorState.instructions.length" :class="s.cards" :aria-label="t('已发送的提示词')">
             <li v-for="item in paged" :key="item.id" :class="s.card">
@@ -99,16 +110,11 @@ function start() {
               <button :class="s.remove" type="button" :aria-label="t(`删除提示词 ${item.id}`)" @click="editor.remove(item.id)"><StudioIcon name="close" /></button>
             </li>
           </ol>
-          <div v-else :class="s.historyEmpty"><span :class="[s.seed, 'star-hover-spin']" aria-hidden="true">✳</span><h3>{{ t('暂无提示词') }}</h3><p>{{ t('从下方输入，或选一个灵感') }}</p></div>
+          <div v-else :class="s.historyEmpty"><span :class="s.seed" aria-hidden="true">✳</span><h3>{{ t('暂无提示词') }}</h3></div>
         </div>
         <div v-if="pages > 1" :class="s.pagination"><div><button type="button" :aria-label="t('上一页提示词')" :disabled="currentPage === 0" @click="editor.setPage(currentPage - 1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 7-5 5 5 5" /></svg></button><span>{{ currentPage + 1 }} / {{ pages }}</span><button type="button" :aria-label="t('下一页提示词')" :disabled="currentPage === pages - 1" @click="editor.setPage(currentPage + 1)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 7 5 5-5 5" /></svg></button></div></div>
-        <form :class="s.promptComposer" @submit.prevent="send">
-          <div :class="s.composeHeading"><label for="edit-prompt">{{ t('添加提示词') }}</label><span :class="s.counter">{{ editorState.draft.length }}/500</span></div>
-          <textarea ref="input" id="edit-prompt" :maxlength="PROMPT_POLICY.maxPromptLength" rows="4" :placeholder="t('描述你想改变的画面…')" :value="editorState.draft" @input="onDraft" @keydown="onKeydown" />
-          <div :class="s.ideaGrid" role="group" :aria-label="t('提示词示例')"><button v-for="(item, index) in PROMPT_EXAMPLES" :key="item.label" type="button" :title="t(item.text)" @click="example(item.text)"><StudioIcon :name="index === 0 ? 'hanger' : index === 1 ? 'sun' : 'star'" /><span>{{ t(item.label) }}</span></button></div>
-          <button :class="s.send" type="submit" :disabled="!editorState.draft.trim()"><span>{{ t('发送') }}</span><StudioIcon name="arrow" /></button>
-        </form>
       </section>
+      </StudioSidebar>
       <div ref="slot" :class="base['preview-slot']">
         <WorkspacePreview :class="[base.panel, s.preview]" :aria-label="t('实时编辑画面')">
           <div data-preview-heading :class="s.previewHeading"><h2>{{ t(generated ? '映想画面' : '相机原画') }}</h2><span role="status"><i :data-on="Boolean(stream)" />{{ t(active ? phaseLabel : requesting ? '等待相机授权' : stream ? '相机已开启' : '相机未开启') }}<template v-if="active && snapshot.deadlineAt !== null"> · {{ snapshot.remaining }}s</template></span></div>
@@ -138,6 +144,6 @@ function start() {
         </WorkspacePreview>
       </div>
     </div>
-    <footer :class="base['creation-footer']"><RouterLink to="/privacy#edit" target="_blank" rel="noopener noreferrer">{{ t('隐私与使用说明 ↗') }}</RouterLink><span>{{ t('实时编辑 · 测试开放') }}</span><RouterLink to="/works">{{ t(savedWork.phase === 'saved' ? '已保存到我的作品 ↗' : savedWork.phase === 'saving' ? '后台保存中 · 我的作品 ↗' : '生成视频自动保存 · 我的作品 ↗') }}</RouterLink></footer>
+    <footer :class="base['creation-footer']"><RouterLink to="/privacy#edit" target="_blank" rel="noopener noreferrer">{{ t('隐私与使用说明 ↗') }}</RouterLink><span>{{ t('实时编辑 · 已开放') }}</span><RouterLink to="/works">{{ t(savedWork.phase === 'saved' ? '已保存到我的作品 ↗' : savedWork.phase === 'saving' ? '后台保存中 · 我的作品 ↗' : '生成视频自动保存 · 我的作品 ↗') }}</RouterLink></footer>
   </main>
 </template>

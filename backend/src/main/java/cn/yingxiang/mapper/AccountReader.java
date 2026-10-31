@@ -23,12 +23,20 @@ public class AccountReader {
     private static final DateTimeFormatter ISO = new DateTimeFormatterBuilder().appendInstant(3).toFormatter();
     private final AccountQueryMapper queries;
     private final String schema;
+    private final java.util.Set<String> studioTestUsers;
+    private final java.util.Set<String> videoTestUsers;
+    private final boolean videoTrialEnabled;
 
     public AccountReader(AccountQueryMapper queries, Environment env) {
         this.queries = queries;
         String value = env.getRequiredProperty("migration.db-schema");
         if (!value.matches("yingxiang_migration(?:_it_[a-f0-9]{12})?")) throw new IllegalArgumentException("Invalid migration schema");
         schema = '"' + value + '"' + ".";
+        studioTestUsers = java.util.Arrays.stream(env.getProperty("migration.studio-unlimited-usernames", "").split(","))
+                .map(String::strip).filter(name -> !name.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+        videoTestUsers = java.util.Arrays.stream(env.getProperty("migration.video-unlimited-usernames", "").split(","))
+                .map(String::strip).filter(name -> !name.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
+        videoTrialEnabled = env.getProperty("migration.video-free-trial-once", Boolean.class, false);
     }
 
     /** 首个匹配Cookie、不解码，兼容Node/Python；只返回摘要，永不记录token。 */
@@ -61,13 +69,30 @@ public class AccountReader {
             Map<String, Object> balance = balances.stream().filter(row -> number(row, "seconds") == seconds).findFirst().orElse(Map.of());
             durations.add(Map.of("seconds", seconds, "limit", number(balance, "quota"), "remaining", number(balance, "remaining")));
         }
-        List<Map<String, Object>> historyRows = queries.studioHistory(schema, id);
+        List<Map<String, Object>> historyRows = queries.history(schema, id);
         List<Map<String, Object>> history = new ArrayList<>();
         for (var row : historyRows) {
             Map<String, Object> item = new LinkedHashMap<>();
-            item.put("id", row.get("id")); item.put("createdAt", ISO.format(Instant.ofEpochMilli(number(row, "created_at"))));
-            item.put("durationSec", row.get("seconds")); item.put("state", row.get("account_state"));
-            if (row.get("outcome") instanceof String outcome && !outcome.isEmpty()) item.put("outcome", outcome);
+            String status = String.valueOf(row.get("status"));
+            item.put("id", row.get("id")); item.put("kind", row.get("kind"));
+            item.put("createdAt", ISO.format(Instant.ofEpochMilli(number(row, "created_at"))));
+            item.put("durationSec", row.get("seconds")); item.put("state", "review".equals(status) ? "review" : "used");
+            item.put("status", status);
+            Object duration = row.get("result_duration_ms");
+            item.put("resultDurationSec", duration instanceof Number n ? n.longValue()/1000.0 : null);
+            item.put("resultPending", Boolean.TRUE.equals(row.get("result_pending")));
+            Map<String, Object> billing = null;
+            if (row.get("billing_state") != null) {
+                billing = new LinkedHashMap<>();
+                billing.put("state", row.get("billing_state"));
+                billing.put("reservedCredits", row.get("reserved_credits"));
+                billing.put("chargedCredits", row.get("charged_credits"));
+                billing.put("returnedCredits", row.get("charged_credits") instanceof Number n
+                        ? number(row,"reserved_credits")-n.longValue() : null);
+            }
+            item.put("billing", billing);
+            if ("ended".equals(status)) item.put("outcome", "ended");
+            if ("error".equals(status)) item.put("outcome", "error");
             history.add(item);
         }
         boolean review = queries.review(schema, id);
@@ -77,6 +102,10 @@ public class AccountReader {
         result.put("trial", remaining > 0 ? "ready" : review ? "review" : "used");
         result.put("trialLimit", number(durations.getFirst(), "limit")); result.put("trialRemaining", remaining);
         result.put("durations", durations); result.put("history", history);
+        result.put("studioTestAccess", studioTestUsers.contains(user.get("username")));
+        boolean videoUsed = videoTrialEnabled && queries.videoTrialUsed(schema, id, cn.yingxiang.common.FreeTrialPolicy.VIDEO_SINCE);
+        result.put("videoTrial", Map.of("enabled", videoTrialEnabled, "limit", 1, "seconds", 10,
+                "remaining", videoTrialEnabled && !videoUsed ? 1 : 0, "unlimited", videoTestUsers.contains(user.get("username"))));
         return result;
     }
 

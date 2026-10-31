@@ -19,7 +19,7 @@ function platform() {
   return {value,calls,pending,notices,get ids(){return ids;},get refreshed(){return refreshed;},resolve:(result:unknown)=>pending.shift()!.resolve(result),reject:(error:unknown)=>pending.shift()!.reject(error)};
 }
 
-const quota={path:'/api/admin/users/u1/quota',body:{seconds:30,delta:2,reason:'自动化回归测试'},summary:'u1\n30s · +2'};
+const quota={path:'/api/admin/users/u1/credits',body:{delta:2,reason:'自动化回归测试'},summary:'u1\n+2 积分'};
 
 test('确认前不写入；确认后只发一次POST并带操作编号，成功后清空待确认并刷新',async()=>{
   const p=platform(),admin=new AdminConsole(p.value);

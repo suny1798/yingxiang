@@ -90,7 +90,7 @@ export class VideoJobs {
   /** 仅页面可见时轮询处理中的任务；完成后重读列表。 */
   async poll() {
     if (this.disposed || this.platform.hidden()) return;
-    const ids = this.current.service?.jobs.filter(inProgress).map((job) => job.id) ?? [];
+    const ids = this.current.service?.jobs.filter(job=>inProgress(job)||(!job.expired&&job.resultPending)).map((job) => job.id) ?? [];
     if (!ids.length) return;
     const token = this.scope.capture();
     if (!token.userId) return;

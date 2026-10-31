@@ -14,6 +14,11 @@ dist/
 *.pem
 *.key
 
+# 本地测试媒体；正式验收证据保存在 docs/
+examples/
+backend/.idea
+frontend/output
+
 # 自动生成的测试文件；正式验收报告保存在 docs/reports/
 coverage/
 playwright-report/

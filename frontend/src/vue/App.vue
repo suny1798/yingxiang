@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watchEffect, onUnmounted } from 'vue';
+import { watch, watchEffect, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { preferences, t } from './preferences';
 import { applyDocumentMeta } from './document-meta';
@@ -13,9 +13,19 @@ import HeaderAccount from './HeaderAccount.vue';
 import AccountDialog from './AccountDialog.vue';
 import BackToTop from './BackToTop.vue';
 import { useAccountView } from './use-account';
+import { prefetchCredits } from './use-credits';
+import { clearVideoDraft } from './use-local-video-studio';
+import { clearGarmentDraft } from './use-garment-media';
 import { accountCoordinator,sessionScope } from './runtime';
 const {snapshot}=useAccountView(true);
+watch(()=>snapshot.value.account?.user?.id??null,id=>{void prefetchCredits(id);},{immediate:true});
 const route = useRoute();
+watch(()=>[route.path,route.query.from],()=>{
+  if(route.path!=='/studio/video'&&!(route.path==='/wardrobe'&&route.query.from==='video'))clearVideoDraft();
+  if(route.path!=='/studio'&&!(route.path==='/wardrobe'&&route.query.from==='realtime'))clearGarmentDraft();
+},{immediate:true});
+onUnmounted(clearVideoDraft);
+onUnmounted(clearGarmentDraft);
 watchEffect(() => {
   document.documentElement.lang = preferences.locale.value === 'en' ? 'en' : 'zh-CN';
   document.documentElement.dataset.theme = preferences.theme.value;

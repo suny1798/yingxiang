@@ -28,8 +28,8 @@ function setup(options: { pendingConnect?: boolean; failDisconnect?: boolean; fa
   const client = { disconnect: () => { disconnects++; if (options.failDisconnect) throw new Error('test close failure'); }, set: async (input: unknown) => { updates.push(input); }, on: () => {} } as unknown as RealTimeClient;
   const request = (async (url, init) => {
     requests.push({ url: String(url), body: init?.body ? JSON.parse(init.body as string) : null });
-    if (String(url).endsWith('status')) return Response.json({ available: true, access: 'test-access', policy: STUDIO_POLICY });
-    if (String(url).endsWith('token')) return options.failToken ? Response.json({ error: { message: '本轮已停止。' } }, { status: 503 }) : Response.json({ apiKey: 'ek_unit_test_only', durationSec: options.wrongDuration ?? JSON.parse(init?.body as string).durationSec, expiresAt: new Date(Date.now()+10000).toISOString() });
+    if (String(url).endsWith('status')) return Response.json({ code: 0, data: { available: true, access: 'test-access', policy: STUDIO_POLICY }, message: 'ok' });
+    if (String(url).endsWith('token')) return options.failToken ? Response.json({ code: 50300, data: null, message: '本轮已停止。' }, { status: 503 }) : Response.json({ code: 0, data: { apiKey: 'ek_unit_test_only', durationSec: options.wrongDuration ?? JSON.parse(init?.body as string).durationSec, expiresAt: new Date(Date.now()+10000).toISOString() }, message: 'ok' });
     return Response.json({ accepted: true });
   }) as typeof fetch;
   const factory: RealtimeSdkFactory = async (nextCredential) => {

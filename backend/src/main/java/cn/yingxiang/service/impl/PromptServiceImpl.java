@@ -1,6 +1,7 @@
 package cn.yingxiang.service.impl;
 
 import cn.yingxiang.service.PromptService;
+import cn.yingxiang.service.BillingService;
 import cn.yingxiang.manager.ClientTokenValidator;
 import cn.yingxiang.common.MigrationSupport;
 import cn.yingxiang.exception.BusinessFailure;
@@ -52,16 +53,16 @@ public class PromptServiceImpl implements PromptService {
 
     private final int maximum;
 
-    private final Set<String> allowedUsers;
-
     private final Set<String> unlimitedUsers;
 
     private final String key;
 
     private final FixtureTokenTransport transport;
+    private final BillingService billing;
 
     public PromptServiceImpl(JdbcTemplate jdbc, PromptMapper prompts, MigrationAccounts accounts,
-                             PlatformTransactionManager manager, Environment env, JsonMapper json) {
+                             PlatformTransactionManager manager, Environment env, JsonMapper json, BillingService billing) {
+            this.billing = billing;
             this.jdbc = jdbc; this.prompts = prompts; this.accounts = accounts; this.json = json;
             this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M16 prompt");
             transaction = new TransactionTemplate(manager);
@@ -78,10 +79,7 @@ public class PromptServiceImpl implements PromptService {
             }
             budgetMicro = Double.isFinite(budget) ? Math.round(budget * 1_000_000) : 0;
             maximum = Double.isFinite(max) && max == Math.floor(max) && max > 0 && max <= 20 ? (int) max : 0;
-            allowedUsers = names(env.getProperty("migration.prompt-allowed-usernames", ""));
             unlimitedUsers = names(env.getProperty("migration.prompt-unlimited-usernames", ""));
-            if (RuntimePolicy.runtime(env) && (allowedUsers.isEmpty() || !allowedUsers.containsAll(unlimitedUsers)))
-                throw new IllegalStateException("Runtime prompt whitelist must include all unlimited users");
             key = env.getProperty("migration.prompt-key", "").strip();
             String endpoint = env.getRequiredProperty("migration.prompt-token-url");
             transport = new FixtureTokenTransport(URI.create(endpoint), key, json, Duration.ofSeconds(10), RuntimePolicy.runtime(env));
@@ -115,27 +113,29 @@ public class PromptServiceImpl implements PromptService {
         }
 
     public Map<String, Object> issue(String hashed, JsonNode body, String origin) {
+            billing.requireRealtimeMeter();
             Set<String> fields = new java.util.LinkedHashSet<>();
             body.propertyNames().forEach(fields::add);
             JsonNode ident = body.get("attemptId"), consent = body.get("consentVersion"), duration = body.get("durationSec");
             if (!fields.equals(Set.of("attemptId", "consentVersion", "durationSec")) || ident == null || !ident.isString()
                     || !MigrationSupport.isUuid(ident.asString()) || consent == null || !consent.isString()
                     || !CONSENT.equals(consent.asString()) || duration == null || !duration.isIntegralNumber()
-                    || duration.asInt() != 15) {
+                    || !List.of(15,30).contains(duration.asInt())) {
                 throw new BusinessFailure("INVALID_PROMPT_SESSION", "连接参数或云端确认无效。", 400);
             }
             String attemptId = ident.asString();
-            reserve(hashed, attemptId);
+            int seconds = duration.asInt();
+            reserve(hashed, attemptId, seconds);
             String failure = "request";
             try {
-                JsonNode token = transport.issue(MODEL, origin, 15);
+                JsonNode token = transport.issue(MODEL, origin, seconds);
                 failure = "validation";
-                ClientTokenValidator.validate(token, MODEL, origin, 15, key, System.currentTimeMillis());
+                ClientTokenValidator.validate(token, MODEL, origin, seconds, key, System.currentTimeMillis());
                 failure = "persistence";
                 transaction.executeWithoutResult(status -> prompts.markIssued(schema, attemptId,
                         System.currentTimeMillis()));
                 return MigrationSupport.body("apiKey", token.get("apiKey").asString(),
-                        "expiresAt", token.get("expiresAt").asString(), "durationSec", 15);
+                        "expiresAt", token.get("expiresAt").asString(), "durationSec", seconds);
             } catch (RuntimeException error) {
                 String code = error instanceof ClientTokenValidator.InvalidToken invalid ? invalid.code
                         : failure.equals("request") ? "UPSTREAM_CONNECTION" : failure.equals("validation")
@@ -151,30 +151,32 @@ public class PromptServiceImpl implements PromptService {
             }
         }
 
-    private void reserve(String hashed, String attemptId) {
+    private void reserve(String hashed, String attemptId, int seconds) {
             transaction.executeWithoutResult(status -> {
                 if (paused()) throw new BusinessFailure("SERVICE_PAUSED", "该功能已暂停新生成，请稍后再试。", 503);
                 MigrationAccounts.User user = accounts.require(hashed);
                 if (!prompts.attemptIds(schema, attemptId).isEmpty()) {
                     throw new BusinessFailure("PROMPT_ATTEMPT_SPENT", "这个连接已申请，请核查状态，不要重复提交。", 409);
                 }
-                Map<String, Object> ready = ready(user.id());
+                Map<String, Object> ready = ready(user.id(), seconds);
                 if (!Boolean.TRUE.equals(ready.get("available"))) {
                     throw new BusinessFailure("PROMPT_LIMIT", String.valueOf(ready.get("message")), 409);
                 }
                 prompts.ensureCampaign(schema, System.currentTimeMillis());
                 prompts.lockCampaign(schema);
                 long now = System.currentTimeMillis();
-                prompts.insertAttempt(schema, attemptId, user.id(), now);
-                prompts.insertReservation(schema, attemptId, user.id(), RISK_MICRO, now + 45_000, now);
+                prompts.insertAttempt(schema, attemptId, user.id(), now, seconds);
+                prompts.insertReservation(schema, attemptId, user.id(), seconds * 20_000L, now + (seconds+30)*1000L, now);
             });
         }
 
     private Map<String, Object> ready(String userId) {
+            return ready(userId,15);
+        }
+    private Map<String, Object> ready(String userId, int seconds) {
+            if (billing.enabled()) return MigrationSupport.body("available",false,"message","实时用量核验尚未接通，暂不开放积分扣费。");
             boolean enabled = configured() && !paused();
-            boolean allowed = userId == null ? allowedUsers.isEmpty() : allowed(userId);
             if (!enabled) return MigrationSupport.body("available", false, "message", "实时编辑待开放，可先准备提示词与相机预览。");
-            if (!allowed) return MigrationSupport.body("available", false, "message", "实时编辑目前仅向指定测试账号开放。");
             if (userId != null && unlimitedUsers.contains(username(userId))) {
                 return MigrationSupport.body("available", true, "message", "实时编辑已就绪，可手动开始。");
             }
@@ -199,17 +201,11 @@ public class PromptServiceImpl implements PromptService {
                 return MigrationSupport.body("available", false, "message", "连接窗口尚未结束，请稍后刷新状态。");
             }
             long reserved = reservations.stream().mapToLong(row -> MigrationSupport.number(row, "micro_usd")).sum();
-            if (attempts.size() >= maximum || reserved + RISK_MICRO > budgetMicro) {
+            if (attempts.size() >= maximum || reserved + seconds*20_000L > budgetMicro) {
                 return MigrationSupport.body("available", false, "message", "本轮实时编辑额度已用完。");
             }
             return MigrationSupport.body("available", true, "message", attempts.isEmpty()
                     ? "实时编辑已就绪，每次最多15秒。" : "上次未确认申请仍保留次数和预算占用，等待窗口已结束；可手动开始新一轮。");
-        }
-
-    private boolean allowed(String userId) {
-            if (allowedUsers.isEmpty()) return true;
-            String name = username(userId);
-            return name != null && allowedUsers.contains(name);
         }
 
     private String username(String userId) {

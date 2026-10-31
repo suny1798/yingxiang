@@ -31,7 +31,7 @@
   "studio": {
     "batchId": "studio-manual-v1",
     "model": "lucy-vton-3.6",
-    "sdk": "0.2.12",
+    "sdk": "0.2.14",
     "consentVersion": "2026-10-26-preview-cloud-save-v1",
     "approvedBudgetUsd": 5,
     "tokenTtlSec": 10,
@@ -46,8 +46,8 @@
     "prompt": "Replace only the current upper-body clothing with the garment in the reference image. Preserve the person, face, body, pose, background and lighting."
   },
   "prompt": {
-    "model": "lucy-2.5",
-    "sdk": "0.2.12",
+    "model": "lucy-2.6",
+    "sdk": "0.2.14",
     "consentVersion": "2026-10-26-prompt-history-v1",
     "durationSec": 15,
     "tokenTtlSec": 10,

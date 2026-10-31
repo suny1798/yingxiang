@@ -70,6 +70,22 @@ test('未登录不发私有请求；登录后读取服务状态与本人任务',
   jobs.dispose(); s.client.clear();
 });
 
+test('生成完成后继续等待结果文件核验，刷新最终时长和结算', async () => {
+  const s = scope(), p = platform(), jobs = new VideoJobs(s, p.value);
+  const pending = job('result-1', 'completed', { resultPending: true });
+  await login(s, p, service([pending])); jobs.select(pending);
+  const running = jobs.poll();
+  assert.equal(p.polls.length, 1);
+  p.resolvePoll(job('result-1', 'completed', { resultPending: false, resultSeconds: 4.934, billing: { state: 'settled', reservedCredits: 6, chargedCredits: 5, returnedCredits: 1 } }));
+  await tick();
+  p.resolveService(service([job('result-1', 'completed', { resultPending: false, resultSeconds: 4.934, billing: { state: 'settled', reservedCredits: 6, chargedCredits: 5, returnedCredits: 1 } })]));
+  await running;
+  assert.equal(jobs.getSnapshot().selected?.resultSeconds, 4.934);
+  assert.equal(jobs.getSnapshot().selected?.billing?.returnedCredits, 1);
+  await jobs.poll(); assert.equal(p.polls.length, 0);
+  jobs.dispose(); s.client.clear();
+});
+
 test('提交只POST一次，使用同一提交编号并读取服务状态', async () => {
   const s = scope(), p = platform(), jobs = new VideoJobs(s, p.value);
   await login(s, p);

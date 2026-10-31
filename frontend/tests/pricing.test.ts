@@ -42,10 +42,10 @@ test('三档积分方案仅首档排除实时编辑，价格额度递增且大�
 test('共享积分按功能倍数估算，不支持的实时编辑返回未包含，次数向下取整', () => {
   assert.equal(creditsFor('tryon', 15), 15);
   assert.equal(creditsFor('video', 7.74), 16);
-  assert.equal(creditsFor('video', 15), 30);
+  assert.equal(creditsFor('video', 10), 20);
   assert.equal(creditsFor('edit', 15), 15);
   assert.deepEqual(CREATION_PLANS.map((plan) => estimatedUses(plan.id, 'tryon', 15)), [8, 30, 80]);
-  assert.deepEqual(CREATION_PLANS.map((plan) => estimatedUses(plan.id, 'video', 15)), [4, 15, 40]);
+  assert.deepEqual(CREATION_PLANS.map((plan) => estimatedUses(plan.id, 'video', 10)), [6, 22, 60]);
   assert.deepEqual(CREATION_PLANS.map((plan) => estimatedUses(plan.id, 'edit', 15)), [null, 30, 80]);
   assert.equal(estimatedUses('creator', 'tryon', 60), 7);
   for (const key of Object.keys(CREATION_SCENES) as Array<keyof typeof CREATION_SCENES>) {

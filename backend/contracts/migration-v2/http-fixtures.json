@@ -766,7 +766,7 @@
           "policy": {
             "batchId": "studio-manual-v1",
             "model": "lucy-vton-3.6",
-            "sdk": "0.2.12",
+            "sdk": "0.2.14",
             "consentVersion": "2026-10-26-preview-cloud-save-v1",
             "approvedBudgetUsd": 5,
             "tokenTtlSec": 10,
@@ -898,9 +898,11 @@
           "history": [
             {
               "id": "<uuid-3>",
+              "kind": "realtime",
               "createdAt": "<timestamp-utc-milliseconds>",
               "durationSec": 15,
-              "state": "review"
+              "state": "review",
+              "status": "review"
             }
           ]
         }
@@ -1167,9 +1169,11 @@
           "history": [
             {
               "id": "<uuid-3>",
+              "kind": "realtime",
               "createdAt": "<timestamp-utc-milliseconds>",
               "durationSec": 15,
-              "state": "review"
+              "state": "review",
+              "status": "review"
             }
           ]
         }
@@ -2322,9 +2326,11 @@
           "history": [
             {
               "id": "<uuid-3>",
+              "kind": "realtime",
               "createdAt": "<timestamp-utc-milliseconds>",
               "durationSec": 15,
-              "state": "review"
+              "state": "review",
+              "status": "review"
             }
           ]
         }

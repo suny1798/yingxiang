@@ -63,6 +63,21 @@ public interface WorksMapper {
                         @Param("mime") String mime, @Param("extension") String extension, @Param("bytes") long bytes,
                         @Param("createdAt") long createdAt);
 
+    @Insert("INSERT INTO ${schema}works(id,user_id,kind,source_id,title,state,mime,extension,bytes,chunks,"
+            + "duration_ms,created_at,updated_at,error_code,retries,favorite) "
+            + "SELECT gen_random_uuid()::text,j.user_id,'video',j.id,coalesce(h.title,'视频换装'),'waiting',"
+            + "'video/mp4','mp4',0,0,j.seconds_milli,j.created_at,#{now},NULL,0,0 "
+            + "FROM ${schema}video_jobs j LEFT JOIN ${schema}video_history h ON h.job_id=j.id "
+            + "WHERE j.id=#{jobId} ON CONFLICT (kind,source_id) DO NOTHING")
+    int ensureVideoWork(@Param("schema") String schema, @Param("jobId") String jobId, @Param("now") long now);
+
+    @Select("SELECT * FROM ${schema}works WHERE kind='video' AND source_id=#{jobId}")
+    Map<String, Object> videoWork(@Param("schema") String schema, @Param("jobId") String jobId);
+
+    @Update("UPDATE ${schema}works SET error_code='REFERENCE_SAVE_FAILED',updated_at=#{now} "
+            + "WHERE kind='video' AND source_id=#{jobId} AND state IN ('waiting','saving')")
+    int markVideoReferenceFailed(@Param("schema") String schema, @Param("jobId") String jobId, @Param("now") long now);
+
     @Update("UPDATE ${schema}works SET title=#{title},updated_at=#{updatedAt} WHERE id=#{ident}")
     int updateTitle(@Param("schema") String schema, @Param("ident") String ident, @Param("title") String title,
                     @Param("updatedAt") long updatedAt);

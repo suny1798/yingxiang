@@ -1,0 +1,36 @@
+{
+  "version": "credits-v2",
+  "currency": "usd",
+  "creditsPerSecond": 1,
+  "basePriceMicroUsdPerCredit": 50000,
+  "minimumPriceMicroUsdPerCredit": 45000,
+  "rounding": "ceil-second",
+  "realtimeSeconds": [
+    15,
+    30
+  ],
+  "videoMaxSeconds": 30,
+  "plans": [
+    {
+      "id": "light",
+      "name": "轻享积分包",
+      "paidMinor": 500,
+      "credits": 100,
+      "featured": false
+    },
+    {
+      "id": "creator",
+      "name": "创作积分包",
+      "paidMinor": 1900,
+      "credits": 400,
+      "featured": true
+    },
+    {
+      "id": "plus",
+      "name": "进阶积分包",
+      "paidMinor": 4500,
+      "credits": 1000,
+      "featured": false
+    }
+  ]
+}

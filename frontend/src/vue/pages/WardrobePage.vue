@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute,useRouter } from 'vue-router';
 import { colorTags, detailTags, filterLooks, garmentTags, libraryLooks, lookById, lookImage, lookTitle, seasons, freshLooks, shuffleLooks, tagLabels, toggleLook, type LibraryLook } from '../../lib/garment-library';
 import { preferences, t } from '../preferences';
 import { MAX_GARMENTS } from '../../lib/limits';
@@ -9,7 +9,8 @@ import GarmentTagGroup from '../GarmentTagGroup.vue';
 import { useGarmentFavorites } from '../use-garment-favorites';
 import { sessionScope } from '../runtime';
 
-const router=useRouter();
+const router=useRouter(),route=useRoute();
+const selectionLimit=computed(()=>route.query.from==='video'?1:MAX_GARMENTS);
 const search=ref(''), selectedSeasons=ref<string[]>([]), selectedTags=ref<string[]>([]), chosen=ref<string[]>([]), onlyChosen=ref(false), message=ref('');
 const {favorites,state:favoriteState}=useGarmentFavorites();
 const favoritesOnly=ref(false);
@@ -60,6 +61,7 @@ async function randomize(){
 }
 function toggle(values:string[],value:string){return values.includes(value)?values.filter(item=>item!==value):[...values,value];}
 function select(id:string){
+  if(route.query.from==='video'){chosen.value=chosen.value.includes(id)?[]:[id];message.value='';return;}
   if(chosen.value.length===MAX_GARMENTS&&!chosen.value.includes(id)){message.value=t('最多选择6套，请先移除一套。');return;}
   chosen.value=toggleLook(chosen.value,id);message.value='';
 }
@@ -67,7 +69,7 @@ function clearFilters(){search.value='';selectedSeasons.value=[];selectedTags.va
 function showFavorites(){favoritesOnly.value=true;if(!sessionScope.state.userId)sessionScope.state.loginOpen=true;}
 async function openPreview(item:LibraryLook){preview.value=item;fullFailed.value=false;await nextTick();dialog.value?.showModal();}
 function closePreview(){dialog.value?.close();}
-function goCreate(ids=chosen.value){if(!ids.length)return;closePreview();void router.push({path:'/studio',query:{looks:ids.join(',')}});}
+function goCreate(ids=chosen.value){if(!ids.length)return;closePreview();void router.push({path:route.query.from==='video'?'/studio/video':'/studio',query:{looks:ids.join(',')}});}
 function imageFailed(id:string){failed.value=new Set([...failed.value,id]);}
 function retryImage(id:string){const next=new Set(failed.value);next.delete(id);failed.value=next;retry.value++;}
 </script>
@@ -102,7 +104,7 @@ function retryImage(id:string){const next=new Set(failed.value);next.delete(id);
         <div v-if="filtered.length" :class="s.loadProgress"><span role="status">{{t('已展示 {0} / {1} 套').replace('{0}',String(visible.length)).replace('{1}',String(filtered.length))}}</span><div v-if="hasMore" ref="loadTrigger" data-load-more><span>{{t('向下滚动，发现更多衣装')}} ↓</span><button type="button" @click="loadMore">{{t('加载更多衣装')}}</button></div><span v-else>{{t('全部衣装已展示')}}</span></div>
       </section>
     </div>
-    <div :class="s.selectionBar" :aria-label="t('已选衣装')"><div :class="s.selectionIntro"><strong>{{t('我的试穿清单')}} <span>{{chosen.length}} / {{MAX_GARMENTS}}</span></strong><span>{{t('选择喜欢的衣装，一起带入创作空间。')}}</span></div><div :class="s.thumbnails"><div v-for="item in selected" :key="item.id"><img :src="lookImage(item.id)" :alt="item.id"/><button type="button" :aria-label="`${t('移除已选')} ${item.id}`" @click="select(item.id)">×</button></div><span v-if="!chosen.length" :class="s.selectionPlaceholder">＋</span></div><button :class="s.textButton" type="button" :aria-pressed="onlyChosen" @click="onlyChosen=!onlyChosen">{{t(onlyChosen?'查看全部':'只看已选')}}</button><button :class="s.textButton" type="button" :disabled="!chosen.length" @click="chosen=[];message=''">{{t('清空')}}</button><button :class="s.primary" :disabled="!chosen.length" @click="goCreate()">{{t('去创作空间试穿')}} <span>↗</span></button><p v-if="message" role="status" :class="s.selectionMessage">{{message}}</p></div>
+    <div :class="s.selectionBar" :aria-label="t('已选衣装')"><div :class="s.selectionIntro"><strong>{{t('我的试穿清单')}} <span>{{chosen.length}} / {{selectionLimit}}</span></strong><span>{{t('选择喜欢的衣装，一起带入创作空间。')}}</span></div><div :class="s.thumbnails"><div v-for="item in selected" :key="item.id"><img :src="lookImage(item.id)" :alt="item.id"/><button type="button" :aria-label="`${t('移除已选')} ${item.id}`" @click="select(item.id)">×</button></div><span v-if="!chosen.length" :class="s.selectionPlaceholder">＋</span></div><button :class="s.textButton" type="button" :aria-pressed="onlyChosen" @click="onlyChosen=!onlyChosen">{{t(onlyChosen?'查看全部':'只看已选')}}</button><button :class="s.textButton" type="button" :disabled="!chosen.length" @click="chosen=[];message=''">{{t('清空')}}</button><button :class="s.primary" :disabled="!chosen.length" @click="goCreate()">{{t('去创作空间试穿')}} <span>↗</span></button><p v-if="message" role="status" :class="s.selectionMessage">{{message}}</p></div>
     <dialog ref="dialog" :class="s.dialog" aria-labelledby="look-preview-title" @click="event=>{if(event.target===dialog)closePreview();}"><div v-if="preview" :class="s.dialogContent"><div :class="s.dialogImage"><img v-if="!fullFailed" :src="lookImage(preview.id,true)+(retry?'?r='+retry:'')" :alt="title(preview)" @error="fullFailed=true"/><div v-else :class="s.previewError" role="alert"><p>{{t('图片未能加载')}}</p><button :class="s.secondary" type="button" @click="fullFailed=false;retry++">{{t('重新加载')}}</button></div></div><div :class="s.dialogInfo"><button :class="s.close" type="button" :aria-label="t('关闭预览')" @click="closePreview">×</button><p :class="s.eyebrow">{{seasonLabel(preview.season)}} ／ {{preview.id}}</p><h2 id="look-preview-title">{{title(preview)}}</h2><p>{{t('把喜欢的风格，穿进下一帧。')}}</p><div :class="s.tags"><button v-for="tag in preview.tags" :key="tag" type="button" :aria-pressed="selectedTags.includes(tag)" @click="selectedTags=toggle(selectedTags,tag);closePreview()">{{label(tag)}}</button></div><p :class="s.sourceNote">{{t('点击标签，发现更多同类衣装。')}}</p><div :class="s.dialogActions"><button :class="s.favoriteButton" type="button" :aria-pressed="favoriteState.ids.includes(preview.id)" :disabled="favoriteState.loading||Boolean(favoriteState.busyId)||Boolean(favoriteState.error)" @click="favorites.toggle(preview.id)"><span aria-hidden="true">{{favoriteState.ids.includes(preview.id)?'♥':'♡'}}</span>{{t(favoriteState.busyId===preview.id?'正在保存收藏…':favoriteState.ids.includes(preview.id)?'取消收藏衣装':'收藏衣装')}}</button><p v-if="favoriteState.error" role="alert">{{t(favoriteState.error)}} <button type="button" @click="favorites.refresh()">{{t('重新读取收藏')}}</button></p><button :class="s.primary" type="button" :disabled="fullFailed" @click="goCreate([preview.id])">{{t('穿这套，去创作')}} ↗</button><button :class="s.secondary" type="button" :aria-pressed="chosen.includes(preview.id)" @click="select(preview.id)">{{t(chosen.includes(preview.id)?'从清单移除':'加入试穿清单')}}</button><p v-if="message" role="status">{{message}}</p></div></div></div></dialog>
   </main>
 </template>

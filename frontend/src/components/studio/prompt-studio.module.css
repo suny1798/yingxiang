@@ -7,7 +7,7 @@
 .failure { color:var(--accent); }
 .stop { border:1px solid var(--accent); border-radius:22px; padding:8px 12px; background:var(--accent-soft); color:var(--accent); font-size:max(var(--font-min), calc(11px * var(--font-scale))); white-space:nowrap; }
 @container (max-height:430px) { .setup .imagine { display:none; }.setup { gap:8px; padding:12px; }.setup h3 { font-size:max(var(--font-min), calc(20px * var(--font-scale))); } }
-.heading,.previewHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; }.heading h2 { display:flex; align-items:center; gap:9px; font-size:max(var(--font-min), calc(15px * var(--font-scale))); font-weight:500; }.heading>span { font-size:max(var(--font-min), calc(10px * var(--font-scale))); color:var(--muted); }.count { display:grid; place-items:center; min-width:23px; height:23px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:max(var(--font-min), calc(11px * var(--font-scale))); }.intro { font-size:max(var(--font-min), calc(11px * var(--font-scale))); line-height:1.8; color:var(--muted); margin-top:12px; }
+.heading,.previewHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; }.heading h2 { display:flex; align-items:center; gap:9px; font-size:max(var(--font-min), calc(15px * var(--font-scale))); font-weight:500; }.heading>span { font-size:max(var(--font-min), calc(10px * var(--font-scale))); color:var(--muted); }.headingActions { display:flex; align-items:center; gap:10px; }.clear { border:0; background:none; padding:3px 2px; color:var(--muted); font-size:max(var(--font-min), calc(11px * var(--font-scale))); }.clear:not(:disabled):hover { color:var(--accent); }.clear:disabled { opacity:.35; cursor:default; }.count { display:grid; place-items:center; min-width:23px; height:23px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-size:max(var(--font-min), calc(11px * var(--font-scale))); }.intro { font-size:max(var(--font-min), calc(11px * var(--font-scale))); line-height:1.8; color:var(--muted); margin-top:12px; }
 .editor > :not(.history) { flex-shrink:0; }
 .history { flex:1; min-height:0; margin-top:16px; overflow-y:auto; scrollbar-width:thin; padding:3px; margin-inline:-3px; }
 .cards { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
@@ -52,7 +52,7 @@
 @media(max-width:620px) { .cameraActions { gap:4px; }.cameraActions>button { min-height:29px; padding:6px 8px; font-size:max(var(--font-min), calc(9px * var(--font-scale))); }.cameraActions>button svg { width:13px; height:13px; }.views button { padding-inline:7px; font-size:max(var(--font-min), calc(9px * var(--font-scale))); }.composer { padding-block:9px 8px; } }
 /* 左栏只保留组合列表与输入；示例作为等宽的灵感入口。 */
 .promptComposer { display:grid; gap:12px; margin-top:20px; padding-top:18px; border-top:1px solid var(--line); }
-.composeHeading { display:flex; align-items:center; justify-content:space-between; gap:12px; font-size:12px; }
+.promptInput { position:relative; }
 .promptComposer textarea { display:block; width:100%; min-width:0; height:112px; padding:12px; resize:none; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--ink); font:inherit; font-size:12px; line-height:1.8; }
 .promptComposer textarea::placeholder { color:var(--muted); }
 .promptComposer textarea:focus { outline:2px solid var(--accent); outline-offset:2px; }
@@ -70,3 +70,24 @@
  .editor .seed:before,.editor .seed:after { display:none; }
  .editor .pagination { justify-content:flex-end; padding-top:12px; }
 }
+
+/* 编辑先输入、再查看组合，空态不再把输入区压到面板底部。 */
+.editor[data-prompt-editor] { display:flex; height:100%; min-height:0; padding:0; border:0; border-radius:0; background:transparent; }
+.editor[data-prompt-editor] .promptComposer { gap:12px; margin:16px 0 0; padding:0; border:0; }
+.editor[data-prompt-editor] .promptInput .counter { position:absolute; right:13px; bottom:11px; font-size:11px; font-weight:400; pointer-events:none; }
+.editor[data-prompt-editor] textarea { height:144px; padding:13px 13px 32px; background:var(--paper); border-radius:10px; font-size:13px; }
+.editor[data-prompt-editor] .ideaGrid { gap:6px; }
+.editor[data-prompt-editor] .ideaGrid button { flex-direction:row; gap:5px; min-height:34px; padding:6px 3px; border:1px solid var(--line); border-radius:7px; background:transparent; font-size:11px; white-space:nowrap; }
+.editor[data-prompt-editor] .ideaGrid button svg { width:14px; height:14px; }
+.editor[data-prompt-editor] .ideaGrid button:hover { background:var(--accent-soft); border-color:var(--accent); }
+.editor[data-prompt-editor] .send { min-height:42px; border-radius:9px; font-size:13px; }
+.editor[data-prompt-editor] .heading { margin-top:24px; padding-top:22px; border-top:1px solid var(--line); }
+.editor[data-prompt-editor] .heading h2 { font-size:14px; }
+.editor[data-prompt-editor] .count { background:var(--paper); font-size:12px; }
+.editor[data-prompt-editor] .history { flex:1 1 auto; min-height:120px; margin:14px 0 0; padding:0; overflow:auto; }
+.editor[data-prompt-editor] .historyEmpty { height:100%; min-height:120px; gap:8px; border:1px dashed var(--line); border-radius:10px; background:var(--paper); }
+.editor[data-prompt-editor] .historyEmpty h3 { font-size:12px; font-weight:400; }
+.editor[data-prompt-editor] .seed { width:26px; height:26px; font-size:25px; }
+.editor[data-prompt-editor] .seed:before,.editor[data-prompt-editor] .seed:after { display:none; }
+.editor[data-prompt-editor] .card { background:var(--paper); border-color:var(--line); border-radius:10px; padding:12px; }
+.editor[data-prompt-editor] .card > p { font-size:13px; }

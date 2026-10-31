@@ -1,9 +1,10 @@
 import { CREATION_PLANS, type CreationPlanId } from './pricing';
+import { TOPUP_PLANS } from './billing';
 import { PRICING, type Duration, type PackCount } from './legacy-pricing';
 
 export interface PaymentOrder {
   id: string; userId: string; requestId: string; sku: string; seconds: Duration | null; count: PackCount | null; planId?: CreationPlanId; credits?: number;
-  amount: number; currency: 'cny'; createdAt: string; state: 'creating' | 'pending' | 'paid' | 'failed' | 'expired';
+  amount: number; currency: 'cny' | 'usd'; createdAt: string; state: 'creating' | 'pending' | 'paid' | 'failed' | 'expired';
   sessionId?: string; checkoutUrl?: string; expiresAt?: number; fulfilledAt?: string;
 }
 export type OrderView = Pick<PaymentOrder, 'id' | 'sku' | 'seconds' | 'count' | 'amount' | 'currency' | 'createdAt' | 'state' | 'fulfilledAt' | 'planId' | 'credits'>;
@@ -11,6 +12,7 @@ export const orderView = ({ id, sku, seconds, count, amount, currency, createdAt
   ({ id, sku, seconds, count, amount, currency, createdAt, state, fulfilledAt, ...(planId ? { planId, credits } : {}) });
 /** 版本化商品编号；客户端只提交编号，金额、币种、次数由服务端重新解析。 */
 export function paymentProduct(sku: unknown) {
+  for (const plan of TOPUP_PLANS) if (sku===plan.sku) return {sku,planId:plan.id,credits:plan.credits,amount:plan.paidMinor,currency:'usd' as const};
   for (const plan of CREATION_PLANS) if (sku === `credits-v1-${plan.id}`) return { sku, planId: plan.id, credits: plan.credits, amount: plan.priceFen, currency: 'cny' as const };
   for (const plan of PRICING) for (const count of [1, 5, 10] as const) {
     if (sku === `tryon-v1-${plan.seconds}-${count}`) return { sku, seconds: plan.seconds, count, amount: plan.prices[count], currency: 'cny' as const };

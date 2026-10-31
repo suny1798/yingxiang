@@ -24,7 +24,7 @@ function suggest(word: string) { category.value = '全部问题'; query.value = 
     <section v-if="!searching" aria-labelledby="guide-heading" :class="s.guides">
       <div :class="s.sectionHead"><h2 id="guide-heading">{{t('创作模式快速指南')}}</h2><span>{{t('选择模式查看操作步骤')}}</span></div>
       <div :class="s.guideGrid"><article v-for="guide in guides" :key="guide.href" :class="s.guide">
-        <div :class="s.guideTitle"><span aria-hidden="true">{{guide.symbol}}</span><h3>{{t(guide.title)}}</h3><small v-if="guide.href.endsWith('edit')">{{t('测试开放')}}</small></div><p>{{t(guide.intro)}}</p>
+        <div :class="s.guideTitle"><span aria-hidden="true">{{guide.symbol}}</span><h3>{{t(guide.title)}}</h3><small v-if="guide.href.endsWith('edit')">{{t('已开放')}}</small></div><p>{{t(guide.intro)}}</p>
         <ol><li v-for="step in guide.steps" :key="step">{{t(step)}}</li></ol><RouterLink :to="guide.href">{{t(guide.action)}}<span aria-hidden="true">↗</span></RouterLink>
       </article></div>
     </section>

@@ -42,6 +42,7 @@ logging:
     root: WARN
 migration:
   studio-fixture-enabled: false
+  studio-unlimited-usernames: ""
   studio-fixture-url: "http://127.0.0.1:12114/v1/client/tokens"
   auth-enabled: false
   account-read-enabled: false
@@ -55,6 +56,8 @@ migration:
   video-budget-usd: "0"
   video-max-jobs: "0"
   video-allowed-usernames: ""
+  video-unlimited-usernames: ""
+  video-free-trial-once: false
   video-provider-url: "http://127.0.0.1:12112"
   video-key: ""
   works-enabled: false
@@ -83,3 +86,5 @@ migration:
   allow-external-providers: ${MIGRATION_ALLOW_EXTERNAL_PROVIDERS:false}
   scenes-enabled: ${MIGRATION_SCENES_ENABLED:false}
   stripe-live-enabled: ${MIGRATION_STRIPE_LIVE_ENABLED:false}
+  # 余额模式默认关闭；开启时实时场景必须先具备可信后台用量核验。
+  billing-enabled: ${MIGRATION_BILLING_ENABLED:false}

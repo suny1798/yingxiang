@@ -46,7 +46,7 @@ public class AccountSecurity {
                 .authorizeHttpRequests(auth -> auth.requestMatchers("/account/me", "/account/register", "/account/login",
                                 "/account/logout", "/studio/status", "/studio/token", "/studio/observation",
                                 "/payments/**", "/admin/**", "/site/announcement", "/video/**", "/works/**", "/prompt/**",
-                                "/v1/**", "/garments/**")
+                                "/v1/**", "/garments/**", "/billing/**")
                         .permitAll().anyRequest().denyAll())
                 .exceptionHandling(errors -> errors.authenticationEntryPoint((request, response, error) -> unavailable(request, response, json))
                         .accessDeniedHandler((request, response, error) -> unavailable(request, response, json)));

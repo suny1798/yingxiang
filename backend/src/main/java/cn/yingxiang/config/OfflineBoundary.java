@@ -135,6 +135,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
         boolean garmentPath=garmentFavoritesEnabled&&path.startsWith("/api/garments/");
         boolean compatibilityPath = compatibilityEnabled && path.startsWith("/api/v1/");
         boolean paymentPath = paymentsEnabled && path.startsWith("/api/payments/");
+        boolean billingPath = authEnabled && path.startsWith("/api/billing/");
         boolean adminPath = adminEnabled && (path.startsWith("/api/admin/") || path.equals("/api/site/announcement"));
         if (maintenance && !safe && ((authEnabled && authPath) || ((studioFixtureEnabled || studioEnabled) && studioPath)
                 || paymentPath || adminPath || videoPath || worksPath || promptPath || garmentPath)) {
@@ -208,7 +209,7 @@ public final class OfflineBoundary extends OncePerRequestFilter {
             chain.doFilter(request, response);
         } else if ((studioFixtureEnabled || studioEnabled) && studioPath) {
             chain.doFilter(request, response);
-        } else if (paymentPath || adminPath || videoPath || worksPath || promptPath || compatibilityPath || garmentPath) {
+        } else if (paymentPath || adminPath || videoPath || worksPath || promptPath || compatibilityPath || garmentPath || billingPath) {
             chain.doFilter(request, response);
         } else {
             error(request, response, 503, "SERVICE_DISABLED", "Java业务迁移尚未完成", requestId);

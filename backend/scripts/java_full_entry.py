@@ -457,6 +457,9 @@ def main():
         check(archived[0] == 200 and parse(archived)['archived'] is True, 'video history archive')
         check(parse(call('GET', '/api/video/history?archived=true', cookie=user_cookie))['total'] == 1,
               'archived history filter')
+        video_works = parse(call('GET', '/api/works?kind=video', cookie=user_cookie))
+        check(video_works['total'] == 1 and len(video_works['items'][0]['references']) == 1,
+              'video work keeps garment reference')
 
         # 作品：分片、参考图、完成、Range、列表。
         work_id = str(uuid4())
@@ -492,6 +495,9 @@ def main():
                                      'Origin': f'http://127.0.0.1:{nginx_port}'},
                             body=json_body({'attemptId': str(uuid4()), 'consentVersion': '2026-10-26-prompt-history-v1', 'durationSec': 15}))
         check(prompt_token[0] == 200 and parse(prompt_token)['apiKey'] == TOKEN, 'prompt token through nginx')
+        account = parse(call('GET', '/api/account/me', cookie=user_cookie))
+        history_kinds = {item['kind'] for item in account['history']}
+        check({'video', 'edit'} <= history_kinds, 'account history includes video and edit')
         studio_status = call('GET', '/api/studio/status', cookie=user_cookie)
         check(studio_status[0] == 200 and parse(studio_status)['available'] is True, 'studio status')
         studio_token = call('POST', '/api/studio/token', cookie=user_cookie,

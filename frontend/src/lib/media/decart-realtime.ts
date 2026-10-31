@@ -3,12 +3,13 @@ import { LocalCamera } from './local-camera';
 import { RemotePreview } from './remote-preview';
 import type { DurationSec, StudioObservation } from '../studio/policy';
 import { ExperienceError } from '../try-on/types';
+import { envelopeData, envelopeMessage } from '../api-response';
 import { safeConnectionStage, type ConnectionStage } from '../prompt/connection-diagnostics';
 
 export type RealtimeConnector = { model: ModelDefinition; connect: (stream: MediaStream, options: RealTimeClientConnectOptions) => Promise<RealTimeClient> };
 export type RealtimeSdkFactory = (provider: () => Promise<string>, onProgress?: (stage: ConnectionStage) => void) => Promise<RealtimeConnector>;
 export const browserRequest: typeof fetch = (input, init) => fetch(input, init);
-export const sdkFor = (model: 'lucy-vton-3.6' | 'lucy-2.5'): RealtimeSdkFactory => async (apiKeyProvider, onProgress) => {
+export const sdkFor = (model: 'lucy-vton-3.6' | 'lucy-2.6'): RealtimeSdkFactory => async (apiKeyProvider, onProgress) => {
   const { createDecartClient, models, noopLogger } = await import('@decartai/sdk');
   // 只读取固定消息名，直接丢弃data；不把SDK原始对象或令牌写到console/服务端。
   const progress = (message: string) => { const stage = safeConnectionStage(message); if (stage) onProgress?.(stage); };
@@ -61,8 +62,12 @@ export class DecartRealtime {
       stage = 'status'; options.signal.throwIfAborted(); options.onPhase('creatingSession');
       progress('checkingService');
       const statusResponse = await this.request(this.endpoints.status, { cache: 'no-store', signal: options.signal });
-      const status = await statusResponse.json() as { available: boolean; access?: string };
-      if (!statusResponse.ok || !status.available || !status.access) throw new ExperienceError('SERVICE_NOT_READY', '当前云端体验尚未就绪，请检查服务状态后再开启。');
+      const statusBody = await statusResponse.json();
+      const status = envelopeData<{ available: boolean; access?: string; message?: string } | null>(statusBody);
+      if (!statusResponse.ok || !status?.available || !status.access) {
+        const message = !statusResponse.ok ? envelopeMessage(statusBody) : !status?.available ? status?.message : undefined;
+        throw new ExperienceError('SERVICE_NOT_READY', message ?? '当前云端体验尚未就绪，请检查服务状态后再开启。');
+      }
       work.access = status.access;
       let credentialRequested = false; stage = 'sdk';
       progress('preparingSdk');
@@ -71,9 +76,10 @@ export class DecartRealtime {
         credentialRequested = true; work.issued = true;
         progress('requestingToken');
         const response = await this.request(this.endpoints.token, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Studio-Access': work.access }, body: JSON.stringify({ attemptId: work.attemptId, consentVersion: this.endpoints.consentVersion, durationSec: options.durationSec }), signal: options.signal });
-        const value = await response.json();
-        if (!response.ok || typeof value.apiKey !== 'string' || value.durationSec !== options.durationSec) {
-          safeFailure = new ExperienceError('TOKEN_UNAVAILABLE', value.error?.message ?? '本轮令牌未能取得，请核对用量后再处理。'); throw safeFailure;
+        const tokenBody = await response.json();
+        const value = envelopeData<{ apiKey?: string; durationSec?: number; error?: { message?: string } } | null>(tokenBody);
+        if (!response.ok || typeof value?.apiKey !== 'string' || value.durationSec !== options.durationSec) {
+          safeFailure = new ExperienceError('TOKEN_UNAVAILABLE', (!response.ok ? envelopeMessage(tokenBody) : undefined) ?? value?.error?.message ?? '本轮令牌未能取得，请核对用量后再处理。'); throw safeFailure;
         }
         options.signal.throwIfAborted(); progress('tokenReady'); return value.apiKey as string;
       }, options.onProgress ? progress : undefined);

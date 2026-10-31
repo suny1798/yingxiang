@@ -52,9 +52,9 @@ public class AdminController {
                 MigrationSupport.readJson(request, json, 4096, false)));
     }
 
-    @PostMapping("/admin/users/{ident}/quota")
-    public void quotaChange(HttpServletRequest request, HttpServletResponse response, @PathVariable String ident) throws IOException {
-        run(request, response, true, () -> service.quotaChange(cookie(request), ident,
+    @PostMapping("/admin/users/{ident}/credits")
+    public void creditsChange(HttpServletRequest request, HttpServletResponse response, @PathVariable String ident) throws IOException {
+        run(request, response, true, () -> service.creditsChange(cookie(request), ident,
                 MigrationSupport.readJson(request, json, 4096, false)));
     }
 

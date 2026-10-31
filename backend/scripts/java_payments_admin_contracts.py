@@ -419,7 +419,7 @@ def main():
 
         page = call('GET', '/api/admin/users?q=m13_&page=1', cookie=ADMIN_COOKIE)
         check(page[0] == 200 and parse(page)['total'] == 5 and parse(page)['pages'] == 1, 'admin user page')
-        check(parse(page)['items'][0]['durations'][0]['seconds'] == 15, 'admin user durations')
+        check(parse(page)['items'][0]['credits'] == 0, 'admin user credits')
         check(call('GET', '/api/admin/users?page=0', cookie=ADMIN_COOKIE)[0] == 400, 'admin invalid page')
 
         promote_request = str(uuid4())
@@ -449,29 +449,28 @@ def main():
                                body=json_body(promote_body))
         check(no_origin_admin[0] == 403, 'admin origin check')
 
-        quota_add = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/quota', cookie=ADMIN_COOKIE,
-                         headers={'Content-Type': 'application/json'},
-                         body=json_body({'requestId': str(uuid4()), 'reason': '补充权益', 'seconds': 30, 'delta': 2}))
-        check(quota_add[0] == 200, 'quota add')
-        alice = fixture('admin-state', schema, {'username': 'm13_alice'})
-        check(sum(g['total'] - g['revoked'] for g in alice['grants'] if g['seconds'] == 30) == 5, 'quota added')
-        check(any(e['operationKey'].startswith('grant:admin:') for e in alice['entries']), 'quota grant entry')
-        quota_remove = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/quota', cookie=ADMIN_COOKIE,
-                            headers={'Content-Type': 'application/json'},
-                            body=json_body({'requestId': str(uuid4()), 'reason': '回收权益', 'seconds': 30, 'delta': -3}))
-        check(quota_remove[0] == 200, 'quota remove')
-        alice = fixture('admin-state', schema, {'username': 'm13_alice'})
-        check(sum(g['total'] - g['reserved'] - g['used'] - g['revoked'] for g in alice['grants'] if g['seconds'] == 30) == 2,
-              'quota removed')
-        check(any(e['operationKey'].startswith('admin-revoke:') for e in alice['entries']), 'quota revoke entry')
-        too_much = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/quota', cookie=ADMIN_COOKIE,
+        def credits():
+            return parse(call('GET', '/api/billing/wallet', cookie=ALICE_COOKIE))['real']['availableCredits']
+
+        credits_before = credits()
+        credit_add = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/credits', cookie=ADMIN_COOKIE,
+                          headers={'Content-Type': 'application/json'},
+                          body=json_body({'requestId': str(uuid4()), 'reason': '补充积分', 'delta': 2}))
+        check(credit_add[0] == 200, 'credits add')
+        check(credits() == credits_before + 2, 'credits added')
+        credit_remove = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/credits', cookie=ADMIN_COOKIE,
+                             headers={'Content-Type': 'application/json'},
+                             body=json_body({'requestId': str(uuid4()), 'reason': '回收积分', 'delta': -1}))
+        check(credit_remove[0] == 200, 'credits remove')
+        check(credits() == credits_before + 1, 'credits removed')
+        too_much = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/credits', cookie=ADMIN_COOKIE,
                         headers={'Content-Type': 'application/json'},
-                        body=json_body({'requestId': str(uuid4()), 'reason': '过度回收', 'seconds': 30, 'delta': -100}))
-        check(too_much[0] == 409 and parse(too_much)['reason'] == 'INSUFFICIENT_AVAILABLE', 'quota insufficient')
-        zero = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/quota', cookie=ADMIN_COOKIE,
+                        body=json_body({'requestId': str(uuid4()), 'reason': '过度回收', 'delta': -100}))
+        check(too_much[0] == 409 and parse(too_much)['reason'] == 'INSUFFICIENT_AVAILABLE', 'credits insufficient')
+        zero = call('POST', '/api/admin/users/11111111-1111-4111-8111-111111111111/credits', cookie=ADMIN_COOKIE,
                     headers={'Content-Type': 'application/json'},
-                    body=json_body({'requestId': str(uuid4()), 'reason': '零调整', 'seconds': 30, 'delta': 0}))
-        check(zero[0] == 400, 'quota zero rejected')
+                    body=json_body({'requestId': str(uuid4()), 'reason': '零调整', 'delta': 0}))
+        check(zero[0] == 400, 'credits zero rejected')
 
         settings = call('GET', '/api/admin/settings', cookie=ADMIN_COOKIE)
         check(settings[0] == 200 and parse(settings)['services']['version'] == 0, 'settings initial')

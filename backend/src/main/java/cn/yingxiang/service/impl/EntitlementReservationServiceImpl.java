@@ -25,6 +25,7 @@ public class EntitlementReservationServiceImpl implements EntitlementReservation
     private final TransactionTemplate transaction;
 
     private final String schema;
+    private final java.util.Set<String> testUsers;
 
     public EntitlementReservationServiceImpl(JdbcTemplate jdbc, EntitlementMapper entitlements,
                                              PlatformTransactionManager manager, Environment env) {
@@ -32,6 +33,8 @@ public class EntitlementReservationServiceImpl implements EntitlementReservation
             String value = env.getRequiredProperty("migration.db-schema");
             if (!value.matches("yingxiang_migration(?:_it_[a-f0-9]{12})?")) throw new IllegalArgumentException("Invalid quota schema");
             schema = '"' + value + '"' + ".";
+            testUsers = java.util.Arrays.stream(env.getProperty("migration.studio-unlimited-usernames", "").split(","))
+                    .map(String::strip).filter(name -> !name.isEmpty()).collect(java.util.stream.Collectors.toUnmodifiableSet());
             transaction = new TransactionTemplate(manager);
             transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
             transaction.setIsolationLevel(TransactionDefinition.ISOLATION_READ_COMMITTED);
@@ -50,6 +53,10 @@ public class EntitlementReservationServiceImpl implements EntitlementReservation
                     }
                     String userId = (String) users.getFirst().get("id");
                     if (!entitlements.attemptIds(schema, attemptId).isEmpty()) throw spent();
+                    if (testUsers.contains(users.getFirst().get("username"))) {
+                        entitlements.insertAttempt(schema, attemptId, userId, null, seconds, System.currentTimeMillis());
+                        return;
+                    }
                     var grants = entitlements.availableGrant(schema, userId, seconds);
                     if (grants.isEmpty()) throw unavailableDuration(seconds);
                     String grantId = grants.getFirst();
@@ -74,8 +81,12 @@ public class EntitlementReservationServiceImpl implements EntitlementReservation
             validateId(attemptId);
             return Boolean.TRUE.equals(transaction.execute(status -> {
                 var attempt = entitlements.lockAttempt(schema, attemptId);
-                if (attempt == null || attempt.get("grant_id") == null) throw BusinessFailure.unavailable();
+                if (attempt == null) throw BusinessFailure.unavailable();
                 if ("used".equals(attempt.get("account_state"))) return false;
+                if (attempt.get("grant_id") == null) {
+                    entitlements.markIssued(schema, attemptId, System.currentTimeMillis());
+                    return true;
+                }
                 int changed = entitlements.consumeGrant(schema, (String) attempt.get("grant_id"),
                         (String) attempt.get("user_id"));
                 if (changed != 1) throw BusinessFailure.unavailable();

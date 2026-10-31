@@ -181,3 +181,10 @@
  .accountDetails > div { padding-block:20px; }
  .historyTable td,.historyTable th { padding:20px 12px; }
 }
+
+.accountBenefits > :only-child { grid-column:1 / -1; }
+.accountBenefits .trialAction { display:inline-flex; align-items:center; gap:12px; margin-top:20px; padding:9px 16px; border-radius:8px; background:var(--accent); color:var(--on-accent); font-size:12px; }
+.accountBenefits .trialAction:hover { opacity:.9; }
+.accountBenefits .trialAction:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+
+.usageDetail { display:flex; flex-direction:column; gap:7px; color:var(--muted); white-space:nowrap; font-variant-numeric:tabular-nums; }.usageDetail > span { display:flex; gap:10px; justify-content:space-between; }.usageDetail strong { color:var(--ink); font-weight:500; }.usageNoCharge { color:var(--muted); white-space:nowrap; }.usageNote { color:var(--muted); font-size:12px; line-height:1.8; padding-top:14px; }

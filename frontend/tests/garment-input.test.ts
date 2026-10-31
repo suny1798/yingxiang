@@ -60,6 +60,21 @@ function immediate() {
   return { input, changes, revoked, decoded };
 }
 
+test('单图替换只保留新图并释放旧图，无效替换保留当前参考图', async () => {
+  const s = immediate();
+  await s.input.replace(file('a.png'));
+  await s.input.replace(file('b.png'));
+  assert.deepEqual(s.input.getSnapshot().garments.map(item => item.name), ['b.png']);
+  assert.equal(s.changes.at(-1)?.name, 'b.png');
+  assert.deepEqual(s.revoked, ['blob:1']);
+  await s.input.replace(file('bad.png'));
+  assert.deepEqual(s.input.getSnapshot().garments.map(item => item.name), ['b.png']);
+  assert.equal(s.changes.at(-1)?.name, 'b.png');
+  assert.deepEqual(s.revoked, ['blob:1']);
+  s.input.dispose();
+  assert.deepEqual(s.revoked, ['blob:1', 'blob:2']);
+});
+
 test('批量保留有效图并报告失败，默认首张，追加不切换，重复点选不触发更新', async () => {
   const s = immediate();
   await s.input.uploadMany([file('a.png'), file('bad.png'), file('b.png')]);

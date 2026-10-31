@@ -1,5 +1,5 @@
 export const PROMPT_POLICY = {
-  model: 'lucy-2.5', sdk: '0.2.12', consentVersion: '2026-10-26-prompt-history-v1',
+  model: 'lucy-2.6', sdk: '0.2.14', consentVersion: '2026-10-26-prompt-history-v1',
   durationSec: 15, connectionTimeoutMs: 30_000, tokenTtlSec: 10, usdPerSecond: 0.02, maxPromptLength: 500, maxStateLength: 6500,
 } as const;
 export const PROMPT_EXAMPLES = [

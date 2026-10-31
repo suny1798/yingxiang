@@ -1,6 +1,18 @@
 {
-  "sourceSha256": "3333c1ec91d419a3916146e489b5f47be3089dcc69f0a06db7abbff98de2b4e3",
+  "sourceSha256": "8f26570adc189aab2a888c3dadcdf84fb7f14ec359c7f86a7fab0d873927d89e",
   "routes": [
+    {
+      "path": "/api/billing/catalog",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/billing/wallet",
+      "methods": [
+        "GET"
+      ]
+    },
     {
       "path": "/api/admin/overview",
       "methods": [
@@ -20,7 +32,7 @@
       ]
     },
     {
-      "path": "/api/admin/users/{ident}/quota",
+      "path": "/api/admin/users/{ident}/credits",
       "methods": [
         "POST"
       ]

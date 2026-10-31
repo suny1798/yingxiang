@@ -417,10 +417,10 @@
         }
       }
     },
-    "/api/admin/users/{ident}/quota": {
+    "/api/admin/users/{ident}/credits": {
       "post": {
-        "summary": "Change Quota",
-        "operationId": "change_quota_api_admin_users__ident__quota_post",
+        "summary": "Change Credits",
+        "operationId": "change_credits_api_admin_users__ident__credits_post",
         "parameters": [
           {
             "name": "ident",
@@ -527,7 +527,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/QuotaChange"
+                "$ref": "#/components/schemas/CreditChange"
               }
             }
           }
@@ -6323,6 +6323,44 @@
           }
         }
       }
+    },
+    "/api/billing/catalog": {
+      "get": {
+        "operationId": "billing_catalog",
+        "summary": "版本化计费目录",
+        "responses": {
+          "200": {
+            "description": "统一响应信封",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/billing/wallet": {
+      "get": {
+        "operationId": "billing_wallet",
+        "summary": "本人真实及沙盒余额",
+        "responses": {
+          "200": {
+            "description": "统一响应信封",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6469,12 +6507,9 @@
             "type": "string",
             "title": "Createdat"
           },
-          "durations": {
-            "items": {
-              "$ref": "#/components/schemas/DurationView"
-            },
-            "type": "array",
-            "title": "Durations"
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
           }
         },
         "additionalProperties": false,
@@ -6485,7 +6520,7 @@
           "role",
           "disabled",
           "createdAt",
-          "durations"
+          "credits"
         ],
         "title": "AdminUser"
       },
@@ -7333,18 +7368,22 @@
             "title": "Id",
             "type": "string"
           },
+          "kind": {
+            "enum": [
+              "realtime",
+              "video",
+              "edit"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
           "createdAt": {
             "title": "Createdat",
             "type": "string"
           },
           "durationSec": {
-            "enum": [
-              15,
-              30,
-              60
-            ],
             "title": "Durationsec",
-            "type": "integer"
+            "type": "number"
           },
           "state": {
             "enum": [
@@ -7352,6 +7391,18 @@
               "review"
             ],
             "title": "State",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "review",
+              "ended",
+              "error",
+              "issued",
+              "processing",
+              "completed"
+            ],
+            "title": "Status",
             "type": "string"
           },
           "outcome": {
@@ -7369,13 +7420,79 @@
             ],
             "default": null,
             "title": "Outcome"
+          },
+          "resultDurationSec": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Backend-verified video result duration in seconds; null if unverified."
+          },
+          "resultPending": {
+            "type": "boolean"
+          },
+          "billing": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "state": {
+                    "type": "string",
+                    "enum": [
+                      "reserved",
+                      "review",
+                      "settled",
+                      "released"
+                    ]
+                  },
+                  "reservedCredits": {
+                    "type": "integer"
+                  },
+                  "chargedCredits": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "returnedCredits": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "state",
+                  "reservedCredits",
+                  "chargedCredits",
+                  "returnedCredits"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
           "id",
+          "kind",
           "createdAt",
           "durationSec",
-          "state"
+          "state",
+          "status"
         ],
         "title": "HistoryView",
         "type": "object"
@@ -7449,6 +7566,22 @@
           "trialRemaining": {
             "title": "Trialremaining",
             "type": "integer"
+          },
+          "studioTestAccess": {
+            "description": "当前登录账号是否有服务端明确配置的实时换装测试权限，不扣积分或旧次数。",
+            "type": "boolean"
+          },
+          "videoTrial": {
+            "type": "object",
+            "properties": {
+              "enabled": { "type": "boolean" },
+              "limit": { "type": "integer" },
+              "seconds": { "type": "integer" },
+              "remaining": { "type": "integer" },
+              "unlimited": { "type": "boolean" }
+            },
+            "required": ["enabled", "limit", "seconds", "remaining", "unlimited"],
+            "additionalProperties": false
           },
           "durations": {
             "items": {
@@ -7592,9 +7725,12 @@
             "type": "integer"
           },
           "currency": {
-            "const": "cny",
             "title": "Currency",
-            "type": "string"
+            "type": "string",
+            "enum": [
+              "cny",
+              "usd"
+            ]
           },
           "state": {
             "enum": [
@@ -7926,7 +8062,7 @@
         "title": "UserChange",
         "type": "object"
       },
-      "QuotaChange": {
+      "CreditChange": {
         "additionalProperties": false,
         "properties": {
           "requestId": {
@@ -7939,15 +8075,6 @@
             "title": "Reason",
             "type": "string"
           },
-          "seconds": {
-            "enum": [
-              15,
-              30,
-              60
-            ],
-            "title": "Seconds",
-            "type": "integer"
-          },
           "delta": {
             "maximum": 1000000,
             "minimum": -1000000,
@@ -7958,10 +8085,9 @@
         "required": [
           "requestId",
           "reason",
-          "seconds",
           "delta"
         ],
-        "title": "QuotaChange",
+        "title": "CreditChange",
         "type": "object"
       },
       "SettingsChange": {

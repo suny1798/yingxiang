@@ -6,7 +6,7 @@
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { constants } from 'node:fs';
+import { constants, readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join } from 'node:path';
@@ -14,6 +14,7 @@ import { fileURLToPath } from 'node:url';
 import { PUBLIC_ROUTES, PRIVATE_ROUTES, SHARE_IMAGE, SHARE_IMAGE_ALT, SITE_NAME, isPrivatePath, pageTitle, publicPage, type PageMeta } from '../src/vue/route-data';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
+const frontendConfig = JSON.parse(readFileSync(join(root, 'config/frontend.json'), 'utf8')) as { publicOrigin?: string; chromeBin?: string };
 const dist = join(root, 'dist');
 const VIRTUAL_TIME_BUDGET_MS = 3000;
 const ROUTE_TIMEOUT_MS = 30_000;
@@ -22,7 +23,7 @@ const ROUTE_TIMEOUT_MS = 30_000;
 const BODY_MARKERS: Record<string, string> = {
   '/wardrobe': '下一套，',
   '/': '让想象，',
-  '/pricing': '套餐与积分',
+  '/pricing': '充值与积分',
   '/help': '使用指南与常见问题',
   '/help/feedback': '整理问题反馈',
   '/privacy': '隐私与使用说明',
@@ -48,7 +49,7 @@ const MIME: Record<string, string> = {
 };
 
 const CHROME_CANDIDATES = [
-  process.env.YINGXIANG_CHROME_BIN,
+  process.env.YINGXIANG_CHROME_BIN ?? frontendConfig.chromeBin,
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   'C:/Program Files (x86)/Google/Chrome/Application/chrome.exe',
   process.env.LOCALAPPDATA ? join(process.env.LOCALAPPDATA, 'Google/Chrome/Application/chrome.exe') : undefined,
@@ -69,9 +70,9 @@ async function findChrome(): Promise<string> {
 }
 
 function publicOrigin(): string | null {
-  const raw = process.env.YINGXIANG_PUBLIC_ORIGIN?.trim().replace(/\/+$/, '');
+  const raw = (process.env.YINGXIANG_PUBLIC_ORIGIN ?? frontendConfig.publicOrigin ?? '').trim().replace(/\/+$/, '');
   if (!raw) return null;
-  if (!/^https?:\/\/[^/?#]+$/.test(raw)) throw new Error('YINGXIANG_PUBLIC_ORIGIN 必须是 http(s)://主机[:端口] 形式，且不带路径。');
+  if (!/^https?:\/\/[^/?#]+$/.test(raw)) throw new Error('frontend.json publicOrigin 必须是 http(s)://主机[:端口] 形式，且不带路径。');
   return raw;
 }
 
@@ -234,7 +235,7 @@ async function main(): Promise<void> {
     shell: 'dist/app.html',
     anonymousApiStubs: Object.keys(API_STUBS).length,
     canonicalOrigin: origin,
-    note: origin ? undefined : '未设置YINGXIANG_PUBLIC_ORIGIN，已省略canonical、og:url与分享图绝对地址',
+    note: origin ? undefined : 'frontend/config/frontend.json 未配置 publicOrigin，已省略canonical、og:url与分享图绝对地址',
   }, null, 2));
 }
 

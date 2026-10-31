@@ -73,11 +73,14 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
     private final String key;
     private final HttpClient client;
     private final AtomicBoolean running = new AtomicBoolean();
+    private final cn.yingxiang.service.BillingService billing;
+    private long lastBillingCheck;
     private Environment environment;
     private Thread thread;
 
     public WorkerService(JdbcTemplate jdbc, WorkerMapper workers, StoragePort storage, PlatformTransactionManager manager,
-                         Environment env, JsonMapper json) {
+                         Environment env, JsonMapper json, cn.yingxiang.service.BillingService billing) {
+        this.billing = billing;
         this.jdbc = jdbc; this.workers = workers; this.storage = storage; this.environment = env; this.json = json;
         this.schema = MigrationSupport.requireIsolatedSchema(jdbc, env, "M17 worker");
         transaction = new TransactionTemplate(manager);
@@ -153,6 +156,7 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
 
     /** 执行一次对账与有限批次认领；供测试和运行循环共用。 */
     public int runOnce() {
+        reconcileBilling();
         reconcile();
         int handled = 0;
         for (int index = 0; index < batch; index++) {
@@ -162,6 +166,46 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
             handled++;
         }
         return handled;
+    }
+
+    /** 钱包结算独立于作品是否被删除，避免删除作品后预留永远无法返还。 */
+    private void reconcileBilling() {
+        long now = System.currentTimeMillis();
+        if (now - lastBillingCheck < 3000) return;
+        lastBillingCheck = now;
+        for (var job : billing.pendingVideos()) {
+            try {
+                String state = (String) job.get("state"), id = (String) job.get("id");
+                if (!Set.of("completed", "failed").contains(state)) {
+                    String providerId = (String) job.get("provider_id");
+                    var request = HttpRequest.newBuilder(URI.create(providerBase + "/v1/jobs/" + providerId))
+                            .timeout(Duration.ofSeconds(15)).header("X-API-KEY", key).GET().build();
+                    var response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                    if (response.statusCode() != 200 || response.body().length > 8192) continue;
+                    var value = json.readTree(response.body());
+                    if (!providerId.equals(value.path("job_id").asString())) continue;
+                    state = value.path("status").asString();
+                }
+                if (Set.of("completed", "failed").contains(state)) {
+                    if ("completed".equals(state)) {
+                        var request = HttpRequest.newBuilder(URI.create(providerBase + "/v1/jobs/" + job.get("provider_id") + "/content"))
+                                .timeout(Duration.ofSeconds(120)).header("X-API-KEY", key).GET().build();
+                        var response = client.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                        try (var input = response.body()) {
+                            if (response.statusCode() != 200) continue;
+                            byte[] bytes = input.readNBytes((int) MAX_RESULT + 1);
+                            if (bytes.length > MAX_RESULT) continue;
+                            recordResultDuration(id, Mp4.resultDurationMillis(bytes));
+                        }
+                    }
+                    String finalState = state;
+                    transaction.executeWithoutResult(status -> {
+                        workers.updateVideoState(schema, id, finalState);
+                        billing.settleVideoVerified(id, finalState);
+                    });
+                }
+            } catch (Exception ignored) { /* 未确认结果继续保留预留，不重提生成。 */ }
+        }
     }
 
     public void reconcile() {
@@ -254,7 +298,10 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
             if (!ident.equals(job.providerId()) || !Set.of("pending", "processing", "completed", "failed").contains(state)) {
                 throw new IllegalStateException();
             }
-            workers.updateVideoState(schema, job.id(), state);
+            transaction.executeWithoutResult(status -> {
+                workers.updateVideoState(schema, job.id(), state);
+                billing.settleVideoVerified(job.id(), state);
+            });
             reschedule(task, 200L, null, true);
         } catch (Exception error) {
             reschedule(task, work.retries() > 0 ? 10_000L : 2_000L, "STATUS_UNAVAILABLE");
@@ -297,6 +344,11 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
                 output.force(true);
             }
             if (!validMp4(temporary)) throw new IllegalStateException();
+            try { recordResultDuration(job.id(), Mp4.resultDurationMillis(Files.readAllBytes(temporary))); }
+            catch (IllegalArgumentException unverified) {
+                workers.recordVideoWorkDuration(schema, job.id(), 0);
+                billing.review(job.id());
+            }
             if (!publish(task, work, temporary, total)) {
                 Files.deleteIfExists(temporary);
                 Work current = work(work.id());
@@ -315,6 +367,14 @@ public class WorkerService implements SmartLifecycle, EnvironmentAware {
                 retry(task, current, "SAVE_FAILED");
             }
         }
+    }
+
+    private void recordResultDuration(String id, long milliseconds) {
+        transaction.executeWithoutResult(status -> {
+            workers.recordVideoDuration(schema, id, milliseconds);
+            workers.recordVideoWorkDuration(schema, id, milliseconds);
+            billing.settleVideoVerified(id, "completed");
+        });
     }
 
     /** 发布前在同一数据库事务内核对任务租约代次和作品状态；旧代次不能覆盖最终对象。 */

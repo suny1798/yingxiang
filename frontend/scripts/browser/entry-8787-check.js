@@ -6,7 +6,7 @@ async (page) => {
   await page.setViewportSize({width:1440,height:1000});
   await page.emulateMedia({reducedMotion:'reduce'});
   await page.context().addCookies([{name:'yingxiang-locale',value:'zh',url:origin},{name:'yingxiang-theme',value:'light',url:origin}]);
-  const publicPages=[['/','映想 — 让想象，在眼前发生。','让想象，'],['/pricing','价格方案 · 映想','套餐与积分'],['/help','帮助中心 · 映想','使用指南与常见问题'],['/help/feedback','问题反馈 · 映想','整理问题反馈'],['/privacy','隐私与使用说明 · 映想','隐私与使用说明'],['/terms','用户协议 · 映想','用户协议']];
+  const publicPages=[['/','映想 — 让想象，在眼前发生。','让想象，'],['/pricing','价格方案 · 映想','充值与积分'],['/help','帮助中心 · 映想','使用指南与常见问题'],['/help/feedback','问题反馈 · 映想','整理问题反馈'],['/privacy','隐私与使用说明 · 映想','隐私与使用说明'],['/terms','用户协议 · 映想','用户协议']];
   const privatePages=[['/account','个人中心 · 映想','登录后查看'],['/account/usage','使用记录 · 映想','登录后查看'],['/account/orders','我的订单 · 映想','登录后查看'],['/account/security','账号信息 · 映想','登录后查看'],['/admin','管理后台 · 映想','这里需要管理员权限'],['/studio','创作空间 · 映想',''],['/studio/video','视频换装 · 映想',''],['/studio/edit','实时编辑 · 映想',''],['/works','我的作品 · 映想','登录后查看作品']];
   const layout=async(path,title,marker)=>{
     const response=await page.goto(origin+path);check(response.status()===200,path+' status');
